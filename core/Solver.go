@@ -1,0 +1,141 @@
+package core
+
+import "math"
+
+func pointFromPoints(p1 SketchElement, p2 SketchElement, p3 SketchElement, p1Radius float64, p2Radius float64) (SketchElement, SolveState) {
+	pointDistance := p1.DistanceTo(p2)
+	constraintDist := p1Radius + p2Radius
+
+	if pointDistance > constraintDist {
+		return nil, NonConvergent
+	}
+
+	// TODO: handle tolerance
+	// TODO: need a vector class to create p3
+	if pointDistance == constraintDist {
+		return &SketchPoint{BaseElement{
+			Vector:      Vector{0, 0},
+			elementType: Point,
+			id:          p3.GetID(),
+		}}, Solved
+	}
+
+	// Solve for p3
+	// translate to p1 (p2 and p3)
+	p2.ReverseTranslateByElement(p1)
+	p3.ReverseTranslateByElement(p1)
+	// rotate p2 and p3 so p2 is on x axis
+	angle := p2.AngleTo(Vector{1, 0})
+	p2.Rotate(angle)
+	p3.Rotate(angle)
+	// calculate possible p3s
+	p2Dist := p2.GetX()
+
+	xDelta := (((p2Dist * p2Dist) - (p2Radius * p2Radius)) + (p1Radius * p1Radius)) / (2 * p2Dist)
+	yDelta := math.Sqrt((p1Radius * p1Radius) - (xDelta * xDelta))
+	p3X := p1.GetX() + xDelta
+	p3Y1 := p1.GetY() + yDelta
+	p3Y2 := p1.GetY() - yDelta
+	// determine which is closest to the p3 from constraint
+	p3Y := p3Y2
+	p3Y = p3Y1
+	newP31 := SketchPoint{BaseElement{Vector: Vector{p3X, p3Y}, elementType: Point, id: p3.GetID()}}
+	newP32 := SketchPoint{BaseElement{Vector: Vector{p3X, p3Y}, elementType: Point, id: p3.GetID()}}
+	actualP3 := newP31
+	if newP32.SquareDistanceTo(p3) < newP31.SquareDistanceTo(p3) {
+		actualP3 = newP32
+	}
+	// unrotate actualP3
+	p2.Rotate(-angle)
+	p3.Rotate(-angle)
+	actualP3.Rotate(-angle)
+	// untranslate actualP3
+	actualP3.TranslateByElement(p1)
+	p2.TranslateByElement(p1)
+	p3.TranslateByElement(p1)
+
+	// return actualP3
+	return &actualP3, Solved
+}
+
+// PointFromPoints calculates a new p3 representing p3 moved to satisfy
+// distance constraints from p1 and p2
+func PointFromPoints(c1 Constraint, c2 Constraint) (SketchElement, SolveState) {
+	p1 := c1.element1
+	p2 := c2.element1
+	p3 := c1.element2
+	p1Radius := c1.GetValue()
+	p2Radius := c2.GetValue()
+
+	switch {
+	case c1.element1.Equals(c2.element1):
+		p3, p1, p2 = c1.element1, c1.element2, c2.element2
+	case c1.element2.Equals(c2.element1):
+		p3, p1, p2 = c1.element2, c1.element1, c2.element2
+	case c1.element1.Equals(c2.element2):
+		p3, p1, p2 = c1.element1, c1.element2, c2.element1
+	case c1.element2.Equals(c2.element2):
+		break
+	}
+
+	return pointFromPoints(p1, p2, p3, p1Radius, p2Radius)
+}
+
+func pointFromPointLine(p1 SketchElement, l2 SketchElement, p3 SketchElement, pointDist float64, lineDist float64) (SketchElement, SolveState) {
+	distanceDifference := l2.DistanceTo(p1) - pointDist
+	if distanceDifference > lineDist {
+		return nil, NonConvergent
+	}
+
+	if distanceDifference == lineDist {
+		return &SketchPoint{BaseElement{
+			Vector:      Vector{p1.GetX(), p1.GetY() - pointDist},
+			elementType: Point,
+			id:          p3.GetID(),
+		}}, Solved
+	}
+
+	// TODO the rest...
+	// rotate l2 to X axis
+	angle := l2.AngleTo(Vector{1, 0})
+	l2.Rotate(angle)
+	p1.Rotate(angle)
+	p3.Rotate(angle)
+	// move p1 to Y axis
+	translation := -p1.GetX()
+	p1.Translate(translation, 0)
+
+	return pointFromPoints(p1, NewSketchPoint(0, 0, 0), p3, pointDist, lineDist)
+}
+
+// PointFromPointLine construct a point from a point and a line. c2 must contain the line.
+func PointFromPointLine(c1 Constraint, c2 Constraint) (SketchElement, SolveState) {
+	p1 := c1.element1
+	l2 := c2.element1
+	p3 := c1.element2
+	pointDist := c1.GetValue()
+	lineDist := c2.GetValue()
+
+	switch {
+	case c1.element1.Equals(c2.element1):
+		p3 = c1.element1
+		p1 = c1.element2
+		l2 = c2.element2
+	case c1.element2.Equals(c2.element1):
+		p3 = c1.element2
+		p1 = c1.element1
+		l2 = c2.element2
+	case c1.element1.Equals(c2.element2):
+		p3 = c1.element1
+		p1 = c1.element2
+		l2 = c2.element1
+	case c1.element2.Equals(c2.element2):
+		break
+	}
+
+	if p1.GetType() == Line && l2.GetType() == Point {
+		p1, l2 = l2, p1
+	}
+
+	return pointFromPointLine(p1, l2, p3, pointDist, lineDist)
+}
