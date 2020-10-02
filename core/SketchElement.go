@@ -133,7 +133,8 @@ func NewSketchPoint(id uint, x float64, y float64) *SketchPoint {
 	}}
 }
 
-// SketchLine represents a line in a 2D sketch
+// SketchLine represents a line in a 2D sketch in the form
+// Ax + By + C = 0. A and B are represented as x and y in the BaseElement
 type SketchLine struct {
 	BaseElement
 	originDistance float64
@@ -152,6 +153,15 @@ func NewSketchLine(id uint, x float64, y float64, d float64) *SketchLine {
 		originDistance: d,
 	}
 }
+
+// GetA returns A in the formula Ax + By + C = 0
+func (l *SketchLine) GetA() float64 { return l.GetX() }
+
+// GetB returns B in the formula Ax + By + C = 0
+func (l *SketchLine) GetB() float64 { return l.GetY() }
+
+// GetC returns c in the formula Ax + By + C = 0
+func (l *SketchLine) GetC() float64 { return l.originDistance }
 
 // GetOriginDistance returns the distance to the origin for this line
 func (l *SketchLine) GetOriginDistance() float64 { return l.originDistance }
@@ -172,6 +182,11 @@ func (l *SketchLine) TranslateByElement(e *BaseElement) {
 // ReverseTranslateByElement translates the location of this line by the inverse of another element
 func (l *SketchLine) ReverseTranslateByElement(e *BaseElement) {
 	l.Translate(-e.GetX(), -e.GetY())
+}
+
+// GetSlope returns the slope of the line (Ax + By + C = 0)
+func (l *SketchLine) GetSlope() float64 {
+	return -l.GetX() / l.GetY()
 }
 
 // IdentityMap is a map of id to SketchElement
