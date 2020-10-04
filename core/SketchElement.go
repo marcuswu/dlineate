@@ -137,7 +137,7 @@ func NewSketchPoint(id uint, x float64, y float64) *SketchPoint {
 // Ax + By + C = 0. A and B are represented as x and y in the BaseElement
 type SketchLine struct {
 	BaseElement
-	originDistance float64
+	c float64
 }
 
 // NewSketchLine creates a new SketchLine
@@ -150,7 +150,7 @@ func NewSketchLine(id uint, x float64, y float64, d float64) *SketchLine {
 			id:          id,
 		},
 		// Distance from the origin
-		originDistance: d,
+		c: d,
 	}
 }
 
@@ -161,32 +161,84 @@ func (l *SketchLine) GetA() float64 { return l.GetX() }
 func (l *SketchLine) GetB() float64 { return l.GetY() }
 
 // GetC returns c in the formula Ax + By + C = 0
-func (l *SketchLine) GetC() float64 { return l.originDistance }
+func (l *SketchLine) GetC() float64 { return l.c }
+
+// SetC set the c value for the line (Ax + Bx + C = 0)
+func (l *SketchLine) SetC(c float64) { l.c = c }
+
+// SquareDistanceTo returns the squared distance to the other element
+func (l *SketchLine) SquareDistanceTo(o SketchElement) float64 {
+	d := l.DistanceTo(o)
+
+	return d * d
+}
+
+func (l *SketchLine) distanceToPoint(x float64, y float64) float64 {
+	return math.Abs((l.GetA()*x)+(l.GetB()*y)+l.GetC()) / l.Magnitude()
+}
+
+// DistanceTo returns the distance to the other element
+func (l *SketchLine) DistanceTo(o SketchElement) float64 {
+	switch o.GetType() {
+	case Line:
+		return l.distanceToPoint(0, 0) - o.(*SketchLine).distanceToPoint(0, 0)
+	default:
+		return l.distanceToPoint(o.GetX(), o.GetY())
+	}
+}
 
 // GetOriginDistance returns the distance to the origin for this line
-func (l *SketchLine) GetOriginDistance() float64 { return l.originDistance }
+func (l *SketchLine) GetOriginDistance() float64 { return l.distanceToPoint(0, 0) }
 
-// SetOriginDistance returns the distance to the origin for this line
-func (l *SketchLine) SetOriginDistance(distance float64) { l.originDistance = distance }
+// PointNearestOrigin get the point on the line nearest to the origin
+func (l *SketchLine) PointNearestOrigin() *SketchPoint {
+	return NewSketchPoint(
+		0,
+		(-l.GetC()*l.GetA())/l.SquareMagnitude(),
+		(-l.GetC()*l.GetB())/l.SquareMagnitude())
+}
+
+/*// TranslateDistance translates the line by a distance along its normal
+func (l *SketchLine) TranslateDistance(dist float64) *SketchLine {
+	// find point nearest to origin
+	p := l.PointNearestOrigin()
+	p.Translate()
+}*/
+
+// Translated returns a line translated by an x and y value
+func (l *SketchLine) Translated(tx float64, ty float64) *SketchLine {
+	pointOnLine := Vector{0, -l.GetC() / l.GetB()}
+	pointOnLine.Translate(tx, ty)
+	newC := (-l.GetA() * tx) - (l.GetB() * ty)
+	return NewSketchLine(l.GetID(), l.GetX(), l.GetY(), newC)
+}
 
 // Translate translates the location of this line by an x and y distance
 func (l *SketchLine) Translate(tx float64, ty float64) {
-	l.originDistance = l.originDistance + (tx * l.y) - (ty * l.x)
+	l.c = l.Translated(tx, ty).GetC()
 }
 
 // TranslateByElement translates the location of this line by another element
-func (l *SketchLine) TranslateByElement(e *BaseElement) {
-	l.Translate(e.GetX(), e.GetY())
+func (l *SketchLine) TranslateByElement(e SketchElement) {
+	point := e
+	if e.GetType() == Line {
+		point = e.(*SketchLine).PointNearestOrigin()
+	}
+	l.Translate(point.GetX(), point.GetY())
 }
 
 // ReverseTranslateByElement translates the location of this line by the inverse of another element
-func (l *SketchLine) ReverseTranslateByElement(e *BaseElement) {
-	l.Translate(-e.GetX(), -e.GetY())
+func (l *SketchLine) ReverseTranslateByElement(e SketchElement) {
+	point := e
+	if e.GetType() == Line {
+		point = e.(*SketchLine).PointNearestOrigin()
+	}
+	l.Translate(-point.GetX(), -point.GetY())
 }
 
 // GetSlope returns the slope of the line (Ax + By + C = 0)
 func (l *SketchLine) GetSlope() float64 {
-	return -l.GetX() / l.GetY()
+	return -l.GetA() / l.GetB()
 }
 
 // IdentityMap is a map of id to SketchElement
