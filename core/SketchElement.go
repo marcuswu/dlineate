@@ -198,12 +198,18 @@ func (l *SketchLine) PointNearestOrigin() *SketchPoint {
 		(-l.GetC()*l.GetB())/l.SquareMagnitude())
 }
 
-/*// TranslateDistance translates the line by a distance along its normal
+// TranslateDistance translates the line by a distance along its normal
 func (l *SketchLine) TranslateDistance(dist float64) *SketchLine {
 	// find point nearest to origin
 	p := l.PointNearestOrigin()
-	p.Translate()
-}*/
+	move := p.UnitVector()
+	move.Scaled(dist)
+	p.Translate(move.GetX, move.GetY())
+	// Find C to make line with slope for A & B pass through p
+	// -Ax - By = C
+	newC := (-l.GetA() * p.GetX()) - (l.GetB() * p.GetY())
+	return NewSketchLine(l.GetID(), l.GetA(), l.GetB(), newC)
+}
 
 // Translated returns a line translated by an x and y value
 func (l *SketchLine) Translated(tx float64, ty float64) *SketchLine {
@@ -239,6 +245,15 @@ func (l *SketchLine) ReverseTranslateByElement(e SketchElement) {
 // GetSlope returns the slope of the line (Ax + By + C = 0)
 func (l *SketchLine) GetSlope() float64 {
 	return -l.GetA() / l.GetB()
+}
+
+// Intersection returns the intersection of two lines
+func (l *SketchLine) Intersection(l2 *SketchLine) Vector {
+	y := ((l.GetC() / l.GetA()) + (l2.GetC() / l2.GetA())) * (1 - (l2.GetA() / l.GetB()))
+	return Vector{
+		(-l2.GetC() - (l2.GetB() * y)) / l2.GetA(),
+		y
+	}
 }
 
 // IdentityMap is a map of id to SketchElement

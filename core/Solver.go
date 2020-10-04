@@ -142,14 +142,18 @@ func PointFromPointLine(c1 Constraint, c2 Constraint) (SketchElement, SolveState
 
 func pointFromLineLine(l1 SketchElement, l2 SketchElement, p3 SketchElement, line1Dist float64, line2Dist float64) (SketchElement, SolveState) {
 	// If l1 and l2 are parallel, there is no solution
-	if l1.(*SketchLine).GetSlope() == l2.(*SketchLine).GetSlope() {
+	line1, line2 := l1.(*SketchLine), l2.(*SketchLine)
+	if line1.GetSlope() == l2.GetSlope() {
 		return nil, NonConvergent
 	}
 	// Translate l1 line1Dist
+	line1Translated := line1.TranslateDistance(line1Dist)
 	// Translate l2 line2Dist
+	line2Translated := line2.TranslateDistance(line2Dist)
 	// Return intersection point
+	intersection := line1.Intersection(line2)
 
-	return l1, Solved
+	return NewSketchPoint(p3.GetID, intersection.GetX(), intersection.GetY()), Solved
 }
 
 // PointFromLineLine construct a point from two lines. c2 must contain the point.
