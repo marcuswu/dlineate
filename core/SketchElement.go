@@ -26,8 +26,6 @@ type SketchElement interface {
 	Is(SketchElement) bool
 	SquareDistanceTo(SketchElement) float64
 	DistanceTo(SketchElement) float64
-	// TODO: fill this out
-
 }
 
 // ElementList is a list of SketchElements
@@ -93,12 +91,12 @@ func (p *BaseElement) Rotate(tx float64, ty float64, angle float64) {
 
 // TranslateByElement translates coordinates by another element's coordinates
 func (p *BaseElement) TranslateByElement(e SketchElement) {
-	p.Translate(p.x+e.GetX(), p.y+e.GetY())
+	p.Translate(+e.GetX(), +e.GetY())
 }
 
 // ReverseTranslateByElement translates coordinates by the inverse of another element's coordinates
 func (p *BaseElement) ReverseTranslateByElement(e SketchElement) {
-	p.Translate(p.x-e.GetX(), p.y-e.GetY())
+	p.Translate(-e.GetX(), -e.GetY())
 }
 
 // Is returns true if the two elements are equal
