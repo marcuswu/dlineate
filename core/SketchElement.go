@@ -23,7 +23,7 @@ type SketchElement interface {
 	TranslateByElement(SketchElement)
 	ReverseTranslateByElement(SketchElement)
 	Rotate(tx float64)
-	Equals(SketchElement) bool
+	Is(SketchElement) bool
 	SquareDistanceTo(SketchElement) float64
 	DistanceTo(SketchElement) float64
 	// TODO: fill this out
@@ -101,13 +101,17 @@ func (p *BaseElement) ReverseTranslateByElement(e SketchElement) {
 	p.Translate(p.x-e.GetX(), p.y-e.GetY())
 }
 
-// Equals returns true if the two elements are equal
-func (p *BaseElement) Equals(o SketchElement) bool {
+// Is returns true if the two elements are equal
+func (p *BaseElement) Is(o SketchElement) bool {
 	return p.id == o.GetID()
 }
 
 // SquareDistanceTo returns the squared distance to the other element
 func (p *BaseElement) SquareDistanceTo(o SketchElement) float64 {
+	if o.GetType() == Line {
+		d := o.(*SketchLine).DistanceTo(p)
+		return d * d
+	}
 	a := p.x - o.GetX()
 	b := p.y - o.GetY()
 
@@ -181,6 +185,8 @@ func (l *SketchLine) distanceToPoint(x float64, y float64) float64 {
 func (l *SketchLine) DistanceTo(o SketchElement) float64 {
 	switch o.GetType() {
 	case Line:
+		// Technically I should return 0 if lines aren't parallel
+		// Here I am instead comparing min distances to origin
 		return l.distanceToPoint(0, 0) - o.(*SketchLine).distanceToPoint(0, 0)
 	default:
 		return l.distanceToPoint(o.GetX(), o.GetY())
@@ -202,9 +208,9 @@ func (l *SketchLine) PointNearestOrigin() *SketchPoint {
 func (l *SketchLine) TranslateDistance(dist float64) *SketchLine {
 	// find point nearest to origin
 	p := l.PointNearestOrigin()
-	move := p.UnitVector()
+	move, _ := p.UnitVector()
 	move.Scaled(dist)
-	p.Translate(move.GetX, move.GetY())
+	p.Translate(move.GetX(), move.GetY())
 	// Find C to make line with slope for A & B pass through p
 	// -Ax - By = C
 	newC := (-l.GetA() * p.GetX()) - (l.GetB() * p.GetY())
@@ -215,7 +221,7 @@ func (l *SketchLine) TranslateDistance(dist float64) *SketchLine {
 func (l *SketchLine) Translated(tx float64, ty float64) *SketchLine {
 	pointOnLine := Vector{0, -l.GetC() / l.GetB()}
 	pointOnLine.Translate(tx, ty)
-	newC := (-l.GetA() * tx) - (l.GetB() * ty)
+	newC := (-l.GetA() * pointOnLine.GetX()) - (l.GetB() * pointOnLine.GetY())
 	return NewSketchLine(l.GetID(), l.GetX(), l.GetY(), newC)
 }
 
@@ -249,11 +255,11 @@ func (l *SketchLine) GetSlope() float64 {
 
 // Intersection returns the intersection of two lines
 func (l *SketchLine) Intersection(l2 *SketchLine) Vector {
-	y := ((l.GetC() / l.GetA()) + (l2.GetC() / l2.GetA())) * (1 - (l2.GetA() / l.GetB()))
+	// y := ((l.GetC() / l.GetA()) + (l2.GetC() / l2.GetA())) * (1 - (l2.GetA() / l.GetB()))
+	// (x, y)  = [b1c2−b2c1/a1b2−a2b1, a2c1−a1c2/a1b2−a2b1]
 	return Vector{
-		(-l2.GetC() - (l2.GetB() * y)) / l2.GetA(),
-		y
-	}
+		((l.GetB() * l2.GetC()) - (l2.GetB() * l.GetC())) / ((l.GetA() * l2.GetB()) - (l2.GetA() * l.GetB())),
+		((l.GetC() * l2.GetA()) - (l2.GetC() * l.GetA())) / ((l.GetA() * l2.GetB()) - (l2.GetA() * l.GetB()))}
 }
 
 // IdentityMap is a map of id to SketchElement

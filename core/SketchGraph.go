@@ -26,12 +26,12 @@ type SketchGraph struct {
 }
 
 func (g *SketchGraph) addPoint(x float64, y float64) {
-	elementId := uint(len(g.elements))
+	//elementId := uint(len(g.elements))
 
 }
 
 func (g *SketchGraph) getClusterConstraints(c *GraphCluster) {
-	found := make([]uint, len(g.constraints))
+	//found := make([]uint, len(g.constraints))
 	//toAdd := make([]uint, toAdd)
 
 	// Look for any constraints with one element in the cluster

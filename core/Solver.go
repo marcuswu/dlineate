@@ -68,13 +68,13 @@ func PointFromPoints(c1 Constraint, c2 Constraint) (SketchElement, SolveState) {
 	p2Radius := c2.GetValue()
 
 	switch {
-	case c1.element1.Equals(c2.element1):
+	case c1.element1.Is(c2.element1):
 		p3, p1, p2 = c1.element1, c1.element2, c2.element2
-	case c1.element2.Equals(c2.element1):
+	case c1.element2.Is(c2.element1):
 		p3, p1, p2 = c1.element2, c1.element1, c2.element2
-	case c1.element1.Equals(c2.element2):
+	case c1.element1.Is(c2.element2):
 		p3, p1, p2 = c1.element1, c1.element2, c2.element1
-	case c1.element2.Equals(c2.element2):
+	case c1.element2.Is(c2.element2):
 		break
 	}
 
@@ -117,19 +117,19 @@ func PointFromPointLine(c1 Constraint, c2 Constraint) (SketchElement, SolveState
 	lineDist := c2.GetValue()
 
 	switch {
-	case c1.element1.Equals(c2.element1):
+	case c1.element1.Is(c2.element1):
 		p3 = c1.element1
 		p1 = c1.element2
 		l2 = c2.element2
-	case c1.element2.Equals(c2.element1):
+	case c1.element2.Is(c2.element1):
 		p3 = c1.element2
 		p1 = c1.element1
 		l2 = c2.element2
-	case c1.element1.Equals(c2.element2):
+	case c1.element1.Is(c2.element2):
 		p3 = c1.element1
 		p1 = c1.element2
 		l2 = c2.element1
-	case c1.element2.Equals(c2.element2):
+	case c1.element2.Is(c2.element2):
 		break
 	}
 
@@ -143,7 +143,7 @@ func PointFromPointLine(c1 Constraint, c2 Constraint) (SketchElement, SolveState
 func pointFromLineLine(l1 SketchElement, l2 SketchElement, p3 SketchElement, line1Dist float64, line2Dist float64) (SketchElement, SolveState) {
 	// If l1 and l2 are parallel, there is no solution
 	line1, line2 := l1.(*SketchLine), l2.(*SketchLine)
-	if line1.GetSlope() == l2.GetSlope() {
+	if line1.GetSlope() == line2.GetSlope() {
 		return nil, NonConvergent
 	}
 	// Translate l1 line1Dist
@@ -151,9 +151,9 @@ func pointFromLineLine(l1 SketchElement, l2 SketchElement, p3 SketchElement, lin
 	// Translate l2 line2Dist
 	line2Translated := line2.TranslateDistance(line2Dist)
 	// Return intersection point
-	intersection := line1.Intersection(line2)
+	intersection := line1Translated.Intersection(line2Translated)
 
-	return NewSketchPoint(p3.GetID, intersection.GetX(), intersection.GetY()), Solved
+	return NewSketchPoint(p3.GetID(), intersection.GetX(), intersection.GetY()), Solved
 }
 
 // PointFromLineLine construct a point from two lines. c2 must contain the point.
@@ -165,19 +165,19 @@ func PointFromLineLine(c1 Constraint, c2 Constraint) (SketchElement, SolveState)
 	line2Dist := c2.GetValue()
 
 	switch {
-	case c1.element1.Equals(c2.element1):
+	case c1.element1.Is(c2.element1):
 		p3 = c1.element1
 		l1 = c1.element2
 		l2 = c2.element2
-	case c1.element2.Equals(c2.element1):
+	case c1.element2.Is(c2.element1):
 		p3 = c1.element2
 		l1 = c1.element1
 		l2 = c2.element2
-	case c1.element1.Equals(c2.element2):
+	case c1.element1.Is(c2.element2):
 		p3 = c1.element1
 		l1 = c1.element2
 		l2 = c2.element1
-	case c1.element2.Equals(c2.element2):
+	case c1.element2.Is(c2.element2):
 		break
 	}
 

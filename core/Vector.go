@@ -71,12 +71,12 @@ func (v *Vector) Translate(dx float64, dy float64) {
 }
 
 // UnitVector returns a unit vector with the same direction
-func (v *Vector) UnitVector() Vector, bool {
+func (v *Vector) UnitVector() (*Vector, bool) {
 	mag := v.Magnitude()
 	if mag == 0 {
 		return nil, false
 	}
-	return Vector{v.x / mag, v.y / mag}, true
+	return &Vector{v.x / mag, v.y / mag}, true
 }
 
 // Scaled multiplies this vector by a magnitude
