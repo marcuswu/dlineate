@@ -10,14 +10,14 @@ func TestIntersection(t *testing.T) {
 	var l1 = NewSketchLine(0, 1, 2, -4)
 	var l2 = NewSketchLine(0, 3, -1, 2)
 	var result = l1.Intersection(l2)
-	if result.GetX() != 0 && result.GetY() != 2 {
+	if result.GetX() != 0 || result.GetY() != 2 {
 		t.Error("Expected vector(0, 2), got ", result)
 	}
 
 	l1 = NewSketchLine(0, 1, 2, 1)
 	l2 = NewSketchLine(0, 2, 3, 5)
 	result = l1.Intersection(l2)
-	if result.GetX() != -7 && result.GetY() != 3 {
+	if result.GetX() != -7 || result.GetY() != 3 {
 		t.Error("Expected vector(-7, 3), got ", result)
 	}
 }

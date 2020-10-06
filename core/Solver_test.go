@@ -27,8 +27,16 @@ func TestPointFromPoints(t *testing.T) {
 		t.Error("Expected newP3 to have id 2, got ", newP3.GetID())
 	}
 
-	if utils.StandardFloatCompare(newP3.GetX(), 0.447213595499958) != 0 && utils.StandardFloatCompare(newP3.GetY(), 1.8944271909999164) != 0 {
-		t.Error("Expected newP3 to have location 0.447213595499958, 1.8944271909999164, got ", newP3)
+	if utils.StandardFloatCompare(p1.DistanceTo(newP3), 1) != 0 {
+	// if utils.StandardFloatCompare(newP3.GetX(), 0.447213595499958) != 0 && utils.StandardFloatCompare(newP3.GetY(), 1.8944271909999164) != 0 {
+		t.Error("Expected newP3 to have distance of 1 to p1, got ", p1.DistanceTo(newP3))
+		// t.Error("Expected newP3 to have location 0.447213595499958, 1.8944271909999164, got ", newP3)
+	}
+
+	if utils.StandardFloatCompare(p2.DistanceTo(newP3), 5) != 0 {
+	// if utils.StandardFloatCompare(newP3.GetX(), 0.447213595499958) != 0 && utils.StandardFloatCompare(newP3.GetY(), 1.8944271909999164) != 0 {
+		t.Error("Expected newP3 to have distance of 5 to p2, got ", p2.DistanceTo(newP3))
+		// t.Error("Expected newP3 to have location 0.447213595499958, 1.8944271909999164, got ", newP3)
 	}
 
 	p3 = NewSketchPoint(2, 2, 1)
