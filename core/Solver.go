@@ -6,7 +6,10 @@ import (
 	"github.com/marcuswu/dlineation/utils"
 )
 
-func pointFromPoints(p1 SketchElement, p2 SketchElement, p3 SketchElement, p1Radius float64, p2Radius float64) (SketchElement, SolveState) {
+func pointFromPoints(p1 SketchElement, originalP2 SketchElement, originalP3 SketchElement, p1Radius float64, p2Radius float64) (SketchElement, SolveState) {
+	// Don't mutate the originals
+	p2 := CopySketchElement(originalP2)
+	p3 := CopySketchElement(originalP3)
 	pointDistance := p1.DistanceTo(p2)
 	constraintDist := p1Radius + p2Radius
 
@@ -33,9 +36,10 @@ func pointFromPoints(p1 SketchElement, p2 SketchElement, p3 SketchElement, p1Rad
 	// calculate possible p3s
 	p2Dist := p2.GetX()
 
+	// https://mathworld.wolfram.com/Circle-CircleIntersection.html
 	xDelta := (((p2Dist * p2Dist) - (p2Radius * p2Radius)) + (p1Radius * p1Radius)) / (2 * p2Dist)
 	yDelta := math.Sqrt((p1Radius * p1Radius) - (xDelta * xDelta))
-	p3X := p1.GetX() + xDelta
+	p3X := xDelta
 	p3Y1 := yDelta
 	p3Y2 := -yDelta
 	// determine which is closest to the p3 from constraint
@@ -46,13 +50,9 @@ func pointFromPoints(p1 SketchElement, p2 SketchElement, p3 SketchElement, p1Rad
 		actualP3 = newP32
 	}
 	// unrotate actualP3
-	p2.Rotate(angle)
-	p3.Rotate(angle)
 	actualP3.Rotate(angle)
 	// untranslate actualP3
 	actualP3.TranslateByElement(p1)
-	p2.TranslateByElement(p1)
-	p3.TranslateByElement(p1)
 
 	// return actualP3
 	return actualP3, Solved

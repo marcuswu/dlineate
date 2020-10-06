@@ -135,6 +135,15 @@ func NewSketchPoint(id uint, x float64, y float64) *SketchPoint {
 	}}
 }
 
+// CopySketchElement creates a deep copy of a SketchElement
+func CopySketchElement(e SketchElement) SketchElement {
+	if e.GetType() == Point {
+		return NewSketchPoint(e.GetID(), e.GetX(), e.GetY())
+	}
+	l := e.(*SketchLine)
+	return NewSketchLine(l.GetID(), l.GetX(), l.GetY(), l.GetC())
+}
+
 // SketchLine represents a line in a 2D sketch in the form
 // Ax + By + C = 0. A and B are represented as x and y in the BaseElement
 type SketchLine struct {
