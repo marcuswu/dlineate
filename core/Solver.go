@@ -164,7 +164,10 @@ func PointFromPointLine(c1 Constraint, c2 Constraint) (SketchElement, SolveState
 	return pointFromPointLine(p1, l2, p3, pointDist, lineDist)
 }
 
-func pointFromLineLine(l1 SketchElement, l2 SketchElement, p3 SketchElement, line1Dist float64, line2Dist float64) (SketchElement, SolveState) {
+func pointFromLineLine(originalL1 SketchElement, originalL2 SketchElement, originalP3 SketchElement, line1Dist float64, line2Dist float64) (SketchElement, SolveState) {
+	l1 := CopySketchElement(originalL1)
+	l2 := CopySketchElement(originalL2)
+	p3 := CopySketchElement(originalP3)
 	// If l1 and l2 are parallel, there is no solution
 	line1, line2 := l1.(*SketchLine), l2.(*SketchLine)
 	if line1.GetSlope() == line2.GetSlope() {
