@@ -185,6 +185,8 @@ func (l *SketchLine) SquareDistanceTo(o SketchElement) float64 {
 }
 
 func (l *SketchLine) distanceToPoint(x float64, y float64) float64 {
+	// This formula can be found on wikipedia
+	// https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line#Line_defined_by_an_equation
 	return math.Abs((l.GetA()*x)+(l.GetB()*y)+l.GetC()) / l.Magnitude()
 }
 
@@ -258,6 +260,39 @@ func (l *SketchLine) ReverseTranslateByElement(e SketchElement) {
 // GetSlope returns the slope of the line (Ax + By + C = 0)
 func (l *SketchLine) GetSlope() float64 {
 	return -l.GetA() / l.GetB()
+}
+
+// AngleTo returns the angle to another vector in radians
+func (l *SketchLine) AngleTo(u Vector) float64 {
+	// point [0, -C / B] - point[-C / A, 0]
+	lv := Vector{l.GetC() / l.GetA(), -l.GetC() / l.GetB()}
+	return lv.AngleTo(u)
+}
+
+// Rotated returns a line representing this line rotated around the origin by angle radians
+func (l *SketchLine) Rotated(angle float64) *SketchLine {
+	// create vectors with points from the line (x and y intercepts)
+	p1 := Vector{-l.GetC() / l.GetA(), 0}
+	p2 := Vector{0, -l.GetC() / l.GetB()}
+	// rotate those vectors to get points from the rotated line
+	p1.Rotate(angle)
+	p2.Rotate(angle)
+	// -A / B is slope and slope is y diff / x diff, so
+	// A is -y diff and B is x diff
+	A := -(p2.GetY() - p1.GetY())
+	B := p2.GetX() - p1.GetY()
+	// Calculate C based on points from the rotated vectors
+	// based on the general form line Ax + Bx + C = 0 formula
+	C := -((A * p1.GetX()) + (B * p1.GetY()))
+	return NewSketchLine(l.GetID(), A, B, C)
+}
+
+// Rotate returns a line representing this line rotated around the origin by angle radians
+func (l *SketchLine) Rotate(angle float64) {
+	rotated := l.Rotated(angle)
+	l.x = rotated.GetA()
+	l.y = rotated.GetB()
+	l.c = rotated.GetC()
 }
 
 // Intersection returns the intersection of two lines

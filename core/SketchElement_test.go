@@ -1,6 +1,7 @@
 package core
 
 import (
+	"math"
 	"testing"
 
 	"github.com/marcuswu/dlineation/utils"
@@ -54,11 +55,19 @@ func TestTranslateByElement(t *testing.T) {
 
 func TestTranslated(t *testing.T) {
 	var l1 = NewSketchLine(0, 1, 2, -1)
-	t.Log("before translate point nearest origin: ", l1.PointNearestOrigin())
+	nearest1 := l1.PointNearestOrigin()
 	result := l1.Translated(1, 1)
+	t.Log("before translate point nearest origin: ", l1.PointNearestOrigin())
+	nearest2 := l1.PointNearestOrigin()
 	t.Log("after translate point nearest origin: ", result.PointNearestOrigin())
 	if result.GetA() != 1 || result.GetB() != 2 || result.GetC() != -4 {
 		t.Error("Expected Line(1, 2, -4), got ", result)
+	}
+	xDiff := nearest1.GetX() - nearest2.GetX()
+	yDiff := nearest1.GetY() - nearest2.GetY()
+	nearestDist := ((xDiff * xDiff) + (yDiff * yDiff))
+	if nearestDist == 1 {
+		t.Error("Expected nearestDist == 1, got ", nearestDist)
 	}
 
 	result = result.Translated(-1, -1)
@@ -99,6 +108,30 @@ func TestGetOriginDistance(t *testing.T) {
 	result := l1.GetOriginDistance()
 	if utils.StandardFloatCompare(result, .4472135954999579) != 0 {
 		t.Error("Expected .4472135954999579, got ", result)
+	}
+}
+
+func TestAngleTo(t *testing.T) {
+	var l1 = NewSketchLine(0, 1, 1, 1)
+	result := l1.AngleTo(Vector{1, 0})
+	var fourtyFive = -45 * math.Pi / 180
+	if utils.StandardFloatCompare(result, fourtyFive) != 0 {
+		t.Errorf("Expected %f, got %f\n", fourtyFive, result)
+	}
+}
+
+func TestRotated(t *testing.T) {
+	var l1 = NewSketchLine(0, 1, 1, 1)
+	var fourtyFive = 45 * math.Pi / 180
+	result := l1.Rotated(fourtyFive)
+	if utils.StandardFloatCompare(result.GetA(), math.Sqrt(0)) != 0 {
+		t.Errorf("Expected result.GetA() == 0, got %f\n", result.GetA())
+	}
+	if utils.StandardFloatCompare(result.GetB(), math.Sqrt(2)) != 0 {
+		t.Errorf("Expected result.GetB() == √2, got %f\n", result.GetB())
+	}
+	if utils.StandardFloatCompare(result.GetOriginDistance(), l1.GetOriginDistance()) != 0 {
+		t.Errorf("Expected result.GetOriginDistance() == %f, got %f\n", l1.GetOriginDistance(), result.GetOriginDistance())
 	}
 }
 

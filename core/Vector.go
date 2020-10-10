@@ -35,7 +35,7 @@ func (v *Vector) Magnitude() float64 {
 
 // AngleTo returns the angle to another vector in radians
 func (v *Vector) AngleTo(u Vector) float64 {
-	return math.Acos(v.Dot(u) / (u.Magnitude() * v.Magnitude()))
+	return math.Atan2(v.x*u.y+v.y*u.x, v.Dot(u))
 }
 
 // Rotated returns a vector representing this vector rotated around the origin by angle radians

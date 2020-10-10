@@ -37,7 +37,7 @@ func pointFromPoints(p1 SketchElement, originalP2 SketchElement, originalP3 Sket
 	p2Dist := p2.GetX()
 
 	// https://mathworld.wolfram.com/Circle-CircleIntersection.html
-	xDelta := (((p2Dist * p2Dist) - (p2Radius * p2Radius)) + (p1Radius * p1Radius)) / (2 * p2Dist)
+	xDelta := ((-(p2Radius * p2Radius) + (p2Dist * p2Dist)) + (p1Radius * p1Radius)) / (2 * p2Dist)
 	yDelta := math.Sqrt((p1Radius * p1Radius) - (xDelta * xDelta))
 	p3X := xDelta
 	p3Y1 := yDelta
@@ -81,9 +81,17 @@ func PointFromPoints(c1 Constraint, c2 Constraint) (SketchElement, SolveState) {
 	return pointFromPoints(p1, p2, p3, p1Radius, p2Radius)
 }
 
-func pointFromPointLine(p1 SketchElement, l2 SketchElement, p3 SketchElement, pointDist float64, lineDist float64) (SketchElement, SolveState) {
-	distanceDifference := l2.DistanceTo(p1) - pointDist
-	if distanceDifference > lineDist {
+func pointFromPointLine(originalP1 SketchElement, originalL2 SketchElement, originalP3 SketchElement, pointDist float64, lineDist float64) (SketchElement, SolveState) {
+	p1 := CopySketchElement(originalP1)
+	l2 := CopySketchElement(originalL2)
+	p3 := CopySketchElement(originalP3)
+	distanceDifference := l2.DistanceTo(p1)
+
+	if distanceDifference+pointDist < lineDist+pointDist {
+		return nil, NonConvergent
+	}
+
+	if distanceDifference > lineDist+pointDist {
 		return nil, NonConvergent
 	}
 
@@ -98,14 +106,29 @@ func pointFromPointLine(p1 SketchElement, l2 SketchElement, p3 SketchElement, po
 	// TODO the rest...
 	// rotate l2 to X axis
 	angle := l2.AngleTo(Vector{1, 0})
-	l2.Rotate(angle)
-	p1.Rotate(angle)
-	p3.Rotate(angle)
+	l2.Rotate(-angle)
+	p1.Rotate(-angle)
+	p3.Rotate(-angle)
+	// translate l2 to X axis
+	yTranslate := l2.(*SketchLine).GetOriginDistance() - lineDist
+	l2.Translate(0, yTranslate)
 	// move p1 to Y axis
-	translation := -p1.GetX()
-	p1.Translate(translation, 0)
+	xTranslate := -p1.GetX()
+	p1.Translate(xTranslate, yTranslate)
+	p3.Translate(xTranslate, yTranslate)
 
-	return pointFromPoints(p1, NewSketchPoint(0, 0, 0), p3, pointDist, lineDist)
+	// Find points where circle at p1 with radius pointDist intersects with x axis
+	xPos := math.Sqrt((pointDist * pointDist) - (p1.GetY() * p1.GetY()))
+	newP31 := NewSketchPoint(p3.GetID(), xPos, 0)
+	newP32 := NewSketchPoint(p3.GetID(), -xPos, 0)
+	actualP3 := newP31
+	if newP32.SquareDistanceTo(p3) < newP31.SquareDistanceTo(p3) {
+		actualP3 = newP32
+	}
+	actualP3.Translate(-xTranslate, -yTranslate)
+	actualP3.Rotate(angle)
+
+	return actualP3, Solved
 }
 
 // PointFromPointLine construct a point from a point and a line. c2 must contain the line.
@@ -135,6 +158,7 @@ func PointFromPointLine(c1 Constraint, c2 Constraint) (SketchElement, SolveState
 
 	if p1.GetType() == Line && l2.GetType() == Point {
 		p1, l2 = l2, p1
+		pointDist, lineDist = lineDist, pointDist
 	}
 
 	return pointFromPointLine(p1, l2, p3, pointDist, lineDist)
