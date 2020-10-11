@@ -1,15 +1,17 @@
-package core
+package solver
 
 import (
 	"testing"
 
+	"github.com/marcuswu/dlineation/internal/constraint"
+	el "github.com/marcuswu/dlineation/internal/element"
 	"github.com/marcuswu/dlineation/utils"
 )
 
 func TestPointFromPoints(t *testing.T) {
-	p1 := NewSketchPoint(0, 1, 1)
-	p2 := NewSketchPoint(1, 3, 5)
-	p3 := NewSketchPoint(2, 0, 2)
+	p1 := el.NewSketchPoint(0, 1, 1)
+	p2 := el.NewSketchPoint(1, 3, 5)
+	p3 := el.NewSketchPoint(2, 0, 2)
 
 	newP3, state := pointFromPoints(p1, p2, p3, 1, 3)
 
@@ -46,8 +48,8 @@ func TestPointFromPoints(t *testing.T) {
 		t.Error("Expected newP3 to have distance of 5 to p2, got ", p2.DistanceTo(newP3))
 	}
 
-	p3 = NewSketchPoint(2, 2, 1)
-	var newP32 SketchElement
+	p3 = el.NewSketchPoint(2, 2, 1)
+	var newP32 el.SketchElement
 
 	newP32, state = pointFromPoints(p1, p2, p3, 1, 5)
 
@@ -77,9 +79,9 @@ func TestPointFromPoints(t *testing.T) {
 }
 
 func TestPointFromPointsExt(t *testing.T) {
-	p1 := NewSketchPoint(0, 1, 1)
-	p2 := NewSketchPoint(1, 3, 5)
-	p3 := NewSketchPoint(2, 0, 2)
+	p1 := el.NewSketchPoint(0, 1, 1)
+	p2 := el.NewSketchPoint(1, 3, 5)
+	p3 := el.NewSketchPoint(2, 0, 2)
 
 	referenceP3, state := pointFromPoints(p1, p2, p3, 1, 5)
 
@@ -91,21 +93,9 @@ func TestPointFromPointsExt(t *testing.T) {
 		t.Error("Expected newP3 to have distance of 5 to p2, got ", p2.DistanceTo(referenceP3))
 	}
 
-	c1 := Constraint{
-		id:             0,
-		constraintType: Distance,
-		value:          1,
-		element1:       p1,
-		element2:       p3,
-	}
+	c1 := constraint.NewConstraint(0, constraint.Distance, p1, p3, 1)
 
-	c2 := Constraint{
-		id:             1,
-		constraintType: Distance,
-		value:          5,
-		element1:       p2,
-		element2:       p3,
-	}
+	c2 := constraint.NewConstraint(1, constraint.Distance, p2, p3, 5)
 
 	newP3, state := PointFromPoints(c1, c2)
 
@@ -135,7 +125,7 @@ func TestPointFromPointsExt(t *testing.T) {
 		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %f, newP3 %f\n", referenceP3.GetY(), newP3.GetY())
 	}
 
-	c1.element1, c1.element2 = c1.element2, c1.element1
+	c1.Element1, c1.Element2 = c1.Element2, c1.Element1
 
 	newP3, state = PointFromPoints(c1, c2)
 
@@ -161,8 +151,8 @@ func TestPointFromPointsExt(t *testing.T) {
 		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %s, newP3 %s\n", referenceP3, newP3)
 	}
 
-	c1.element1, c1.element2 = c1.element2, c1.element1
-	c2.element1, c2.element2 = c2.element2, c2.element1
+	c1.Element1, c1.Element2 = c1.Element2, c1.Element1
+	c2.Element1, c2.Element2 = c2.Element2, c2.Element1
 
 	newP3, state = PointFromPoints(c1, c2)
 
@@ -188,7 +178,7 @@ func TestPointFromPointsExt(t *testing.T) {
 		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %s, newP3 %s\n", referenceP3, newP3)
 	}
 
-	c1.element1, c1.element2 = c1.element2, c1.element1
+	c1.Element1, c1.Element2 = c1.Element2, c1.Element1
 
 	newP3, state = PointFromPoints(c1, c2)
 
@@ -216,9 +206,9 @@ func TestPointFromPointsExt(t *testing.T) {
 }
 
 func TestPointFromPointLine(t *testing.T) {
-	p1 := NewSketchPoint(0, 1, 1)
-	l2 := NewSketchLine(1, 1, 1, 2)
-	p3 := NewSketchPoint(2, 0, 2)
+	p1 := el.NewSketchPoint(0, 1, 1)
+	l2 := el.NewSketchLine(1, 1, 1, 2)
+	p3 := el.NewSketchPoint(2, 0, 2)
 
 	newP3, state := pointFromPointLine(p1, l2, p3, 1, 1)
 
@@ -255,7 +245,7 @@ func TestPointFromPointLine(t *testing.T) {
 		t.Error("Expected newP3 to have distance of 2 to l2, got", l2.DistanceTo(newP3))
 	}
 
-	p3 = NewSketchPoint(2, 2, 1)
+	p3 = el.NewSketchPoint(2, 2, 1)
 
 	_, state = pointFromPointLine(p1, l2, p3, 1, 5)
 
@@ -265,9 +255,9 @@ func TestPointFromPointLine(t *testing.T) {
 }
 
 func TestPointFromPointLineExt(t *testing.T) {
-	p1 := NewSketchPoint(0, 1, 1)
-	l2 := NewSketchLine(1, 1, 1, 2)
-	p3 := NewSketchPoint(2, 0, 2)
+	p1 := el.NewSketchPoint(0, 1, 1)
+	l2 := el.NewSketchLine(1, 1, 1, 2)
+	p3 := el.NewSketchPoint(2, 0, 2)
 
 	referenceP3, state := pointFromPointLine(p1, l2, p3, 1, 2.5)
 
@@ -279,21 +269,9 @@ func TestPointFromPointLineExt(t *testing.T) {
 		t.Error("Expected newP3 to have distance of 2.5 to p2, got ", l2.DistanceTo(referenceP3))
 	}
 
-	c1 := Constraint{
-		id:             0,
-		constraintType: Distance,
-		value:          1,
-		element1:       p1,
-		element2:       p3,
-	}
+	c1 := constraint.NewConstraint(0, constraint.Distance, p1, p3, 1)
 
-	c2 := Constraint{
-		id:             1,
-		constraintType: Distance,
-		value:          2.5,
-		element1:       l2,
-		element2:       p3,
-	}
+	c2 := constraint.NewConstraint(1, constraint.Distance, l2, p3, 2.5)
 
 	newP3, state := PointFromPointLine(c1, c2)
 
@@ -323,7 +301,7 @@ func TestPointFromPointLineExt(t *testing.T) {
 		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %f, newP3 %f\n", referenceP3.GetY(), newP3.GetY())
 	}
 
-	c1.element1, c1.element2 = c1.element2, c1.element1
+	c1.Element1, c1.Element2 = c1.Element2, c1.Element1
 
 	newP3, state = PointFromPointLine(c1, c2)
 
@@ -349,8 +327,8 @@ func TestPointFromPointLineExt(t *testing.T) {
 		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %s, newP3 %s\n", referenceP3, newP3)
 	}
 
-	c1.element1, c1.element2 = c1.element2, c1.element1
-	c2.element1, c2.element2 = c2.element2, c2.element1
+	c1.Element1, c1.Element2 = c1.Element2, c1.Element1
+	c2.Element1, c2.Element2 = c2.Element2, c2.Element1
 
 	newP3, state = PointFromPointLine(c1, c2)
 
@@ -376,7 +354,7 @@ func TestPointFromPointLineExt(t *testing.T) {
 		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %s, newP3 %s\n", referenceP3, newP3)
 	}
 
-	c1.element1, c1.element2 = c1.element2, c1.element1
+	c1.Element1, c1.Element2 = c1.Element2, c1.Element1
 
 	newP3, state = PointFromPointLine(c1, c2)
 
@@ -404,9 +382,9 @@ func TestPointFromPointLineExt(t *testing.T) {
 }
 
 func TestPointFromLineLine(t *testing.T) {
-	l1 := NewSketchLine(0, 1, 1, -1)
-	l2 := NewSketchLine(1, 1, 1, 1)
-	p3 := NewSketchPoint(2, 0.7, 1)
+	l1 := el.NewSketchLine(0, 1, 1, -1)
+	l2 := el.NewSketchLine(1, 1, 1, 1)
+	p3 := el.NewSketchPoint(2, 0.7, 1)
 
 	newP3, state := pointFromLineLine(l1, l2, p3, 1, 1)
 
@@ -414,7 +392,7 @@ func TestPointFromLineLine(t *testing.T) {
 		t.Error("Expected non-convergent state got ", state)
 	}
 
-	l2 = NewSketchLine(0, -1, 1, 1)
+	l2 = el.NewSketchLine(0, -1, 1, 1)
 	newP3, state = pointFromLineLine(l1, l2, p3, 1, 2)
 
 	if state != Solved {
@@ -445,9 +423,9 @@ func TestPointFromLineLine(t *testing.T) {
 	}
 }
 func TestPointFromLineLineExt(t *testing.T) {
-	l1 := NewSketchLine(0, 1, 1, -1)
-	l2 := NewSketchLine(1, -1, 1, 1)
-	p3 := NewSketchPoint(2, 0.7, 1)
+	l1 := el.NewSketchLine(0, 1, 1, -1)
+	l2 := el.NewSketchLine(1, -1, 1, 1)
+	p3 := el.NewSketchPoint(2, 0.7, 1)
 
 	referenceP3, state := pointFromLineLine(l1, l2, p3, 1, 2)
 
@@ -459,21 +437,9 @@ func TestPointFromLineLineExt(t *testing.T) {
 		t.Error("Expected newP3 to have distance of 2 to l2, got ", l2.DistanceTo(referenceP3))
 	}
 
-	c1 := Constraint{
-		id:             0,
-		constraintType: Distance,
-		value:          1,
-		element1:       l1,
-		element2:       p3,
-	}
+	c1 := constraint.NewConstraint(0, constraint.Distance, l1, p3, 1)
 
-	c2 := Constraint{
-		id:             1,
-		constraintType: Distance,
-		value:          2,
-		element1:       l2,
-		element2:       p3,
-	}
+	c2 := constraint.NewConstraint(1, constraint.Distance, l2, p3, 2)
 
 	newP3, state := PointFromLineLine(c1, c2)
 
@@ -503,7 +469,7 @@ func TestPointFromLineLineExt(t *testing.T) {
 		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %f, newP3 %f\n", referenceP3.GetY(), newP3.GetY())
 	}
 
-	c1.element1, c1.element2 = c1.element2, c1.element1
+	c1.Element1, c1.Element2 = c1.Element2, c1.Element1
 
 	newP3, state = PointFromLineLine(c1, c2)
 
@@ -529,8 +495,8 @@ func TestPointFromLineLineExt(t *testing.T) {
 		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %s, newP3 %s\n", referenceP3, newP3)
 	}
 
-	c1.element1, c1.element2 = c1.element2, c1.element1
-	c2.element1, c2.element2 = c2.element2, c2.element1
+	c1.Element1, c1.Element2 = c1.Element2, c1.Element1
+	c2.Element1, c2.Element2 = c2.Element2, c2.Element1
 
 	newP3, state = PointFromLineLine(c1, c2)
 
@@ -556,7 +522,7 @@ func TestPointFromLineLineExt(t *testing.T) {
 		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %s, newP3 %s\n", referenceP3, newP3)
 	}
 
-	c1.element1, c1.element2 = c1.element2, c1.element1
+	c1.Element1, c1.Element2 = c1.Element2, c1.Element1
 
 	newP3, state = PointFromLineLine(c1, c2)
 

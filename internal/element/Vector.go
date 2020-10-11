@@ -1,31 +1,31 @@
-package core
+package element
 
 import "math"
 
 // Vector represents a 2D vector
 type Vector struct {
-	x float64
-	y float64
+	X float64
+	Y float64
 }
 
 // GetX return the x value of the vector
 func (v *Vector) GetX() float64 {
-	return v.x
+	return v.X
 }
 
 // GetY return the y value of the vector
 func (v *Vector) GetY() float64 {
-	return v.y
+	return v.Y
 }
 
 // Dot product with another vector
 func (v *Vector) Dot(u Vector) float64 {
-	return v.x*u.x + v.y*u.y
+	return v.X*u.X + v.Y*u.Y
 }
 
 // SquareMagnitude returns the squared magnitude of the vector
 func (v *Vector) SquareMagnitude() float64 {
-	return v.x*v.x + v.y*v.y
+	return v.X*v.X + v.Y*v.Y
 }
 
 // Magnitude returns the magnitude of the vector
@@ -35,7 +35,7 @@ func (v *Vector) Magnitude() float64 {
 
 // AngleTo returns the angle to another vector in radians
 func (v *Vector) AngleTo(u Vector) float64 {
-	return math.Atan2(v.x*u.y+v.y*u.x, v.Dot(u))
+	return math.Atan2(v.X*u.Y+v.Y*u.X, v.Dot(u))
 }
 
 // Rotated returns a vector representing this vector rotated around the origin by angle radians
@@ -43,8 +43,8 @@ func (v *Vector) Rotated(angle float64) Vector {
 	sinAngle := math.Sin(angle)
 	cosAngle := math.Cos(angle)
 
-	newX := v.x*cosAngle - v.y*sinAngle
-	newY := v.x*sinAngle + v.y*cosAngle
+	newX := v.X*cosAngle - v.Y*sinAngle
+	newY := v.X*sinAngle + v.Y*cosAngle
 
 	return Vector{newX, newY}
 }
@@ -53,21 +53,21 @@ func (v *Vector) Rotated(angle float64) Vector {
 func (v *Vector) Rotate(angle float64) {
 	rotated := v.Rotated(angle)
 
-	v.x = rotated.x
-	v.y = rotated.y
+	v.X = rotated.X
+	v.Y = rotated.Y
 }
 
 // Translated returns a vector representing this vector by an x and y distance
 func (v *Vector) Translated(dx float64, dy float64) Vector {
-	return Vector{v.x + dx, v.y + dy}
+	return Vector{v.X + dx, v.Y + dy}
 }
 
 // Translate translates the vectory by an x and y distance
 func (v *Vector) Translate(dx float64, dy float64) {
 	translated := v.Translated(dx, dy)
 
-	v.x = translated.x
-	v.y = translated.y
+	v.X = translated.X
+	v.Y = translated.Y
 }
 
 // UnitVector returns a unit vector with the same direction
@@ -76,11 +76,11 @@ func (v *Vector) UnitVector() (*Vector, bool) {
 	if mag == 0 {
 		return nil, false
 	}
-	return &Vector{v.x / mag, v.y / mag}, true
+	return &Vector{v.X / mag, v.Y / mag}, true
 }
 
 // Scaled multiplies this vector by a magnitude
 func (v *Vector) Scaled(scale float64) {
-	v.x *= scale
-	v.y *= scale
+	v.X *= scale
+	v.Y *= scale
 }

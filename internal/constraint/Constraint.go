@@ -1,11 +1,15 @@
-package core
+package constraint
 
-// ConstraintType of a Constraint(Distance or Angle)
-type ConstraintType uint
+import (
+	el "github.com/marcuswu/dlineation/internal/element"
+)
+
+// Type of a Constraint(Distance or Angle)
+type Type uint
 
 // ConstraintType constants
 const (
-	Distance ConstraintType = iota
+	Distance Type = iota
 	Angle
 )
 
@@ -32,10 +36,10 @@ const (
 // Constraint Represents a 2D constraint
 type Constraint struct {
 	id             uint
-	constraintType ConstraintType
-	value          float64
-	element1       SketchElement
-	element2       SketchElement
+	constraintType Type
+	Value          float64
+	Element1       el.SketchElement
+	Element2       el.SketchElement
 }
 
 // GetID returns the constraint identifier
@@ -45,28 +49,28 @@ func (c *Constraint) GetID() uint {
 
 // GetValue returns the constraint's value
 func (c *Constraint) GetValue() float64 {
-	return c.value
+	return c.Value
 }
 
 // UpdateValue updates the constraint's value
 func (c *Constraint) UpdateValue(v float64) {
-	c.value = v
+	c.Value = v
 }
 
 // HasElementID returns whether an element with the passed ID
 // exists in this constraint
 func (c *Constraint) HasElementID(eID uint) bool {
-	return c.element1.GetID() == eID || c.element2.GetID() == eID
+	return c.Element1.GetID() == eID || c.Element2.GetID() == eID
 }
 
 // First returns the first element in the constraint
-func (c *Constraint) First() SketchElement {
-	return c.element1
+func (c *Constraint) First() el.SketchElement {
+	return c.Element1
 }
 
 // Second returns the second element in the constraint
-func (c *Constraint) Second() SketchElement {
-	return c.element2
+func (c *Constraint) Second() el.SketchElement {
+	return c.Element2
 }
 
 // Equals returns whether two constraints are equal
@@ -75,13 +79,13 @@ func (c *Constraint) Equals(o Constraint) bool {
 }
 
 // NewConstraint creates a new constraint
-func NewConstraint(id uint, constraintType ConstraintType, a SketchElement, b SketchElement, v float64) Constraint {
+func NewConstraint(id uint, constraintType Type, a el.SketchElement, b el.SketchElement, v float64) Constraint {
 	// TODO: construct and return distance or angle constraint
 	return Constraint{
 		id:             id,
 		constraintType: constraintType,
-		value:          v,
-		element1:       a,
-		element2:       b,
+		Value:          v,
+		Element1:       a,
+		Element2:       b,
 	}
 }

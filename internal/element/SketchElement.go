@@ -1,13 +1,15 @@
-package core
+package element
 
-import "math"
+import (
+	"math"
+)
 
-// ElementType of a SketchElement (Point or Line)
-type ElementType uint
+// Type of a SketchElement (Point or Line)
+type Type uint
 
 // SolveState constants
 const (
-	Point ElementType = iota
+	Point Type = iota
 	Line
 )
 
@@ -15,7 +17,7 @@ const (
 type SketchElement interface {
 	SetID(uint)
 	GetID() uint
-	GetType() ElementType
+	GetType() Type
 	GetX() float64
 	GetY() float64
 	AngleTo(Vector) float64
@@ -28,17 +30,17 @@ type SketchElement interface {
 	DistanceTo(SketchElement) float64
 }
 
-// ElementList is a list of SketchElements
-type ElementList []SketchElement
+// List is a list of SketchElements
+type List []SketchElement
 
-func (e ElementList) Len() int           { return len(e) }
-func (e ElementList) Swap(i, j int)      { e[i], e[j] = e[j], e[i] }
-func (e ElementList) Less(i, j int) bool { return e[i].GetID() < e[j].GetID() }
+func (e List) Len() int           { return len(e) }
+func (e List) Swap(i, j int)      { e[i], e[j] = e[j], e[i] }
+func (e List) Less(i, j int) bool { return e[i].GetID() < e[j].GetID() }
 
 // BaseElement is the base type for elements in a 2D sketch
 type BaseElement struct {
 	Vector
-	elementType ElementType
+	elementType Type
 	id          uint
 }
 
@@ -53,7 +55,7 @@ func (p *BaseElement) GetID() uint {
 }
 
 // GetType gets the type of the element
-func (p *BaseElement) GetType() ElementType {
+func (p *BaseElement) GetType() Type {
 	return p.elementType
 }
 
@@ -110,8 +112,8 @@ func (p *BaseElement) SquareDistanceTo(o SketchElement) float64 {
 		d := o.(*SketchLine).DistanceTo(p)
 		return d * d
 	}
-	a := p.x - o.GetX()
-	b := p.y - o.GetY()
+	a := p.X - o.GetX()
+	b := p.Y - o.GetY()
 
 	return (a * a) + (b * b)
 }
@@ -290,8 +292,8 @@ func (l *SketchLine) Rotated(angle float64) *SketchLine {
 // Rotate returns a line representing this line rotated around the origin by angle radians
 func (l *SketchLine) Rotate(angle float64) {
 	rotated := l.Rotated(angle)
-	l.x = rotated.GetA()
-	l.y = rotated.GetB()
+	l.X = rotated.GetA()
+	l.Y = rotated.GetB()
 	l.c = rotated.GetC()
 }
 

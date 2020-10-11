@@ -2,7 +2,8 @@ package main
 
 import (
 	"fmt"
-	"github.com/marcuswu/dlineation/core"
+
+	core "github.com/marcuswu/dlineation/internal"
 )
 
 func main() {
