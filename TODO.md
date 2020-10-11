@@ -1,1 +1,3 @@
-* Refactor SketchPoint and SketchLine to not derive from BaseElement / Vector
+* Build out the graph clustering strategy
+* Build out some core examples / tests
+* Build out an external interface including more element and constraint types

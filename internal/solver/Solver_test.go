@@ -49,7 +49,7 @@ func TestPointFromPoints(t *testing.T) {
 	}
 
 	p3 = el.NewSketchPoint(2, 2, 1)
-	var newP32 el.SketchElement
+	var newP32 *el.SketchPoint
 
 	newP32, state = pointFromPoints(p1, p2, p3, 1, 5)
 
@@ -104,11 +104,11 @@ func TestPointFromPointsExt(t *testing.T) {
 	}
 
 	if utils.StandardFloatCompare(newP3.GetX(), referenceP3.GetX()) != 0 {
-		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %s, newP3 %s\n", referenceP3, newP3)
+		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
 	}
 
 	if utils.StandardFloatCompare(newP3.GetY(), referenceP3.GetY()) != 0 {
-		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %s, newP3 %s\n", referenceP3, newP3)
+		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
 	}
 
 	newP3, state = PointFromPoints(c2, c1)
@@ -134,21 +134,21 @@ func TestPointFromPointsExt(t *testing.T) {
 	}
 
 	if utils.StandardFloatCompare(newP3.GetX(), referenceP3.GetX()) != 0 {
-		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %s, newP3 %s\n", referenceP3, newP3)
+		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
 	}
 
 	if utils.StandardFloatCompare(newP3.GetY(), referenceP3.GetY()) != 0 {
-		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %s, newP3 %s\n", referenceP3, newP3)
+		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
 	}
 
 	newP3, state = PointFromPoints(c2, c1)
 
 	if utils.StandardFloatCompare(newP3.GetX(), referenceP3.GetX()) != 0 {
-		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %s, newP3 %s\n", referenceP3, newP3)
+		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
 	}
 
 	if utils.StandardFloatCompare(newP3.GetY(), referenceP3.GetY()) != 0 {
-		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %s, newP3 %s\n", referenceP3, newP3)
+		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
 	}
 
 	c1.Element1, c1.Element2 = c1.Element2, c1.Element1
@@ -161,21 +161,21 @@ func TestPointFromPointsExt(t *testing.T) {
 	}
 
 	if utils.StandardFloatCompare(newP3.GetX(), referenceP3.GetX()) != 0 {
-		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %s, newP3 %s\n", referenceP3, newP3)
+		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
 	}
 
 	if utils.StandardFloatCompare(newP3.GetY(), referenceP3.GetY()) != 0 {
-		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %s, newP3 %s\n", referenceP3, newP3)
+		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
 	}
 
 	newP3, state = PointFromPoints(c2, c1)
 
 	if utils.StandardFloatCompare(newP3.GetX(), referenceP3.GetX()) != 0 {
-		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %s, newP3 %s\n", referenceP3, newP3)
+		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
 	}
 
 	if utils.StandardFloatCompare(newP3.GetY(), referenceP3.GetY()) != 0 {
-		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %s, newP3 %s\n", referenceP3, newP3)
+		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
 	}
 
 	c1.Element1, c1.Element2 = c1.Element2, c1.Element1
@@ -187,21 +187,21 @@ func TestPointFromPointsExt(t *testing.T) {
 	}
 
 	if utils.StandardFloatCompare(newP3.GetX(), referenceP3.GetX()) != 0 {
-		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %s, newP3 %s\n", referenceP3, newP3)
+		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
 	}
 
 	if utils.StandardFloatCompare(newP3.GetY(), referenceP3.GetY()) != 0 {
-		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %s, newP3 %s\n", referenceP3, newP3)
+		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
 	}
 
 	newP3, state = PointFromPoints(c2, c1)
 
 	if utils.StandardFloatCompare(newP3.GetX(), referenceP3.GetX()) != 0 {
-		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %s, newP3 %s\n", referenceP3, newP3)
+		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
 	}
 
 	if utils.StandardFloatCompare(newP3.GetY(), referenceP3.GetY()) != 0 {
-		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %s, newP3 %s\n", referenceP3, newP3)
+		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
 	}
 }
 
@@ -230,7 +230,7 @@ func TestPointFromPointLine(t *testing.T) {
 	if p1.GetX() != 1 || p1.GetY() != 1 {
 		t.Error("Expected p1 to remain at 1, 1, got: ", p1)
 	}
-	if l2.GetX() != 1 || l2.GetY() != 1 || l2.GetC() != 2 {
+	if l2.GetA() != 1 || l2.GetB() != 1 || l2.GetC() != 2 {
 		t.Error("Expected l2 to remain at 1, 1, 2 got: ", l2)
 	}
 	if p3.GetX() != 0 || p3.GetY() != 2 {
@@ -280,11 +280,11 @@ func TestPointFromPointLineExt(t *testing.T) {
 	}
 
 	if utils.StandardFloatCompare(newP3.GetX(), referenceP3.GetX()) != 0 {
-		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %s, newP3 %s\n", referenceP3, newP3)
+		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
 	}
 
 	if utils.StandardFloatCompare(newP3.GetY(), referenceP3.GetY()) != 0 {
-		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %s, newP3 %s\n", referenceP3, newP3)
+		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
 	}
 
 	newP3, state = PointFromPointLine(c2, c1)
@@ -310,21 +310,21 @@ func TestPointFromPointLineExt(t *testing.T) {
 	}
 
 	if utils.StandardFloatCompare(newP3.GetX(), referenceP3.GetX()) != 0 {
-		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %s, newP3 %s\n", referenceP3, newP3)
+		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
 	}
 
 	if utils.StandardFloatCompare(newP3.GetY(), referenceP3.GetY()) != 0 {
-		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %s, newP3 %s\n", referenceP3, newP3)
+		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
 	}
 
 	newP3, state = PointFromPointLine(c2, c1)
 
 	if utils.StandardFloatCompare(newP3.GetX(), referenceP3.GetX()) != 0 {
-		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %s, newP3 %s\n", referenceP3, newP3)
+		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
 	}
 
 	if utils.StandardFloatCompare(newP3.GetY(), referenceP3.GetY()) != 0 {
-		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %s, newP3 %s\n", referenceP3, newP3)
+		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
 	}
 
 	c1.Element1, c1.Element2 = c1.Element2, c1.Element1
@@ -337,21 +337,21 @@ func TestPointFromPointLineExt(t *testing.T) {
 	}
 
 	if utils.StandardFloatCompare(newP3.GetX(), referenceP3.GetX()) != 0 {
-		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %s, newP3 %s\n", referenceP3, newP3)
+		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
 	}
 
 	if utils.StandardFloatCompare(newP3.GetY(), referenceP3.GetY()) != 0 {
-		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %s, newP3 %s\n", referenceP3, newP3)
+		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
 	}
 
 	newP3, state = PointFromPointLine(c2, c1)
 
 	if utils.StandardFloatCompare(newP3.GetX(), referenceP3.GetX()) != 0 {
-		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %s, newP3 %s\n", referenceP3, newP3)
+		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
 	}
 
 	if utils.StandardFloatCompare(newP3.GetY(), referenceP3.GetY()) != 0 {
-		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %s, newP3 %s\n", referenceP3, newP3)
+		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
 	}
 
 	c1.Element1, c1.Element2 = c1.Element2, c1.Element1
@@ -363,21 +363,21 @@ func TestPointFromPointLineExt(t *testing.T) {
 	}
 
 	if utils.StandardFloatCompare(newP3.GetX(), referenceP3.GetX()) != 0 {
-		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %s, newP3 %s\n", referenceP3, newP3)
+		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
 	}
 
 	if utils.StandardFloatCompare(newP3.GetY(), referenceP3.GetY()) != 0 {
-		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %s, newP3 %s\n", referenceP3, newP3)
+		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
 	}
 
 	newP3, state = PointFromPointLine(c2, c1)
 
 	if utils.StandardFloatCompare(newP3.GetX(), referenceP3.GetX()) != 0 {
-		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %s, newP3 %s\n", referenceP3, newP3)
+		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
 	}
 
 	if utils.StandardFloatCompare(newP3.GetY(), referenceP3.GetY()) != 0 {
-		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %s, newP3 %s\n", referenceP3, newP3)
+		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
 	}
 }
 
@@ -448,11 +448,11 @@ func TestPointFromLineLineExt(t *testing.T) {
 	}
 
 	if utils.StandardFloatCompare(newP3.GetX(), referenceP3.GetX()) != 0 {
-		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %s, newP3 %s\n", referenceP3, newP3)
+		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
 	}
 
 	if utils.StandardFloatCompare(newP3.GetY(), referenceP3.GetY()) != 0 {
-		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %s, newP3 %s\n", referenceP3, newP3)
+		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
 	}
 
 	newP3, state = PointFromLineLine(c2, c1)
@@ -478,21 +478,21 @@ func TestPointFromLineLineExt(t *testing.T) {
 	}
 
 	if utils.StandardFloatCompare(newP3.GetX(), referenceP3.GetX()) != 0 {
-		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %s, newP3 %s\n", referenceP3, newP3)
+		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
 	}
 
 	if utils.StandardFloatCompare(newP3.GetY(), referenceP3.GetY()) != 0 {
-		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %s, newP3 %s\n", referenceP3, newP3)
+		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
 	}
 
 	newP3, state = PointFromLineLine(c2, c1)
 
 	if utils.StandardFloatCompare(newP3.GetX(), referenceP3.GetX()) != 0 {
-		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %s, newP3 %s\n", referenceP3, newP3)
+		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
 	}
 
 	if utils.StandardFloatCompare(newP3.GetY(), referenceP3.GetY()) != 0 {
-		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %s, newP3 %s\n", referenceP3, newP3)
+		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
 	}
 
 	c1.Element1, c1.Element2 = c1.Element2, c1.Element1
@@ -505,21 +505,21 @@ func TestPointFromLineLineExt(t *testing.T) {
 	}
 
 	if utils.StandardFloatCompare(newP3.GetX(), referenceP3.GetX()) != 0 {
-		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %s, newP3 %s\n", referenceP3, newP3)
+		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
 	}
 
 	if utils.StandardFloatCompare(newP3.GetY(), referenceP3.GetY()) != 0 {
-		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %s, newP3 %s\n", referenceP3, newP3)
+		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
 	}
 
 	newP3, state = PointFromLineLine(c2, c1)
 
 	if utils.StandardFloatCompare(newP3.GetX(), referenceP3.GetX()) != 0 {
-		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %s, newP3 %s\n", referenceP3, newP3)
+		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
 	}
 
 	if utils.StandardFloatCompare(newP3.GetY(), referenceP3.GetY()) != 0 {
-		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %s, newP3 %s\n", referenceP3, newP3)
+		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
 	}
 
 	c1.Element1, c1.Element2 = c1.Element2, c1.Element1
@@ -531,20 +531,20 @@ func TestPointFromLineLineExt(t *testing.T) {
 	}
 
 	if utils.StandardFloatCompare(newP3.GetX(), referenceP3.GetX()) != 0 {
-		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %s, newP3 %s\n", referenceP3, newP3)
+		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
 	}
 
 	if utils.StandardFloatCompare(newP3.GetY(), referenceP3.GetY()) != 0 {
-		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %s, newP3 %s\n", referenceP3, newP3)
+		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
 	}
 
 	newP3, state = PointFromLineLine(c2, c1)
 
 	if utils.StandardFloatCompare(newP3.GetX(), referenceP3.GetX()) != 0 {
-		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %s, newP3 %s\n", referenceP3, newP3)
+		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
 	}
 
 	if utils.StandardFloatCompare(newP3.GetY(), referenceP3.GetY()) != 0 {
-		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %s, newP3 %s\n", referenceP3, newP3)
+		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
 	}
 }
