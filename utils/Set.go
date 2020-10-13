@@ -29,3 +29,17 @@ func (s *Set) Contains(value uint) bool {
 	_, c := s.m[value]
 	return c
 }
+
+// Contents returns a copy of the underlying set data
+func (s *Set) Contents() []uint {
+	keys := make([]uint, 0, len(s.m))
+	for k := range s.m {
+		keys = append(keys, k)
+	}
+	return keys
+}
+
+// Count returns the number of elements in the set
+func (s *Set) Count() int {
+	return len(s.m)
+}

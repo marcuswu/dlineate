@@ -56,25 +56,126 @@ func (g *SketchGraph) AddConstraint(t constraint.Type, e1 el.SketchElement, e2 e
 	return g.GetConstraint(constraintID)
 }
 
+func (g *SketchGraph) getClusterConstraints(c *GraphCluster) []uint {
+	found := make([]uint, 0, 5)
+	toAdd := make([]uint, 0, 5)
+
+	// Look for any constraints with one element in the cluster
+	for id, constraint := range g.constraints {
+		if c.HasElement(constraint.Element1) || c.HasElement(constraint.Element2) {
+			found = append(found, id)
+		}
+	}
+
+	elementCount := make(map[uint]uint)
+	var updateCount = func(elementCount map[uint]uint, elementID uint) {
+		_, ok := elementCount[elementID]
+		if !ok {
+			elementCount[elementID] = 0
+		}
+		elementCount[elementID]++
+	}
+
+	// Count elements shared with other found constraints
+	for _, constraintID := range found {
+		constraint := g.constraints[constraintID]
+		if !c.HasElement(constraint.Element1) {
+			// Create entry
+			updateCount(elementCount, constraint.Element1.GetID())
+		}
+		if !c.HasElement(constraint.Element2) {
+			updateCount(elementCount, constraint.Element2.GetID())
+		}
+	}
+	// Remove any constraints without an element in elementCount having a count != 2
+	for _, constraintID := range found {
+		constraint := g.constraints[constraintID]
+		if elementCount[constraint.Element1.GetID()] != 2 {
+			continue
+		}
+		if elementCount[constraint.Element2.GetID()] != 2 {
+			continue
+		}
+		toAdd = append(toAdd, constraintID)
+	}
+
+	return toAdd
+}
+
+func (g *SketchGraph) createCluster(first uint) *GraphCluster {
+	c := new(GraphCluster)
+
+	toAdd := make([]uint, 0, 5)
+	toAdd = append(toAdd, first)
+	for len(toAdd) > 0 {
+		for _, constraintID := range toAdd {
+			constraint := g.constraints[constraintID]
+			c.AddConstraint(constraint)
+			g.freeNodes.Remove(constraint.Element1.GetID())
+			g.freeNodes.Remove(constraint.Element2.GetID())
+			delete(g.constraints, constraintID)
+		}
+		toAdd = g.getClusterConstraints(c)
+	}
+	g.clusters = append(g.clusters, c)
+
+	return c
+}
+
+func (g *SketchGraph) mergeCluster(index int) bool {
+	// Look for 3 clusters sharing one element with each of the others
+	// A mention at the end of https://www.cs.purdue.edu/homes/cmh/electrobook/our_solver1.html
+	// indicates that, "If other clusters have two elements in common with the new cluster,
+	// they can be merged into it as well." The algorithm below is probably too simple and
+	// needs to search sub clusters.
+	cluster := g.clusters[index]
+	connected := make([]uint, 2, 2)
+	found := 0
+
+	for i := range g.clusters {
+		if found >= 2 {
+			break
+		}
+
+		if i == index {
+			continue
+		}
+
+		if cluster.SharedElements(g.clusters[i]).Count() == 1 {
+			connected[found] = uint(i)
+			found++
+		}
+	}
+
+	if found != 2 {
+		return false
+	}
+
+	cluster.others = append(cluster.others, g.clusters[connected[0]])
+	cluster.others = append(cluster.others, g.clusters[connected[1]])
+
+	// remove connected[0] and connected[1] from g.clusters
+	copy(g.clusters[connected[0]:], g.clusters[connected[0]+1:])
+	g.clusters[len(g.clusters)-1] = nil
+	g.clusters = g.clusters[:len(g.clusters)-1]
+	copy(g.clusters[connected[1]:], g.clusters[connected[1]+1:])
+	g.clusters[len(g.clusters)-1] = nil
+	g.clusters = g.clusters[:len(g.clusters)-1]
+	return true
+}
+
 func (g *SketchGraph) createClusters() {
 	for len(g.constraints) > 0 {
-		createCluster(0)
+		g.createCluster(0)
 	}
 }
 
 func (g *SketchGraph) mergeClusters() {
 	for i := 0; i < len(g.clusters); i++ {
-		if mergeCluster(i) {
+		if g.mergeCluster(i) {
 			i = 0
 		}
 	}
-}
-
-func (g *SketchGraph) getClusterConstraints(c *GraphCluster) {
-	//found := make([]uint, len(g.constraints))
-	//toAdd := make([]uint, toAdd)
-
-	// Look for any constraints with one element in the cluster
 }
 
 // Solve builds the graph and solves the sketch
@@ -86,7 +187,7 @@ func (g *SketchGraph) Solve() solver.SolveState {
 		return g.state
 	}
 
-	g.clusters[0].solve()
+	g.clusters[0].Solve()
 	return g.state
 }
 
