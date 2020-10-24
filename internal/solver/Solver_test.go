@@ -13,13 +13,13 @@ func TestPointFromPoints(t *testing.T) {
 	p2 := el.NewSketchPoint(1, 3, 5)
 	p3 := el.NewSketchPoint(2, 0, 2)
 
-	newP3, state := pointFromPoints(p1, p2, p3, 1, 3)
+	newP3, state := GetPointFromPoints(p1, p2, p3, 1, 3)
 
 	if state != NonConvergent {
 		t.Error("Expected non-convergent state got ", state)
 	}
 
-	newP3, state = pointFromPoints(p1, p2, p3, 1, 5)
+	newP3, state = GetPointFromPoints(p1, p2, p3, 1, 5)
 
 	if state != Solved {
 		t.Error("Expected solved state got ", state)
@@ -51,7 +51,7 @@ func TestPointFromPoints(t *testing.T) {
 	p3 = el.NewSketchPoint(2, 2, 1)
 	var newP32 *el.SketchPoint
 
-	newP32, state = pointFromPoints(p1, p2, p3, 1, 5)
+	newP32, state = GetPointFromPoints(p1, p2, p3, 1, 5)
 
 	if state != Solved {
 		t.Error("Expected solved state got ", state)
@@ -83,7 +83,7 @@ func TestPointFromPointsExt(t *testing.T) {
 	p2 := el.NewSketchPoint(1, 3, 5)
 	p3 := el.NewSketchPoint(2, 0, 2)
 
-	referenceP3, state := pointFromPoints(p1, p2, p3, 1, 5)
+	referenceP3, state := GetPointFromPoints(p1, p2, p3, 1, 5)
 
 	if utils.StandardFloatCompare(p1.DistanceTo(referenceP3), 1) != 0 {
 		t.Error("Expected newP3 to have distance of 1 to p1, got ", p1.DistanceTo(referenceP3))
