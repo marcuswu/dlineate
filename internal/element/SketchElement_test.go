@@ -4,7 +4,7 @@ import (
 	"math"
 	"testing"
 
-	"github.com/marcuswu/dlineation/utils"
+	"github.com/marcuswu/dlineate/utils"
 )
 
 func TestIntersection(t *testing.T) {

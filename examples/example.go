@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	core "github.com/marcuswu/dlineation/internal"
+	core "github.com/marcuswu/dlineate/internal"
 )
 
 func main() {
