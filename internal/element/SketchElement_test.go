@@ -43,13 +43,17 @@ func TestReverseTranslateByElement(t *testing.T) {
 }
 
 func TestTranslateByElement(t *testing.T) {
-	var l1 = NewSketchLine(0, 1, 2, -1)
-	var p1 = NewSketchPoint(0, 1, 1)
+	var l1 = NewSketchLine(0, 1, 2, -1.5)
+	var p1 = NewSketchPoint(0, -0.3, -0.6)
 	t.Log("before translate point nearest origin: ", l1.PointNearestOrigin())
+	t.Log("origin distance before translate: ", l1.GetOriginDistance())
 	l1.TranslateByElement(p1)
-	t.Log("after translate point nearest origin: ", l1.PointNearestOrigin())
-	if l1.GetA() != 1 || l1.GetB() != 2 || l1.GetC() != -4 {
-		t.Error("Expected Line(1, 2, -4), got ", l1)
+	var pointNearOrigin = l1.PointNearestOrigin()
+	t.Log("after translate point nearest origin: ", pointNearOrigin)
+	t.Log("origin distance after translate: ", l1.GetOriginDistance())
+	if utils.StandardFloatCompare(pointNearOrigin.GetX(), 0) != 0 ||
+		utils.StandardFloatCompare(pointNearOrigin.GetY(), 0) != 0 {
+		t.Error("Expected Point near origin Point(0, 0), got ", pointNearOrigin)
 	}
 }
 

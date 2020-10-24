@@ -30,6 +30,18 @@ func (s *Set) Contains(value uint) bool {
 	return c
 }
 
+// AddList Adds a list of values to the set
+func (s *Set) AddList(values []uint) {
+	for _, v := range values {
+		s.Add(v)
+	}
+}
+
+// AddSet Adds the contents of another set to this set
+func (s *Set) AddSet(values *Set) {
+	s.AddList(values.Contents())
+}
+
 // Contents returns a copy of the underlying set data
 func (s *Set) Contents() []uint {
 	keys := make([]uint, 0, len(s.m))

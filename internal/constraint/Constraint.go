@@ -35,11 +35,11 @@ const (
 
 // Constraint Represents a 2D constraint
 type Constraint struct {
-	id             uint
-	constraintType Type
-	Value          float64
-	Element1       el.SketchElement
-	Element2       el.SketchElement
+	id       uint
+	Type     Type
+	Value    float64
+	Element1 el.SketchElement
+	Element2 el.SketchElement
 }
 
 // GetID returns the constraint identifier
@@ -79,13 +79,23 @@ func (c *Constraint) Equals(o Constraint) bool {
 }
 
 // NewConstraint creates a new constraint
-func NewConstraint(id uint, constraintType Type, a el.SketchElement, b el.SketchElement, v float64) Constraint {
-	// TODO: construct and return distance or angle constraint
-	return Constraint{
-		id:             id,
-		constraintType: constraintType,
-		Value:          v,
-		Element1:       a,
-		Element2:       b,
+func NewConstraint(id uint, constraintType Type, a el.SketchElement, b el.SketchElement, v float64) *Constraint {
+	return &Constraint{
+		id:       id,
+		Type:     constraintType,
+		Value:    v,
+		Element1: a,
+		Element2: b,
 	}
+}
+
+// CopyConstraint creates a deep copy of a Constraint
+func CopyConstraint(c *Constraint) *Constraint {
+	return NewConstraint(
+		c.GetID(),
+		c.Type,
+		el.CopySketchElement(c.Element1),
+		el.CopySketchElement(c.Element2),
+		c.Value,
+	)
 }

@@ -177,3 +177,26 @@ func (l *SketchLine) Intersection(l2 *SketchLine) Vector {
 		((l.GetB() * l2.GetC()) - (l2.GetB() * l.GetC())) / ((l.GetA() * l2.GetB()) - (l2.GetA() * l.GetB())),
 		((l.GetC() * l2.GetA()) - (l2.GetC() * l.GetA())) / ((l.GetA() * l2.GetB()) - (l2.GetA() * l.GetB()))}
 }
+
+// VectorTo returns a Vector to SketchElement o
+func (l *SketchLine) VectorTo(o SketchElement) Vector {
+	var point *SketchPoint
+	var myPoint = l.PointNearestOrigin()
+	if o.GetType() == Point {
+		point = o.(*SketchPoint)
+	} else {
+		point = o.(*SketchLine).PointNearestOrigin()
+	}
+
+	return Vector{myPoint.GetX() - point.GetX(), myPoint.GetY() - point.GetY()}
+}
+
+// AsPoint returns a SketchElement as a *SketchPoint or nil
+func (l *SketchLine) AsPoint() *SketchPoint {
+	return nil
+}
+
+// AsLine returns a SketchElement as a *SketchLine or nil
+func (l *SketchLine) AsLine() *SketchLine {
+	return l
+}

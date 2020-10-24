@@ -22,6 +22,9 @@ type SketchElement interface {
 	Is(SketchElement) bool
 	SquareDistanceTo(SketchElement) float64
 	DistanceTo(SketchElement) float64
+	VectorTo(SketchElement) Vector
+	AsPoint() *SketchPoint
+	AsLine() *SketchLine
 }
 
 // List is a list of SketchElements

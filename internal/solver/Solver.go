@@ -20,7 +20,43 @@ const (
 	Solved
 )
 
-func pointFromPoints(p1 el.SketchElement, originalP2 el.SketchElement, originalP3 el.SketchElement, p1Radius float64, p2Radius float64) (*el.SketchPoint, SolveState) {
+func typeCounts(c1 *constraint.Constraint, c2 *constraint.Constraint) (int, int) {
+	numPoints := 0
+	numLines := 0
+	elements := []el.SketchElement{c1.Element1, c1.Element2, c2.Element1, c2.Element2}
+
+	for _, element := range elements {
+		if element.GetType() == el.Point {
+			numPoints++
+		} else {
+			numLines++
+		}
+	}
+
+	return numPoints, numLines
+}
+
+// SolveConstraints solve two constraints and return the solution state
+func SolveConstraints(c1 *constraint.Constraint, c2 *constraint.Constraint) SolveState {
+	numPoints, _ := typeCounts(c1, c2)
+	// 4 points -> PointFromPoints
+	if numPoints == 4 {
+		return PointFromPoints(c1, c2)
+	}
+
+	// 3 points, 1 line -> PointFromPointLine
+	if numPoints == 3 {
+		return PointFromPointLine(c1, c2)
+	}
+	// 2 points, 2 lines -> PointFromLineLine
+	if numPoints == 2 {
+		return PointFromLineLine(c1, c2)
+	}
+
+	return NonConvergent
+}
+
+func GetPointFromPoints(p1 el.SketchElement, originalP2 el.SketchElement, originalP3 el.SketchElement, p1Radius float64, p2Radius float64) (*el.SketchPoint, SolveState) {
 	// Don't mutate the originals
 	p2 := el.CopySketchElement(originalP2)
 	p3 := el.CopySketchElement(originalP3)
@@ -70,7 +106,7 @@ func pointFromPoints(p1 el.SketchElement, originalP2 el.SketchElement, originalP
 
 // PointFromPoints calculates a new p3 representing p3 moved to satisfy
 // distance constraints from p1 and p2
-func PointFromPoints(c1 constraint.Constraint, c2 constraint.Constraint) (*el.SketchPoint, SolveState) {
+func PointFromPoints(c1 *constraint.Constraint, c2 *constraint.Constraint) SolveState {
 	p1 := c1.Element1
 	p2 := c2.Element1
 	p3 := c1.Element2
@@ -88,7 +124,24 @@ func PointFromPoints(c1 constraint.Constraint, c2 constraint.Constraint) (*el.Sk
 		break
 	}
 
-	return pointFromPoints(p1, p2, p3, p1Radius, p2Radius)
+	newP3, solved := GetPointFromPoints(p1, p2, p3, p1Radius, p2Radius)
+
+	switch {
+	case c1.Element1.Is(c2.Element1):
+		c1.Element1 = newP3
+		c2.Element1 = newP3
+	case c1.Element2.Is(c2.Element1):
+		c1.Element2 = newP3
+		c2.Element1 = newP3
+	case c1.Element1.Is(c2.Element2):
+		c1.Element1 = newP3
+		c2.Element2 = newP3
+	case c1.Element2.Is(c2.Element2):
+		c1.Element2 = newP3
+		c2.Element2 = newP3
+	}
+
+	return solved
 }
 
 func pointFromPointLine(originalP1 el.SketchElement, originalL2 el.SketchElement, originalP3 el.SketchElement, pointDist float64, lineDist float64) (*el.SketchPoint, SolveState) {
@@ -109,7 +162,6 @@ func pointFromPointLine(originalP1 el.SketchElement, originalL2 el.SketchElement
 		return el.NewSketchPoint(p3.GetID(), p1.GetX(), p1.GetY()-pointDist), Solved
 	}
 
-	// TODO the rest...
 	// rotate l2 to X axis
 	angle := l2.AngleTo(el.Vector{X: 1, Y: 0})
 	l2.Rotate(-angle)
@@ -138,7 +190,7 @@ func pointFromPointLine(originalP1 el.SketchElement, originalL2 el.SketchElement
 }
 
 // PointFromPointLine construct a point from a point and a line. c2 must contain the line.
-func PointFromPointLine(c1 constraint.Constraint, c2 constraint.Constraint) (*el.SketchPoint, SolveState) {
+func PointFromPointLine(c1 *constraint.Constraint, c2 *constraint.Constraint) SolveState {
 	p1 := c1.Element1
 	l2 := c2.Element1
 	p3 := c1.Element2
@@ -167,7 +219,24 @@ func PointFromPointLine(c1 constraint.Constraint, c2 constraint.Constraint) (*el
 		pointDist, lineDist = lineDist, pointDist
 	}
 
-	return pointFromPointLine(p1, l2, p3, pointDist, lineDist)
+	newP3, solved := pointFromPointLine(p1, l2, p3, pointDist, lineDist)
+
+	switch {
+	case c1.Element1.Is(c2.Element1):
+		c1.Element1 = newP3
+		c2.Element1 = newP3
+	case c1.Element2.Is(c2.Element1):
+		c1.Element2 = newP3
+		c2.Element1 = newP3
+	case c1.Element1.Is(c2.Element2):
+		c1.Element1 = newP3
+		c2.Element2 = newP3
+	case c1.Element2.Is(c2.Element2):
+		c1.Element2 = newP3
+		c2.Element2 = newP3
+	}
+
+	return solved
 }
 
 func pointFromLineLine(originalL1 el.SketchElement, originalL2 el.SketchElement, originalP3 el.SketchElement, line1Dist float64, line2Dist float64) (*el.SketchPoint, SolveState) {
@@ -190,7 +259,7 @@ func pointFromLineLine(originalL1 el.SketchElement, originalL2 el.SketchElement,
 }
 
 // PointFromLineLine construct a point from two lines. c2 must contain the point.
-func PointFromLineLine(c1 constraint.Constraint, c2 constraint.Constraint) (*el.SketchPoint, SolveState) {
+func PointFromLineLine(c1 *constraint.Constraint, c2 *constraint.Constraint) SolveState {
 	l1 := c1.Element1
 	l2 := c2.Element1
 	p3 := c1.Element2
@@ -214,5 +283,22 @@ func PointFromLineLine(c1 constraint.Constraint, c2 constraint.Constraint) (*el.
 		break
 	}
 
-	return pointFromLineLine(l1, l2, p3, line1Dist, line2Dist)
+	newP3, solved := pointFromLineLine(l1, l2, p3, line1Dist, line2Dist)
+
+	switch {
+	case c1.Element1.Is(c2.Element1):
+		c1.Element1 = newP3
+		c2.Element1 = newP3
+	case c1.Element2.Is(c2.Element1):
+		c1.Element2 = newP3
+		c2.Element1 = newP3
+	case c1.Element1.Is(c2.Element2):
+		c1.Element1 = newP3
+		c2.Element2 = newP3
+	case c1.Element2.Is(c2.Element2):
+		c1.Element2 = newP3
+		c2.Element2 = newP3
+	}
+
+	return solved
 }

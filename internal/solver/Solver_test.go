@@ -97,7 +97,8 @@ func TestPointFromPointsExt(t *testing.T) {
 
 	c2 := constraint.NewConstraint(1, constraint.Distance, p2, p3, 5)
 
-	newP3, state := PointFromPoints(c1, c2)
+	state = PointFromPoints(c1, c2)
+	newP3 := c1.Element2.(*el.SketchPoint)
 
 	if state != Solved {
 		t.Error("Expected solved state got ", state)
@@ -111,7 +112,8 @@ func TestPointFromPointsExt(t *testing.T) {
 		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
 	}
 
-	newP3, state = PointFromPoints(c2, c1)
+	state = PointFromPoints(c2, c1)
+	newP3 = c1.Element2.(*el.SketchPoint)
 
 	if state != Solved {
 		t.Error("Expected solved state got ", state)
@@ -127,7 +129,8 @@ func TestPointFromPointsExt(t *testing.T) {
 
 	c1.Element1, c1.Element2 = c1.Element2, c1.Element1
 
-	newP3, state = PointFromPoints(c1, c2)
+	state = PointFromPoints(c1, c2)
+	newP3 = c1.Element1.(*el.SketchPoint)
 
 	if state != Solved {
 		t.Error("Expected solved state got ", state)
@@ -141,7 +144,8 @@ func TestPointFromPointsExt(t *testing.T) {
 		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
 	}
 
-	newP3, state = PointFromPoints(c2, c1)
+	state = PointFromPoints(c2, c1)
+	newP3 = c1.Element1.(*el.SketchPoint)
 
 	if utils.StandardFloatCompare(newP3.GetX(), referenceP3.GetX()) != 0 {
 		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
@@ -154,7 +158,8 @@ func TestPointFromPointsExt(t *testing.T) {
 	c1.Element1, c1.Element2 = c1.Element2, c1.Element1
 	c2.Element1, c2.Element2 = c2.Element2, c2.Element1
 
-	newP3, state = PointFromPoints(c1, c2)
+	state = PointFromPoints(c1, c2)
+	newP3 = c1.Element2.(*el.SketchPoint)
 
 	if state != Solved {
 		t.Error("Expected solved state got ", state)
@@ -168,7 +173,8 @@ func TestPointFromPointsExt(t *testing.T) {
 		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
 	}
 
-	newP3, state = PointFromPoints(c2, c1)
+	state = PointFromPoints(c2, c1)
+	newP3 = c1.Element2.(*el.SketchPoint)
 
 	if utils.StandardFloatCompare(newP3.GetX(), referenceP3.GetX()) != 0 {
 		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
@@ -180,7 +186,8 @@ func TestPointFromPointsExt(t *testing.T) {
 
 	c1.Element1, c1.Element2 = c1.Element2, c1.Element1
 
-	newP3, state = PointFromPoints(c1, c2)
+	state = PointFromPoints(c1, c2)
+	newP3 = c1.Element1.(*el.SketchPoint)
 
 	if state != Solved {
 		t.Error("Expected solved state got ", state)
@@ -194,7 +201,8 @@ func TestPointFromPointsExt(t *testing.T) {
 		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
 	}
 
-	newP3, state = PointFromPoints(c2, c1)
+	state = PointFromPoints(c2, c1)
+	newP3 = c1.Element1.(*el.SketchPoint)
 
 	if utils.StandardFloatCompare(newP3.GetX(), referenceP3.GetX()) != 0 {
 		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
@@ -273,7 +281,8 @@ func TestPointFromPointLineExt(t *testing.T) {
 
 	c2 := constraint.NewConstraint(1, constraint.Distance, l2, p3, 2.5)
 
-	newP3, state := PointFromPointLine(c1, c2)
+	state = PointFromPointLine(c1, c2)
+	newP3 := c1.Element2.(*el.SketchPoint)
 
 	if state != Solved {
 		t.Error("Expected solved state got ", state)
@@ -287,7 +296,8 @@ func TestPointFromPointLineExt(t *testing.T) {
 		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
 	}
 
-	newP3, state = PointFromPointLine(c2, c1)
+	state = PointFromPointLine(c2, c1)
+	newP3 = c1.Element2.(*el.SketchPoint)
 
 	if state != Solved {
 		t.Error("Expected solved state got ", state)
@@ -303,7 +313,8 @@ func TestPointFromPointLineExt(t *testing.T) {
 
 	c1.Element1, c1.Element2 = c1.Element2, c1.Element1
 
-	newP3, state = PointFromPointLine(c1, c2)
+	state = PointFromPointLine(c1, c2)
+	newP3 = c1.Element1.(*el.SketchPoint)
 
 	if state != Solved {
 		t.Error("Expected solved state got ", state)
@@ -317,7 +328,8 @@ func TestPointFromPointLineExt(t *testing.T) {
 		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
 	}
 
-	newP3, state = PointFromPointLine(c2, c1)
+	state = PointFromPointLine(c2, c1)
+	newP3 = c1.Element1.(*el.SketchPoint)
 
 	if utils.StandardFloatCompare(newP3.GetX(), referenceP3.GetX()) != 0 {
 		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
@@ -330,7 +342,8 @@ func TestPointFromPointLineExt(t *testing.T) {
 	c1.Element1, c1.Element2 = c1.Element2, c1.Element1
 	c2.Element1, c2.Element2 = c2.Element2, c2.Element1
 
-	newP3, state = PointFromPointLine(c1, c2)
+	state = PointFromPointLine(c1, c2)
+	newP3 = c1.Element2.(*el.SketchPoint)
 
 	if state != Solved {
 		t.Error("Expected solved state got ", state)
@@ -344,7 +357,8 @@ func TestPointFromPointLineExt(t *testing.T) {
 		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
 	}
 
-	newP3, state = PointFromPointLine(c2, c1)
+	state = PointFromPointLine(c2, c1)
+	newP3 = c1.Element2.(*el.SketchPoint)
 
 	if utils.StandardFloatCompare(newP3.GetX(), referenceP3.GetX()) != 0 {
 		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
@@ -356,7 +370,8 @@ func TestPointFromPointLineExt(t *testing.T) {
 
 	c1.Element1, c1.Element2 = c1.Element2, c1.Element1
 
-	newP3, state = PointFromPointLine(c1, c2)
+	state = PointFromPointLine(c1, c2)
+	newP3 = c1.Element1.(*el.SketchPoint)
 
 	if state != Solved {
 		t.Error("Expected solved state got ", state)
@@ -370,7 +385,8 @@ func TestPointFromPointLineExt(t *testing.T) {
 		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
 	}
 
-	newP3, state = PointFromPointLine(c2, c1)
+	state = PointFromPointLine(c2, c1)
+	newP3 = c1.Element1.(*el.SketchPoint)
 
 	if utils.StandardFloatCompare(newP3.GetX(), referenceP3.GetX()) != 0 {
 		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
@@ -441,7 +457,8 @@ func TestPointFromLineLineExt(t *testing.T) {
 
 	c2 := constraint.NewConstraint(1, constraint.Distance, l2, p3, 2)
 
-	newP3, state := PointFromLineLine(c1, c2)
+	state = PointFromLineLine(c1, c2)
+	newP3 := c1.Element2.(*el.SketchPoint)
 
 	if state != Solved {
 		t.Error("Expected solved state got ", state)
@@ -455,7 +472,8 @@ func TestPointFromLineLineExt(t *testing.T) {
 		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
 	}
 
-	newP3, state = PointFromLineLine(c2, c1)
+	state = PointFromLineLine(c2, c1)
+	newP3 = c1.Element2.(*el.SketchPoint)
 
 	if state != Solved {
 		t.Error("Expected solved state got ", state)
@@ -471,7 +489,8 @@ func TestPointFromLineLineExt(t *testing.T) {
 
 	c1.Element1, c1.Element2 = c1.Element2, c1.Element1
 
-	newP3, state = PointFromLineLine(c1, c2)
+	state = PointFromLineLine(c1, c2)
+	newP3 = c1.Element1.(*el.SketchPoint)
 
 	if state != Solved {
 		t.Error("Expected solved state got ", state)
@@ -485,7 +504,8 @@ func TestPointFromLineLineExt(t *testing.T) {
 		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
 	}
 
-	newP3, state = PointFromLineLine(c2, c1)
+	state = PointFromLineLine(c2, c1)
+	newP3 = c1.Element1.(*el.SketchPoint)
 
 	if utils.StandardFloatCompare(newP3.GetX(), referenceP3.GetX()) != 0 {
 		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
@@ -498,7 +518,8 @@ func TestPointFromLineLineExt(t *testing.T) {
 	c1.Element1, c1.Element2 = c1.Element2, c1.Element1
 	c2.Element1, c2.Element2 = c2.Element2, c2.Element1
 
-	newP3, state = PointFromLineLine(c1, c2)
+	state = PointFromLineLine(c1, c2)
+	newP3 = c1.Element2.(*el.SketchPoint)
 
 	if state != Solved {
 		t.Error("Expected solved state got ", state)
@@ -512,7 +533,8 @@ func TestPointFromLineLineExt(t *testing.T) {
 		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
 	}
 
-	newP3, state = PointFromLineLine(c2, c1)
+	state = PointFromLineLine(c2, c1)
+	newP3 = c1.Element2.(*el.SketchPoint)
 
 	if utils.StandardFloatCompare(newP3.GetX(), referenceP3.GetX()) != 0 {
 		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
@@ -524,7 +546,8 @@ func TestPointFromLineLineExt(t *testing.T) {
 
 	c1.Element1, c1.Element2 = c1.Element2, c1.Element1
 
-	newP3, state = PointFromLineLine(c1, c2)
+	state = PointFromLineLine(c1, c2)
+	newP3 = c1.Element1.(*el.SketchPoint)
 
 	if state != Solved {
 		t.Error("Expected solved state got ", state)
@@ -538,7 +561,8 @@ func TestPointFromLineLineExt(t *testing.T) {
 		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
 	}
 
-	newP3, state = PointFromLineLine(c2, c1)
+	state = PointFromLineLine(c2, c1)
+	newP3 = c1.Element1.(*el.SketchPoint)
 
 	if utils.StandardFloatCompare(newP3.GetX(), referenceP3.GetX()) != 0 {
 		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
