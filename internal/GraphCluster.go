@@ -15,7 +15,17 @@ type GraphCluster struct {
 	constraints    []*Constraint
 	others         []*GraphCluster
 	elements       map[uint]el.SketchElement
-	solvedElements utils.Set
+	solvedElements *utils.Set
+}
+
+// NewGraphCluster constructs a new GraphCluster
+func NewGraphCluster() *GraphCluster {
+	g := new(GraphCluster)
+	g.constraints = make([]*Constraint, 0, 2)
+	g.others = make([]*GraphCluster, 0, 0)
+	g.elements = make(map[uint]el.SketchElement, 0)
+	g.solvedElements = utils.NewSet()
+	return g
 }
 
 // AddConstraint adds a constraint to the cluster
@@ -92,6 +102,8 @@ func (g *GraphCluster) Rotate(origin *el.SketchPoint, angle float64) {
 
 // LocalSolve attempts to solve the constraints in the cluster, returns solution state
 func (g *GraphCluster) localSolve() solver.SolveState {
+	// A map of element id to constraint which still need to be matched
+	// for solving
 	available := make(map[uint]*Constraint, len(g.constraints))
 	toSolve := make([]*Constraint, len(g.constraints))
 	copy(toSolve, g.constraints)
@@ -137,6 +149,13 @@ func (g *GraphCluster) localSolve() solver.SolveState {
 		if len(current) == 0 && len(toSolve) > 0 {
 			return solver.NonConvergent
 		}
+		// TODO: This isn't right! solver.SolveConstraints may alter
+		// already "solved" elements. If that happens, other already
+		// solved elements need to have rigid transformations applied
+		// to stay in a solved arrangement.
+		// TODO: If current[0] and current[1] contain lines, then we
+		// need to also find the angle constraint between those lines
+		// and solve for it.
 		solver.SolveConstraints(current[0], current[1])
 	}
 

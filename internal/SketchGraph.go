@@ -103,7 +103,7 @@ func (g *SketchGraph) getClusterConstraints(c *GraphCluster) []uint {
 }
 
 func (g *SketchGraph) createCluster(first uint) *GraphCluster {
-	c := new(GraphCluster)
+	c := NewGraphCluster()
 
 	toAdd := make([]uint, 0, 5)
 	toAdd = append(toAdd, first)

@@ -76,7 +76,7 @@ func TestTranslated(t *testing.T) {
 
 	result = result.Translated(-1, -1)
 	t.Log("after translate point nearest origin: ", result.PointNearestOrigin())
-	if result.GetA() != 1 || result.GetB() != 2 || result.GetC() != -1 {
+	if result.GetA() != 1 || result.GetB() != 2 || utils.StandardFloatCompare(result.GetC(), -1) != 0 {
 		t.Error("Expected Line(1, 2, -1), got ", result)
 	}
 }

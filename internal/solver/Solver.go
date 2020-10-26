@@ -56,6 +56,8 @@ func SolveConstraints(c1 *constraint.Constraint, c2 *constraint.Constraint) Solv
 	return NonConvergent
 }
 
+// GetPointFromPoints calculates where a 3rd point exists in relation to two others with
+// distance constraints from the first two
 func GetPointFromPoints(p1 el.SketchElement, originalP2 el.SketchElement, originalP3 el.SketchElement, p1Radius float64, p2Radius float64) (*el.SketchPoint, SolveState) {
 	// Don't mutate the originals
 	p2 := el.CopySketchElement(originalP2)
