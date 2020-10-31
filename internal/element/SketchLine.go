@@ -88,7 +88,13 @@ func (l *SketchLine) PointNearestOrigin() *SketchPoint {
 }
 
 // TranslateDistance translates the line by a distance along its normal
-func (l *SketchLine) TranslateDistance(dist float64) *SketchLine {
+func (l *SketchLine) TranslateDistance(dist float64) {
+	// find point nearest to origin
+	l.c = l.TranslatedDistance(dist).GetC()
+}
+
+// TranslatedDistance returns the line translated by a distance along its normal
+func (l *SketchLine) TranslatedDistance(dist float64) *SketchLine {
 	// find point nearest to origin
 	p := l.PointNearestOrigin()
 	move, _ := p.UnitVector()
@@ -141,6 +147,14 @@ func (l *SketchLine) AngleTo(u Vector) float64 {
 	// point [0, -C / B] - point[-C / A, 0]
 	lv := Vector{l.GetC() / l.GetA(), -l.GetC() / l.GetB()}
 	return lv.AngleTo(u)
+}
+
+// AngleToLine returns the angle to another vector in radians
+func (l *SketchLine) AngleToLine(o *SketchLine) float64 {
+	// point [0, -C / B] - point[-C / A, 0]
+	lv := Vector{l.GetC() / l.GetA(), -l.GetC() / l.GetB()}
+	ov := Vector{o.GetC() / o.GetA(), -o.GetC() / o.GetB()}
+	return lv.AngleTo(ov)
 }
 
 // Rotated returns a line representing this line rotated around the origin by angle radians

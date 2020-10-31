@@ -12,10 +12,9 @@ type Constraint = constraint.Constraint
 
 // GraphCluster A cluster within a Graph
 type GraphCluster struct {
-	constraints    []*Constraint
-	others         []*GraphCluster
-	elements       map[uint]el.SketchElement
-	solvedElements *utils.Set
+	constraints []*Constraint
+	others      []*GraphCluster
+	elements    map[uint]el.SketchElement
 }
 
 // NewGraphCluster constructs a new GraphCluster
@@ -24,7 +23,6 @@ func NewGraphCluster() *GraphCluster {
 	g.constraints = make([]*Constraint, 0, 2)
 	g.others = make([]*GraphCluster, 0, 0)
 	g.elements = make(map[uint]el.SketchElement, 0)
-	g.solvedElements = utils.NewSet()
 	return g
 }
 
@@ -100,67 +98,86 @@ func (g *GraphCluster) Rotate(origin *el.SketchPoint, angle float64) {
 	}
 }
 
+func (g *GraphCluster) rebuildMap() {
+	g.elements = make(map[uint]el.SketchElement, 0)
+
+	for _, c := range g.constraints {
+		g.elements[c.Element1.GetID()] = c.Element1
+		g.elements[c.Element2.GetID()] = c.Element2
+	}
+}
+
 // LocalSolve attempts to solve the constraints in the cluster, returns solution state
 func (g *GraphCluster) localSolve() solver.SolveState {
-	// A map of element id to constraint which still need to be matched
-	// for solving
-	available := make(map[uint]*Constraint, len(g.constraints))
-	toSolve := make([]*Constraint, len(g.constraints))
-	copy(toSolve, g.constraints)
-	removeItem := func(list []*Constraint, i int) ([]*Constraint, *Constraint) {
-		var item *Constraint
-		item, list[i] = list[i], list[len(list)-1]
-		return list[:len(list)-1], item
-	}
-	findConstraint := func() []*Constraint {
-		var c *Constraint
-
-		// If we don't have any available elements to create a solve pair, select one
-		if len(available) == 0 {
-			toSolve, c = removeItem(toSolve, 0)
-			available[c.Element1.GetID()] = c
-			available[c.Element2.GetID()] = c
+	// Solve all angle constraints first
+	var toSolve *utils.Set = utils.NewSet()
+	for _, c := range g.constraints {
+		if c.Type != constraint.Angle {
+			toSolve.Add(c.Element1.GetID())
+			toSolve.Add(c.Element2.GetID())
+			continue
 		}
+		solver.SolveAngleConstraint(c)
+	}
 
-		// Find something in toSolve which matches one element in available
-		for i, c := range toSolve {
-			c2, ok := available[c.Element1.GetID()]
-			if ok {
-				delete(available, c.Element1.GetID())
-				available[c.Element2.GetID()] = c
-				toSolve, _ = removeItem(toSolve, i)
-				return []*Constraint{c, c2}
+	constraintsWith := func(list []*Constraint, eID uint) []*Constraint {
+		var constraints = make([]*Constraint, 0, 2)
+		for _, c := range g.constraints {
+			if c.Element1.GetID() == eID {
+				constraints = append(constraints, c)
+				continue
 			}
-			c2, ok = available[c.Element2.GetID()]
-			if ok {
-				delete(available, c.Element2.GetID())
-				available[c.Element1.GetID()] = c
-				toSolve, _ = removeItem(toSolve, i)
-				return []*Constraint{c, c2}
+			if c.Element2.GetID() == eID {
+				constraints = append(constraints, c)
 			}
 		}
-
-		return []*Constraint{}
+		return constraints
 	}
-	// Find constraints that share an element, solve that pair of constraints
-	// Use findConstraint to get two constraints and solve them
-	for len(toSolve) > 0 {
-		current := findConstraint()
-		if len(current) == 0 && len(toSolve) > 0 {
-			return solver.NonConvergent
+
+	// for each unsolved element
+	state := solver.Solved
+	for _, e := range toSolve.Contents() {
+		// find constraints involving it
+		c := constraintsWith(g.constraints, e)
+		toSolve.Remove(e)
+		switch len(c) {
+		case 2:
+			if c[0].Type == constraint.Angle && c[1].Type == constraint.Angle {
+				// over constrained
+				state = solver.OverConstrained
+				continue
+			}
+			if c[0].Type == constraint.Angle || c[1].Type == constraint.Angle {
+				dc := c[0]
+				if c[1].Type == constraint.Distance {
+					dc = c[1]
+				}
+				other := dc.Element1
+				if other.GetID() == e {
+					other = dc.Element2
+				}
+				// angle constraints have been solved, so just move the line into place
+				// Move the line to be constraint distance from point
+				l := g.elements[e].(*el.SketchLine)
+				l.TranslateDistance(dc.Value - l.DistanceTo(other))
+				continue
+			}
+			if s := solver.SolveConstraints(c[0], c[1]); state == solver.Solved {
+				state = s
+			}
+		case 1:
+			fallthrough
+		case 0:
+			state = solver.UnderConstrained
+		default:
+			state = solver.OverConstrained
 		}
-		// TODO: This isn't right! solver.SolveConstraints may alter
-		// already "solved" elements. If that happens, other already
-		// solved elements need to have rigid transformations applied
-		// to stay in a solved arrangement.
-		// TODO: If current[0] and current[1] contain lines, then we
-		// need to also find the angle constraint between those lines
-		// and solve for it.
-		solver.SolveConstraints(current[0], current[1])
 	}
 
-	// Continue until toSolve is empty
-	return solver.Solved
+	// solver changes element instances in constraints, so rebuild the element map
+	g.rebuildMap()
+
+	return state
 }
 
 // SolveMerge resolves merging solved child clusters to this one

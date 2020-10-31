@@ -56,6 +56,20 @@ func SolveConstraints(c1 *constraint.Constraint, c2 *constraint.Constraint) Solv
 	return NonConvergent
 }
 
+// SolveAngleConstraint solve an angle constraint between two lines
+func SolveAngleConstraint(c *constraint.Constraint) SolveState {
+	if c.Type != constraint.Angle {
+		return NonConvergent
+	}
+
+	l1 := c.Element1.(*el.SketchLine)
+	l2 := c.Element2.(*el.SketchLine)
+	angle := l2.AngleToLine(l1)
+	rotate := c.Value - angle
+	l2.Rotate(rotate)
+	return Solved
+}
+
 // GetPointFromPoints calculates where a 3rd point exists in relation to two others with
 // distance constraints from the first two
 func GetPointFromPoints(p1 el.SketchElement, originalP2 el.SketchElement, originalP3 el.SketchElement, p1Radius float64, p2Radius float64) (*el.SketchPoint, SolveState) {
@@ -251,9 +265,9 @@ func pointFromLineLine(originalL1 el.SketchElement, originalL2 el.SketchElement,
 		return nil, NonConvergent
 	}
 	// Translate l1 line1Dist
-	line1Translated := line1.TranslateDistance(line1Dist)
+	line1Translated := line1.TranslatedDistance(line1Dist)
 	// Translate l2 line2Dist
-	line2Translated := line2.TranslateDistance(line2Dist)
+	line2Translated := line2.TranslatedDistance(line2Dist)
 	// Return intersection point
 	intersection := line1Translated.Intersection(line2Translated)
 
