@@ -6,6 +6,7 @@ import (
 
 	"github.com/marcuswu/dlineate/internal/constraint"
 	el "github.com/marcuswu/dlineate/internal/element"
+	"github.com/marcuswu/dlineate/internal/solver"
 	"github.com/marcuswu/dlineate/utils"
 )
 
@@ -213,5 +214,53 @@ func TestRotate(t *testing.T) {
 	if utils.StandardFloatCompare(e2.GetX(), -1) != 0 ||
 		utils.StandardFloatCompare(e2.GetY(), 2.0) != 0 {
 		t.Error("Expected -1, 2 got", e2.GetX(), ",", e2.GetY())
+	}
+}
+
+func TestLocalSolve(t *testing.T) {
+	g := NewGraphCluster()
+
+	// lines and points for a square -- intentionally off
+	l1 := el.NewSketchLine(0, 1, 0.1, -1) // right line
+	l2 := el.NewSketchLine(1, 0, 1, -1.1) // top line
+	l3 := el.NewSketchLine(2, 1.1, 0, 0)  // left line
+	l4 := el.NewSketchLine(3, 0, 1, 0.1)  // bottom line
+	p1 := el.NewSketchPoint(4, 0.1, 1)    // top left
+	p2 := el.NewSketchPoint(5, 1, 1.1)    // top right
+	p3 := el.NewSketchPoint(6, 1.1, 0)    // botton right
+	p4 := el.NewSketchPoint(7, 0, 0.1)    // bottom left
+	c := constraint.NewConstraint(0, constraint.Distance, p1, p2, 1)
+	g.AddConstraint(c)
+	c = constraint.NewConstraint(1, constraint.Distance, p2, p3, 1)
+	g.AddConstraint(c)
+	c = constraint.NewConstraint(2, constraint.Distance, p3, p4, 1)
+	g.AddConstraint(c)
+	c = constraint.NewConstraint(3, constraint.Distance, p4, p1, 1)
+	g.AddConstraint(c)
+	c = constraint.NewConstraint(4, constraint.Distance, p2, l1, 0)
+	g.AddConstraint(c)
+	c = constraint.NewConstraint(5, constraint.Distance, p3, l1, 0)
+	g.AddConstraint(c)
+	c = constraint.NewConstraint(6, constraint.Distance, p1, l2, 0)
+	g.AddConstraint(c)
+	c = constraint.NewConstraint(7, constraint.Distance, p2, l2, 0)
+	g.AddConstraint(c)
+	c = constraint.NewConstraint(8, constraint.Distance, p1, l3, 0)
+	g.AddConstraint(c)
+	c = constraint.NewConstraint(9, constraint.Distance, p4, l3, 0)
+	g.AddConstraint(c)
+	c = constraint.NewConstraint(10, constraint.Distance, p4, l4, 0)
+	g.AddConstraint(c)
+	c = constraint.NewConstraint(11, constraint.Distance, p3, l4, 0)
+	g.AddConstraint(c)
+	c = constraint.NewConstraint(12, constraint.Angle, l1, l2, math.Pi/2)
+	g.AddConstraint(c)
+	c = constraint.NewConstraint(13, constraint.Angle, l3, l4, math.Pi/2)
+	g.AddConstraint(c)
+
+	state := g.localSolve()
+
+	if state != solver.Solved {
+		t.Error("Expected solved state(4), got", state)
 	}
 }
