@@ -168,7 +168,7 @@ func (l *SketchLine) Rotated(angle float64) *SketchLine {
 	// -A / B is slope and slope is y diff / x diff, so
 	// A is -y diff and B is x diff
 	A := -(p2.GetY() - p1.GetY())
-	B := p2.GetX() - p1.GetY()
+	B := p2.GetX() - p1.GetX()
 	// Calculate C based on points from the rotated vectors
 	// based on the general form line Ax + Bx + C = 0 formula
 	C := -((A * p1.GetX()) + (B * p1.GetY()))

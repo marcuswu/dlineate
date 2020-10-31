@@ -1,6 +1,7 @@
 package core
 
 import (
+	"math"
 	"testing"
 
 	"github.com/marcuswu/dlineate/internal/constraint"
@@ -181,5 +182,36 @@ func TestTranslate(t *testing.T) {
 	}
 	if utils.StandardFloatCompare(e3Point.GetY(), originalPointNearest.GetY()+1) != 0 {
 		t.Error("Expected the Y difference between e3 and its original point nearest origin to be 1. Original Y", originalPointNearest.GetY(), ", new Y", e3Point.GetY())
+	}
+}
+
+func TestRotate(t *testing.T) {
+	e1 := el.NewSketchPoint(0, 0, 1)
+	e2 := el.NewSketchPoint(1, 2, 1)
+	e3 := el.NewSketchLine(2, 2, 1, -1)
+	o := el.NewSketchPoint(3, 0, 0)
+	c1 := constraint.NewConstraint(0, constraint.Distance, e1, e2, 5)
+	c2 := constraint.NewConstraint(0, constraint.Distance, e2, e3, 7)
+
+	g := NewGraphCluster()
+	g.AddConstraint(c1)
+	g.AddConstraint(c2)
+
+	g.Rotate(o, math.Pi/2.0)
+
+	if utils.StandardFloatCompare(e3.GetA(), 0.5) != 0 ||
+		utils.StandardFloatCompare(e3.GetB(), -1.0) != 0 ||
+		utils.StandardFloatCompare(e3.GetC(), 0.5) != 0 {
+		t.Error("Expected e3 to be 0.5, -1, 0.5. Got", e3.GetA(), ",", e3.GetB(), ",", e3.GetC())
+	}
+
+	if utils.StandardFloatCompare(e1.GetX(), -1) != 0 ||
+		utils.StandardFloatCompare(e1.GetY(), 0.0) != 0 {
+		t.Error("Expected -1, 0 got", e1.GetX(), ",", e1.GetY())
+	}
+
+	if utils.StandardFloatCompare(e2.GetX(), -1) != 0 ||
+		utils.StandardFloatCompare(e2.GetY(), 2.0) != 0 {
+		t.Error("Expected -1, 2 got", e2.GetX(), ",", e2.GetY())
 	}
 }
