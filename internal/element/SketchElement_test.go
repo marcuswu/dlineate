@@ -119,7 +119,7 @@ func TestGetOriginDistance(t *testing.T) {
 
 func TestAngleTo(t *testing.T) {
 	var l1 = NewSketchLine(0, 1, 1, 1)
-	result := l1.AngleTo(Vector{1, 0})
+	result := l1.AngleTo(&Vector{1, 0})
 	var fourtyFive = -45 * math.Pi / 180
 	if utils.StandardFloatCompare(result, fourtyFive) != 0 {
 		t.Errorf("Expected %f, got %f\n", fourtyFive, result)

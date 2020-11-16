@@ -1,6 +1,8 @@
 package core
 
 import (
+	"fmt"
+
 	"github.com/marcuswu/dlineate/internal/constraint"
 	el "github.com/marcuswu/dlineate/internal/element"
 	"github.com/marcuswu/dlineate/internal/solver"
@@ -109,74 +111,202 @@ func (g *GraphCluster) rebuildMap() {
 
 // LocalSolve attempts to solve the constraints in the cluster, returns solution state
 func (g *GraphCluster) localSolve() solver.SolveState {
-	// Solve all angle constraints first
-	var toSolve *utils.Set = utils.NewSet()
-	for _, c := range g.constraints {
-		if c.Type != constraint.Angle {
-			toSolve.Add(c.Element1.GetID())
-			toSolve.Add(c.Element2.GetID())
-			continue
-		}
-		solver.SolveAngleConstraint(c)
-	}
+	var solved *utils.Set = utils.NewSet()
+	var eToC = make(map[uint][]*Constraint)
 
 	constraintsWith := func(list []*Constraint, eID uint) []*Constraint {
 		var constraints = make([]*Constraint, 0, 2)
 		for _, c := range g.constraints {
-			if c.Element1.GetID() == eID {
-				constraints = append(constraints, c)
-				continue
-			}
-			if c.Element2.GetID() == eID {
+			if c.Element1.GetID() == eID || c.Element2.GetID() == eID {
 				constraints = append(constraints, c)
 			}
 		}
 		return constraints
 	}
 
-	// for each unsolved element
-	state := solver.Solved
-	for _, e := range toSolve.Contents() {
-		// find constraints involving it
-		c := constraintsWith(g.constraints, e)
-		toSolve.Remove(e)
-		switch len(c) {
-		case 2:
-			if c[0].Type == constraint.Angle && c[1].Type == constraint.Angle {
-				// over constrained
-				state = solver.OverConstrained
-				continue
+	solvedConstraintsFor := func(eID uint) []*Constraint {
+		constraints := constraintsWith(g.constraints, eID)
+		var solvedC = make([]*Constraint, 0, len(constraints))
+		for _, c := range constraints {
+			if solved.Contains(c.GetID()) {
+				solvedC = append(solvedC, c)
 			}
-			if c[0].Type == constraint.Angle || c[1].Type == constraint.Angle {
-				dc := c[0]
-				if c[1].Type == constraint.Distance {
-					dc = c[1]
-				}
-				other := dc.Element1
-				if other.GetID() == e {
-					other = dc.Element2
-				}
-				// angle constraints have been solved, so just move the line into place
-				// Move the line to be constraint distance from point
-				l := g.elements[e].(*el.SketchLine)
-				l.TranslateDistance(dc.Value - l.DistanceTo(other))
-				continue
-			}
-			if s := solver.SolveConstraints(c[0], c[1]); state == solver.Solved {
-				state = s
-			}
-		case 1:
-			fallthrough
-		case 0:
-			state = solver.UnderConstrained
-		default:
-			state = solver.OverConstrained
 		}
+		return solvedC
+	}
+
+	elementSolveCount := func(eID uint) int {
+		solvedC := solvedConstraintsFor(eID)
+		return len(solvedC)
+	}
+
+	unsolvedConstraintsFor := func(eID uint) []*Constraint {
+		var constraints = constraintsWith(g.constraints, eID)
+		var unsolved = make([]*Constraint, 0, len(constraints))
+		for _, c := range constraints {
+			if solved.Contains(c.GetID()) {
+				continue
+			}
+			unsolved = append(unsolved, c)
+		}
+
+		return unsolved
+	}
+
+	solvableConstraintsFor := func(eID uint) []*Constraint {
+		var constraints = unsolvedConstraintsFor(eID)
+		var done = solvedConstraintsFor(eID)
+		var solvable = make([]*Constraint, 0, len(constraints))
+		for _, c := range constraints {
+			other := c.Element1.GetID()
+			if other == eID {
+				other = c.Element2.GetID()
+			}
+			if elementSolveCount(other) > 0 {
+				solvable = append(solvable, c)
+			}
+		}
+
+		return append(solvable, done...)
+	}
+
+	findSolvableElement := func() (uint, []*Constraint) {
+		for e := range eToC {
+			if g.elements[e].GetType() == el.Line {
+				continue
+			}
+			cList := solvableConstraintsFor(e)
+			if len(cList) >= 2 {
+				return e, cList
+			}
+		}
+
+		// If there is nothing connected to already solved elements
+		// Look for an element with the least unsolved constraints
+		constraintList := g.constraints
+		target := uint(0)
+		for e := range eToC {
+			if g.elements[e].GetType() == el.Line {
+				continue
+			}
+			unsolved := unsolvedConstraintsFor(e)
+			if len(unsolved) >= len(constraintList) {
+				continue
+			}
+			target = e
+			constraintList = unsolved
+		}
+		return target, constraintList
+	}
+
+	solvableLines := func(eID uint) map[uint]*Constraint {
+		lines := make(map[uint]*Constraint)
+		cList := unsolvedConstraintsFor(eID)
+		for _, c := range cList {
+			other := c.Element1
+			if other.GetID() == eID {
+				other = c.Element2
+			}
+			if other.GetType() == el.Point {
+				continue
+			}
+			lineC := unsolvedConstraintsFor(other.GetID())
+			if len(lineC) == 1 {
+				lines[other.GetID()] = lineC[0]
+			}
+		}
+		return lines
 	}
 
 	// solver changes element instances in constraints, so rebuild the element map
-	g.rebuildMap()
+	defer g.rebuildMap()
 
+	fmt.Println("Local Solve Step 0")
+	for _, c := range g.constraints {
+		if _, ok := eToC[c.Element1.GetID()]; !ok {
+			eToC[c.Element1.GetID()] = make([]*Constraint, 0, 1)
+		}
+		if _, ok := eToC[c.Element2.GetID()]; !ok {
+			eToC[c.Element2.GetID()] = make([]*Constraint, 0, 1)
+		}
+		eToC[c.Element1.GetID()] = append(eToC[c.Element1.GetID()], c)
+		eToC[c.Element2.GetID()] = append(eToC[c.Element2.GetID()], c)
+
+		if c.Type == constraint.Angle {
+			fmt.Println("Solving constraint", c.GetID())
+			solver.SolveAngleConstraint(c)
+			solved.Add(c.GetID())
+		}
+	}
+
+	/*
+		1. Look for point w/ 2 constraints to solved elements -- fall back to point w/ fewest unsolved constraints
+		2. Solve the element by those 2 constraints
+		3. Solve any lines via translation that are connected to solved point w/ 1 other solved constraint
+		4. If there are unsolved elements, go to step 1
+
+		An element is considered solved when it has at least two solved constraints.
+		A constraint needs a solved flag or a structure to track solved state
+		Need to be able to get constraints for an element
+		Need to be able to filter constraint list by solved / unsolved (get by state?)
+		Need to be able to quickly determine if an element is solved
+
+		solved = Set of constraint
+		map[elementID][constraint]
+		isElementSolved(elementID)
+	*/
+
+	state := solver.Solved
+	// Pick 2 from constraintList and solve. If only 1 in constraintList, solve just the one
+
+	for len(eToC) > 0 {
+		// Step 1
+		fmt.Println("Local Solve Step 1")
+		e, c := findSolvableElement()
+
+		// Clean up eToC map -- remove any solved elements
+		for el := range eToC {
+			if elementSolveCount(el) > 1 {
+				delete(eToC, el)
+			}
+		}
+
+		fmt.Println("Solving for element", e)
+		if len(c) == 0 && len(eToC) > 0 {
+			fmt.Println("Could not find a constraint to solve with", len(eToC), "constraints left to solve")
+			state = solver.NonConvergent
+			break
+		}
+
+		// Step 2
+		fmt.Println("Local Solve Step 2")
+		fmt.Println("Solving constraints", c[0].GetID(), c[1].GetID())
+		if s := solver.SolveConstraints(c[0], c[1]); state == solver.Solved {
+			fmt.Println("solve state changed to", s)
+			state = s
+		}
+		solved.Add(c[0].GetID())
+		solved.Add(c[1].GetID())
+		delete(eToC, e)
+
+		// Step 3
+		// Look for lines connected to e that have 1 solved constraint
+		fmt.Println("Local Solve Step 3")
+		lines := solvableLines(e)
+		fmt.Println("lines found", lines)
+		for l, c := range lines {
+			fmt.Println("Solving constraint", c.GetID())
+			if s := solver.MoveLineToPoint(c); state == solver.Solved {
+				fmt.Println("solve state changed to", s)
+				state = s
+			}
+			solved.Add(c.GetID())
+			delete(eToC, l)
+		}
+		fmt.Println("Local Solve Step 4 (check for completion)")
+	}
+
+	fmt.Println("finished with state", state)
 	return state
 }
 

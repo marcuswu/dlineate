@@ -1,6 +1,7 @@
 package solver
 
 import (
+	"math"
 	"testing"
 
 	"github.com/marcuswu/dlineate/internal/constraint"
@@ -228,21 +229,6 @@ func TestPointFromPointLine(t *testing.T) {
 
 	if state != Solved {
 		t.Error("Expected solved state got ", state)
-	}
-
-	if newP3.GetID() != 2 {
-		t.Error("Expected newP3 to have id 2, got ", newP3.GetID())
-	}
-
-	// p1, p2, and p3 should remain the same
-	if p1.GetX() != 1 || p1.GetY() != 1 {
-		t.Error("Expected p1 to remain at 1, 1, got: ", p1)
-	}
-	if l2.GetA() != 1 || l2.GetB() != 1 || l2.GetC() != 2 {
-		t.Error("Expected l2 to remain at 1, 1, 2 got: ", l2)
-	}
-	if p3.GetX() != 0 || p3.GetY() != 2 {
-		t.Error("Expected p3 to remain at 0, 2, got: ", p3)
 	}
 
 	if utils.StandardFloatCompare(p1.DistanceTo(newP3), 1) != 0 {
@@ -570,5 +556,43 @@ func TestPointFromLineLineExt(t *testing.T) {
 
 	if utils.StandardFloatCompare(newP3.GetY(), referenceP3.GetY()) != 0 {
 		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
+	}
+}
+
+func TestSolveAngleConstraint(t *testing.T) {
+	l1 := el.NewSketchLine(0, 0, 1, -1.1)
+	l2 := el.NewSketchLine(1, 1, 0.1, -1)
+	angle := math.Pi / 2
+	c := constraint.NewConstraint(0, constraint.Angle, l1, l2, angle)
+
+	SolveAngleConstraint(c)
+
+	if utils.StandardFloatCompare(l2.AngleToLine(l1), angle) != 0 {
+		t.Error("Expected angle from l1 to l2 to be", angle, " found", l2.AngleToLine(l1))
+	}
+}
+
+func TestSolveConstraints(t *testing.T) {
+	l1 := el.NewSketchLine(0, 0, 1, -1.1) // top line
+	p1 := el.NewSketchPoint(2, 0.1, 1)    // top left
+	p2 := el.NewSketchPoint(3, 1, 1.1)    // top right
+	c1 := constraint.NewConstraint(0, constraint.Distance, p1, p2, 1)
+	c2 := constraint.NewConstraint(1, constraint.Distance, p1, l1, 0)
+
+	solved := SolveConstraints(c1, c2)
+	p1 = c1.Element1.(*el.SketchPoint)
+	p2 = c1.Element2.(*el.SketchPoint)
+	l1 = c2.Element2.(*el.SketchLine)
+
+	if solved != Solved {
+		t.Error("Expected solved state, got", solved)
+	}
+
+	if p1.DistanceTo(p2) != 1 {
+		t.Error("Expected distance between p1 and p2 to be 1, found", p1.DistanceTo(p2))
+	}
+
+	if p1.DistanceTo(l1) != 0 {
+		t.Error("Expected distance between p1 and l1 to be 0, found", p1.DistanceTo(l1))
 	}
 }

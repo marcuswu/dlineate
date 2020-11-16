@@ -120,15 +120,15 @@ func NewSketchPoint(id uint, x float64, y float64) *SketchPoint {
 }
 
 // VectorTo returns a Vector to SketchElement o
-func (p *SketchPoint) VectorTo(o SketchElement) Vector {
+func (p *SketchPoint) VectorTo(o SketchElement) *Vector {
 	var point *SketchPoint
 	if o.GetType() == Point {
 		point = o.(*SketchPoint)
 	} else {
-		point = o.(*SketchLine).PointNearestOrigin()
+		point = o.(*SketchLine).NearestPoint(p.GetX(), p.GetY())
 	}
 
-	return Vector{p.GetX() - point.GetX(), p.GetY() - point.GetY()}
+	return &Vector{p.GetX() - point.GetX(), p.GetY() - point.GetY()}
 }
 
 // AsPoint returns a SketchElement as a *SketchPoint or nil

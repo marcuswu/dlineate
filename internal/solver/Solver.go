@@ -56,6 +56,65 @@ func SolveConstraints(c1 *constraint.Constraint, c2 *constraint.Constraint) Solv
 	return NonConvergent
 }
 
+// SolveDistanceConstraint solves a distance constraint and returns the solution state
+func SolveDistanceConstraint(c *constraint.Constraint) SolveState {
+	if c.Type != constraint.Distance {
+		return NonConvergent
+	}
+
+	var point *el.SketchPoint
+	var other el.SketchElement
+	if c.Element1.GetType() == el.Point {
+		point = c.Element1.(*el.SketchPoint)
+		other = c.Element2
+	} else {
+		point = c.Element2.(*el.SketchPoint)
+		other = c.Element1
+	}
+
+	// If two points, get distance between them, translate constraint value - distance between
+	// If point and line, get distance between them, translate normal to line constraint value - distance between
+	dist := point.DistanceTo(other)
+	trans, ok := point.VectorTo(other).UnitVector()
+	if !ok {
+		return NonConvergent
+	}
+	trans.Scaled(c.GetValue() - dist)
+	point.Translate(trans.GetX(), trans.GetY())
+
+	return Solved
+}
+
+// MoveLineToPoint solves a constraint between a line and a point where the line needs to move
+func MoveLineToPoint(c *constraint.Constraint) SolveState {
+	if c.Type != constraint.Distance {
+		return NonConvergent
+	}
+
+	var point *el.SketchPoint
+	var line *el.SketchLine
+	var e1Type = c.Element1.GetType()
+	var e2Type = c.Element2.GetType()
+	if e1Type == e2Type {
+		return NonConvergent
+	}
+	if e1Type == el.Point && e2Type == el.Line {
+		point = c.Element1.(*el.SketchPoint)
+		line = c.Element2.(*el.SketchLine)
+	}
+	if e2Type == el.Point && e1Type == el.Line {
+		point = c.Element2.(*el.SketchPoint)
+		line = c.Element1.(*el.SketchLine)
+	}
+
+	// If two points, get distance between them, translate constraint value - distance between
+	// If point and line, get distance between them, translate normal to line constraint value - distance between
+	dist := line.DistanceTo(point)
+	line.TranslateDistance(c.GetValue() - dist)
+
+	return Solved
+}
+
 // SolveAngleConstraint solve an angle constraint between two lines
 func SolveAngleConstraint(c *constraint.Constraint) SolveState {
 	if c.Type != constraint.Angle {
@@ -65,8 +124,8 @@ func SolveAngleConstraint(c *constraint.Constraint) SolveState {
 	l1 := c.Element1.(*el.SketchLine)
 	l2 := c.Element2.(*el.SketchLine)
 	angle := l2.AngleToLine(l1)
-	rotate := c.Value - angle
-	l2.Rotate(rotate)
+	rotate := angle - c.Value
+	l1.Rotate(rotate)
 	return Solved
 }
 
@@ -92,7 +151,7 @@ func GetPointFromPoints(p1 el.SketchElement, originalP2 el.SketchElement, origin
 	p2.ReverseTranslateByElement(p1)
 	p3.ReverseTranslateByElement(p1)
 	// rotate p2 and p3 so p2 is on x axis
-	angle := p2.AngleTo(el.Vector{X: 1, Y: 0})
+	angle := p2.AngleTo(&el.Vector{X: 1, Y: 0})
 	p2.Rotate(-angle)
 	p3.Rotate(-angle)
 	// calculate possible p3s
@@ -144,17 +203,25 @@ func PointFromPoints(c1 *constraint.Constraint, c2 *constraint.Constraint) Solve
 
 	switch {
 	case c1.Element1.Is(c2.Element1):
-		c1.Element1 = newP3
-		c2.Element1 = newP3
+		c1.Element1.AsPoint().X = newP3.X
+		c1.Element1.AsPoint().Y = newP3.Y
+		c2.Element1.AsPoint().X = newP3.X
+		c2.Element1.AsPoint().Y = newP3.Y
 	case c1.Element2.Is(c2.Element1):
-		c1.Element2 = newP3
-		c2.Element1 = newP3
+		c1.Element2.AsPoint().X = newP3.X
+		c1.Element2.AsPoint().Y = newP3.Y
+		c2.Element1.AsPoint().X = newP3.X
+		c2.Element1.AsPoint().Y = newP3.Y
 	case c1.Element1.Is(c2.Element2):
-		c1.Element1 = newP3
-		c2.Element2 = newP3
+		c1.Element1.AsPoint().X = newP3.X
+		c1.Element1.AsPoint().Y = newP3.Y
+		c2.Element2.AsPoint().X = newP3.X
+		c2.Element2.AsPoint().Y = newP3.Y
 	case c1.Element2.Is(c2.Element2):
-		c1.Element2 = newP3
-		c2.Element2 = newP3
+		c1.Element2.AsPoint().X = newP3.X
+		c1.Element2.AsPoint().Y = newP3.Y
+		c2.Element2.AsPoint().X = newP3.X
+		c2.Element2.AsPoint().Y = newP3.Y
 	}
 
 	return solved
@@ -174,32 +241,36 @@ func pointFromPointLine(originalP1 el.SketchElement, originalL2 el.SketchElement
 		return nil, NonConvergent
 	}
 
-	if distanceDifference == lineDist {
-		return el.NewSketchPoint(p3.GetID(), p1.GetX(), p1.GetY()-pointDist), Solved
-	}
-
 	// rotate l2 to X axis
-	angle := l2.AngleTo(el.Vector{X: 1, Y: 0})
+	angle := l2.AngleTo(&el.Vector{X: 1, Y: 0})
 	l2.Rotate(-angle)
 	p1.Rotate(-angle)
 	p3.Rotate(-angle)
+
 	// translate l2 to X axis
-	yTranslate := l2.(*el.SketchLine).GetOriginDistance() - lineDist
-	l2.Translate(0, yTranslate)
+	yTranslate := -l2.(*el.SketchLine).GetOriginDistance() + lineDist
+	l2.Translate(0, -yTranslate)
 	// move p1 to Y axis
-	xTranslate := -p1.GetX()
-	p1.Translate(xTranslate, yTranslate)
-	p3.Translate(xTranslate, yTranslate)
+	xTranslate := p1.GetX()
+	p1.Translate(-xTranslate, -yTranslate)
+	p3.Translate(-xTranslate, -yTranslate)
+
+	if distanceDifference == lineDist {
+		actualP3 := el.NewSketchPoint(p3.GetID(), p1.GetX()-pointDist, p1.GetY())
+		actualP3.Translate(xTranslate, yTranslate)
+		actualP3.Rotate(angle)
+		return actualP3, Solved
+	}
 
 	// Find points where circle at p1 with radius pointDist intersects with x axis
-	xPos := math.Sqrt((pointDist * pointDist) - (p1.GetY() * p1.GetY()))
+	xPos := math.Sqrt(math.Abs((pointDist * pointDist) - (p1.GetY() * p1.GetY())))
 	newP31 := el.NewSketchPoint(p3.GetID(), xPos, 0)
 	newP32 := el.NewSketchPoint(p3.GetID(), -xPos, 0)
 	actualP3 := newP31
 	if newP32.SquareDistanceTo(p3) < newP31.SquareDistanceTo(p3) {
 		actualP3 = newP32
 	}
-	actualP3.Translate(-xTranslate, -yTranslate)
+	actualP3.Translate(xTranslate, yTranslate)
 	actualP3.Rotate(angle)
 
 	return actualP3, Solved
@@ -239,17 +310,25 @@ func PointFromPointLine(c1 *constraint.Constraint, c2 *constraint.Constraint) So
 
 	switch {
 	case c1.Element1.Is(c2.Element1):
-		c1.Element1 = newP3
-		c2.Element1 = newP3
+		c1.Element1.AsPoint().X = newP3.X
+		c1.Element1.AsPoint().Y = newP3.Y
+		c2.Element1.AsPoint().X = newP3.X
+		c2.Element1.AsPoint().Y = newP3.Y
 	case c1.Element2.Is(c2.Element1):
-		c1.Element2 = newP3
-		c2.Element1 = newP3
+		c1.Element2.AsPoint().X = newP3.X
+		c1.Element2.AsPoint().Y = newP3.Y
+		c2.Element1.AsPoint().X = newP3.X
+		c2.Element1.AsPoint().Y = newP3.Y
 	case c1.Element1.Is(c2.Element2):
-		c1.Element1 = newP3
-		c2.Element2 = newP3
+		c1.Element1.AsPoint().X = newP3.X
+		c1.Element1.AsPoint().Y = newP3.Y
+		c2.Element2.AsPoint().X = newP3.X
+		c2.Element2.AsPoint().Y = newP3.Y
 	case c1.Element2.Is(c2.Element2):
-		c1.Element2 = newP3
-		c2.Element2 = newP3
+		c1.Element2.AsPoint().X = newP3.X
+		c1.Element2.AsPoint().Y = newP3.Y
+		c2.Element2.AsPoint().X = newP3.X
+		c2.Element2.AsPoint().Y = newP3.Y
 	}
 
 	return solved
@@ -303,17 +382,25 @@ func PointFromLineLine(c1 *constraint.Constraint, c2 *constraint.Constraint) Sol
 
 	switch {
 	case c1.Element1.Is(c2.Element1):
-		c1.Element1 = newP3
-		c2.Element1 = newP3
+		c1.Element1.AsPoint().X = newP3.X
+		c1.Element1.AsPoint().Y = newP3.Y
+		c2.Element1.AsPoint().X = newP3.X
+		c2.Element1.AsPoint().Y = newP3.Y
 	case c1.Element2.Is(c2.Element1):
-		c1.Element2 = newP3
-		c2.Element1 = newP3
+		c1.Element2.AsPoint().X = newP3.X
+		c1.Element2.AsPoint().Y = newP3.Y
+		c2.Element1.AsPoint().X = newP3.X
+		c2.Element1.AsPoint().Y = newP3.Y
 	case c1.Element1.Is(c2.Element2):
-		c1.Element1 = newP3
-		c2.Element2 = newP3
+		c1.Element1.AsPoint().X = newP3.X
+		c1.Element1.AsPoint().Y = newP3.Y
+		c2.Element2.AsPoint().X = newP3.X
+		c2.Element2.AsPoint().Y = newP3.Y
 	case c1.Element2.Is(c2.Element2):
-		c1.Element2 = newP3
-		c2.Element2 = newP3
+		c1.Element2.AsPoint().X = newP3.X
+		c1.Element2.AsPoint().Y = newP3.Y
+		c2.Element2.AsPoint().X = newP3.X
+		c2.Element2.AsPoint().Y = newP3.Y
 	}
 
 	return solved

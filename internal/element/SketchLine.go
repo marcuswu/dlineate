@@ -1,6 +1,10 @@
 package element
 
-import "math"
+import (
+	"math"
+
+	"github.com/marcuswu/dlineate/utils"
+)
 
 // SketchLine represents a line in a 2D sketch in the form
 // Ax + By + C = 0. A and B are represented as x and y in the BaseElement
@@ -61,6 +65,15 @@ func (l *SketchLine) distanceToPoint(x float64, y float64) float64 {
 	// https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line#Line_defined_by_an_equation
 	magnitude := math.Sqrt(l.a*l.a + l.b*l.b)
 	return math.Abs((l.GetA()*x)+(l.GetB()*y)+l.GetC()) / magnitude
+}
+
+// NearestPoint returns the point on the line nearest the provided point
+func (l *SketchLine) NearestPoint(x float64, y float64) *SketchPoint {
+	squareMagnitude := l.a*l.a + l.b*l.b
+	px := ((l.b * ((l.b * x) - (l.a * y))) - l.a*l.c) / squareMagnitude
+	py := ((l.a * ((l.a * y) - (l.b * x))) - l.b*l.c) / squareMagnitude
+
+	return NewSketchPoint(0, px, py)
 }
 
 // DistanceTo returns the distance to the other element
@@ -143,9 +156,12 @@ func (l *SketchLine) GetSlope() float64 {
 }
 
 // AngleTo returns the angle to another vector in radians
-func (l *SketchLine) AngleTo(u Vector) float64 {
+func (l *SketchLine) AngleTo(u *Vector) float64 {
 	// point [0, -C / B] - point[-C / A, 0]
 	lv := Vector{l.GetC() / l.GetA(), -l.GetC() / l.GetB()}
+	if utils.StandardFloatCompare(l.GetA(), 0) == 0 {
+		lv = Vector{l.GetB() / math.Abs(l.GetB()), 0}
+	}
 	return lv.AngleTo(u)
 }
 
@@ -153,7 +169,19 @@ func (l *SketchLine) AngleTo(u Vector) float64 {
 func (l *SketchLine) AngleToLine(o *SketchLine) float64 {
 	// point [0, -C / B] - point[-C / A, 0]
 	lv := Vector{l.GetC() / l.GetA(), -l.GetC() / l.GetB()}
-	ov := Vector{o.GetC() / o.GetA(), -o.GetC() / o.GetB()}
+	if utils.StandardFloatCompare(l.GetA(), 0) == 0 {
+		lv = Vector{l.GetB() / math.Abs(l.GetB()), 0}
+	}
+	if utils.StandardFloatCompare(l.GetB(), 0) == 0 {
+		lv = Vector{0, l.GetA() / math.Abs(l.GetA())}
+	}
+	ov := &Vector{o.GetC() / o.GetA(), -o.GetC() / o.GetB()}
+	if utils.StandardFloatCompare(o.GetA(), 0) == 0 {
+		ov = &Vector{o.GetB() / math.Abs(o.GetB()), 0}
+	}
+	if utils.StandardFloatCompare(o.GetB(), 0) == 0 {
+		ov = &Vector{0, o.GetA() / math.Abs(o.GetA())}
+	}
 	return lv.AngleTo(ov)
 }
 
@@ -162,6 +190,13 @@ func (l *SketchLine) Rotated(angle float64) *SketchLine {
 	// create vectors with points from the line (x and y intercepts)
 	p1 := Vector{-l.GetC() / l.GetA(), 0}
 	p2 := Vector{0, -l.GetC() / l.GetB()}
+
+	if utils.StandardFloatCompare(l.GetA(), 0) == 0 {
+		p1 = Vector{1, -l.GetC() / l.GetB()}
+	}
+	if utils.StandardFloatCompare(l.GetB(), 0) == 0 {
+		p2 = Vector{-l.GetC() / l.GetA(), 1}
+	}
 	// rotate those vectors to get points from the rotated line
 	p1.Rotate(angle)
 	p2.Rotate(angle)
@@ -193,16 +228,18 @@ func (l *SketchLine) Intersection(l2 *SketchLine) Vector {
 }
 
 // VectorTo returns a Vector to SketchElement o
-func (l *SketchLine) VectorTo(o SketchElement) Vector {
+func (l *SketchLine) VectorTo(o SketchElement) *Vector {
 	var point *SketchPoint
-	var myPoint = l.PointNearestOrigin()
+	var myPoint *SketchPoint
 	if o.GetType() == Point {
 		point = o.(*SketchPoint)
+		myPoint = l.NearestPoint(point.GetX(), point.GetY())
 	} else {
 		point = o.(*SketchLine).PointNearestOrigin()
+		myPoint = l.PointNearestOrigin()
 	}
 
-	return Vector{myPoint.GetX() - point.GetX(), myPoint.GetY() - point.GetY()}
+	return &Vector{myPoint.GetX() - point.GetX(), myPoint.GetY() - point.GetY()}
 }
 
 // AsPoint returns a SketchElement as a *SketchPoint or nil

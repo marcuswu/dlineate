@@ -19,7 +19,7 @@ func (v *Vector) GetY() float64 {
 }
 
 // Dot product with another vector
-func (v *Vector) Dot(u Vector) float64 {
+func (v *Vector) Dot(u *Vector) float64 {
 	return v.X*u.X + v.Y*u.Y
 }
 
@@ -34,7 +34,7 @@ func (v *Vector) Magnitude() float64 {
 }
 
 // AngleTo returns the angle to another vector in radians
-func (v *Vector) AngleTo(u Vector) float64 {
+func (v *Vector) AngleTo(u *Vector) float64 {
 	return math.Atan2(v.X*u.Y+v.Y*u.X, v.Dot(u))
 }
 

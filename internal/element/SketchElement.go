@@ -14,7 +14,7 @@ type SketchElement interface {
 	SetID(uint)
 	GetID() uint
 	GetType() Type
-	AngleTo(Vector) float64
+	AngleTo(*Vector) float64
 	Translate(tx float64, ty float64)
 	TranslateByElement(SketchElement)
 	ReverseTranslateByElement(SketchElement)
@@ -22,7 +22,7 @@ type SketchElement interface {
 	Is(SketchElement) bool
 	SquareDistanceTo(SketchElement) float64
 	DistanceTo(SketchElement) float64
-	VectorTo(SketchElement) Vector
+	VectorTo(SketchElement) *Vector
 	AsPoint() *SketchPoint
 	AsLine() *SketchLine
 }
