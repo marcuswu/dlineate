@@ -17,6 +17,8 @@ type GraphCluster struct {
 	constraints []*Constraint
 	others      []*GraphCluster
 	elements    map[uint]el.SketchElement
+	eToC        map[uint][]*Constraint
+	solved      *utils.Set
 }
 
 // NewGraphCluster constructs a new GraphCluster
@@ -25,6 +27,8 @@ func NewGraphCluster() *GraphCluster {
 	g.constraints = make([]*Constraint, 0, 2)
 	g.others = make([]*GraphCluster, 0, 0)
 	g.elements = make(map[uint]el.SketchElement, 0)
+	g.eToC = make(map[uint][]*Constraint)
+	g.solved = utils.NewSet()
 	return g
 }
 
@@ -33,6 +37,14 @@ func (g *GraphCluster) AddConstraint(c *Constraint) {
 	g.constraints = append(g.constraints, c)
 	g.elements[c.Element1.GetID()] = c.Element1
 	g.elements[c.Element2.GetID()] = c.Element2
+	if _, ok := g.eToC[c.Element1.GetID()]; !ok {
+		g.eToC[c.Element1.GetID()] = make([]*Constraint, 0, 1)
+	}
+	if _, ok := g.eToC[c.Element2.GetID()]; !ok {
+		g.eToC[c.Element2.GetID()] = make([]*Constraint, 0, 1)
+	}
+	g.eToC[c.Element1.GetID()] = append(g.eToC[c.Element1.GetID()], c)
+	g.eToC[c.Element2.GetID()] = append(g.eToC[c.Element2.GetID()], c)
 }
 
 // HasElementID returns whether this cluster contains an element ID
@@ -109,183 +121,159 @@ func (g *GraphCluster) rebuildMap() {
 	}
 }
 
-// LocalSolve attempts to solve the constraints in the cluster, returns solution state
-func (g *GraphCluster) localSolve() solver.SolveState {
-	var solved *utils.Set = utils.NewSet()
-	var eToC = make(map[uint][]*Constraint)
-
-	constraintsWith := func(eID uint) []*Constraint {
-		var constraints = make([]*Constraint, 0, 2)
-		for _, c := range g.constraints {
-			if c.Element1.GetID() == eID || c.Element2.GetID() == eID {
-				constraints = append(constraints, c)
-			}
+func (g *GraphCluster) solvedConstraintsFor(eID uint) []*Constraint {
+	constraints := g.eToC[eID]
+	var solvedC = make([]*Constraint, 0, len(constraints))
+	for _, c := range constraints {
+		if g.solved.Contains(c.GetID()) {
+			solvedC = append(solvedC, c)
 		}
-		return constraints
+	}
+	return solvedC
+}
+
+func (g *GraphCluster) elementSolveCount(eID uint) int {
+	solvedC := g.solvedConstraintsFor(eID)
+	return len(solvedC)
+}
+
+func (g *GraphCluster) connectedElements(eID uint) []uint {
+	elements := utils.NewSet()
+	for _, c := range g.eToC[eID] {
+		if g.elementSolveCount(c.Element1.GetID()) < 2 {
+			elements.Add(c.Element1.GetID())
+		}
+		if g.elementSolveCount(c.Element2.GetID()) < 2 {
+			elements.Add(c.Element2.GetID())
+		}
+	}
+	elements.Remove(eID)
+	return elements.Contents()
+}
+
+func (g *GraphCluster) unsolvedConstraintsFor(eID uint) []*Constraint {
+	var constraints = g.eToC[eID]
+	var unsolved = make([]*Constraint, 0, len(constraints))
+	for _, c := range constraints {
+		if g.solved.Contains(c.GetID()) {
+			continue
+		}
+		unsolved = append(unsolved, c)
 	}
 
-	solvedConstraintsFor := func(eID uint) []*Constraint {
-		constraints := constraintsWith(eID)
-		var solvedC = make([]*Constraint, 0, len(constraints))
-		for _, c := range constraints {
-			if solved.Contains(c.GetID()) {
-				solvedC = append(solvedC, c)
-			}
+	return unsolved
+}
+
+func (g *GraphCluster) solvableConstraintsFor(eID uint) []*Constraint {
+	var constraints = g.unsolvedConstraintsFor(eID)
+	var done = g.solvedConstraintsFor(eID)
+	var solvable = make([]*Constraint, 0, len(constraints))
+	for _, c := range constraints {
+		other := c.Element1.GetID()
+		if other == eID {
+			other = c.Element2.GetID()
 		}
-		return solvedC
+		if g.elementSolveCount(other) > 0 {
+			solvable = append(solvable, c)
+		}
 	}
 
-	elementSolveCount := func(eID uint) int {
-		solvedC := solvedConstraintsFor(eID)
-		return len(solvedC)
+	return append(solvable, done...)
+}
+
+func (g *GraphCluster) unsolvedElements() []uint {
+	unsolved := make([]uint, 0, len(g.eToC))
+	for e := range g.eToC {
+		solveCount := g.elementSolveCount(e)
+		if solveCount < 2 {
+			unsolved = append(unsolved, e)
+		}
 	}
+	return unsolved
+}
 
-	connectedElements := func(eID uint) []uint {
-		elements := utils.NewSet()
-		for _, c := range constraintsWith(eID) {
-			if elementSolveCount(c.Element1.GetID()) < 2 {
-				elements.Add(c.Element1.GetID())
-			}
-			if elementSolveCount(c.Element2.GetID()) < 2 {
-				elements.Add(c.Element2.GetID())
-			}
-		}
-		elements.Remove(eID)
-		return elements.Contents()
+func (g *GraphCluster) findSolvableElement(eID uint) (uint, []*Constraint) {
+	// if eID is solved, solve an element connected to it
+	// if eID is not solved and is solvable, use it to solve
+	fmt.Println("Find solvable element for", eID)
+	if g.elementSolveCount(eID) < 2 && len(g.solvableConstraintsFor(eID)) > 1 {
+		return eID, g.solvableConstraintsFor(eID)
 	}
-
-	unsolvedConstraintsFor := func(eID uint) []*Constraint {
-		var constraints = constraintsWith(eID)
-		var unsolved = make([]*Constraint, 0, len(constraints))
-		for _, c := range constraints {
-			if solved.Contains(c.GetID()) {
-				continue
-			}
-			unsolved = append(unsolved, c)
-		}
-
-		return unsolved
+	potentials := g.connectedElements(eID)
+	if len(potentials) < 1 {
+		potentials = g.unsolvedElements()
 	}
-
-	solvableConstraintsFor := func(eID uint) []*Constraint {
-		var constraints = unsolvedConstraintsFor(eID)
-		var done = solvedConstraintsFor(eID)
-		var solvable = make([]*Constraint, 0, len(constraints))
-		for _, c := range constraints {
-			other := c.Element1.GetID()
-			if other == eID {
-				other = c.Element2.GetID()
-			}
-			if elementSolveCount(other) > 0 {
-				solvable = append(solvable, c)
-			}
-		}
-
-		return append(solvable, done...)
-	}
-
-	findSolvableElement := func(eID uint) (uint, []*Constraint) {
-		// if eID is solved, solve an element connected to it
-		// if eID is not solved, use it to solve
-		fmt.Println("Find solvable element for", eID)
-		if elementSolveCount(eID) < 2 && len(solvableConstraintsFor(eID)) > 1 {
-			return eID, solvableConstraintsFor(eID)
-		}
-		potentials := connectedElements(eID)
-		if len(potentials) > 0 {
-			toSolve := potentials[0]
-			best := float64(len(solvableConstraintsFor(toSolve))) / float64(len(unsolvedConstraintsFor(toSolve)))
-			for _, e := range potentials {
-				if g.elements[e].GetType() == el.Line {
-					continue
-				}
-				if elementSolveCount(e) > 1 {
-					continue
-				}
-				ratio := float64(len(solvableConstraintsFor(e))) / float64(len(unsolvedConstraintsFor(e)))
-				fmt.Println("Solve ratio for", e, "is", ratio)
-				if ratio >= best {
-					toSolve = e
-				}
-			}
-			return toSolve, solvableConstraintsFor(toSolve)
-		}
-
-		// If there is nothing connected to already solved elements
-		// Look for an element with the least unsolved constraints
-		constraintList := g.constraints
-		target := uint(0)
-		for e := range eToC {
+	if len(potentials) > 0 {
+		toSolve := potentials[0]
+		best := float64(len(g.solvableConstraintsFor(toSolve))) / float64(len(g.unsolvedConstraintsFor(toSolve)))
+		for _, e := range potentials {
 			if g.elements[e].GetType() == el.Line {
 				continue
 			}
-			unsolved := unsolvedConstraintsFor(e)
-			if len(unsolved) >= len(constraintList) {
+			if g.elementSolveCount(e) > 1 {
 				continue
 			}
-			target = e
-			constraintList = unsolved
-		}
-		return target, constraintList
-	}
-
-	solvableLines := func(eID uint) map[uint]*Constraint {
-		lines := make(map[uint]*Constraint)
-		cList := unsolvedConstraintsFor(eID)
-		for _, c := range cList {
-			other := c.Element1
-			if other.GetID() == eID {
-				other = c.Element2
-			}
-			if other.GetType() == el.Point {
-				continue
-			}
-			lineCs := unsolvedConstraintsFor(other.GetID())
-			solved := elementSolveCount(other.GetID())
-			var canSolve *Constraint = nil
-			for _, lineC := range lineCs {
-				if lineC.Element1.GetID() == eID && lineC.Element2.GetID() == other.GetID() {
-					canSolve = lineC
-					break
-				}
-				if lineC.Element2.GetID() == eID && lineC.Element1.GetID() == other.GetID() {
-					canSolve = lineC
-					break
-				}
-			}
-			if solved == 1 && canSolve != nil {
-				lines[other.GetID()] = canSolve
+			ratio := float64(len(g.solvableConstraintsFor(e))) / float64(len(g.unsolvedConstraintsFor(e)))
+			fmt.Println("Solve ratio for", e, "is", ratio)
+			if ratio >= best {
+				toSolve = e
 			}
 		}
-		return lines
+		return toSolve, g.solvableConstraintsFor(toSolve)
 	}
+	return 0, []*Constraint{}
+}
 
+func (g *GraphCluster) solvableLines(eID uint) map[uint]*Constraint {
+	lines := make(map[uint]*Constraint)
+	cList := g.unsolvedConstraintsFor(eID)
+	for _, c := range cList {
+		other := c.Element1
+		if other.GetID() == eID {
+			other = c.Element2
+		}
+		if other.GetType() == el.Point {
+			continue
+		}
+		lineCs := g.unsolvedConstraintsFor(other.GetID())
+		solved := g.elementSolveCount(other.GetID())
+		var canSolve *Constraint = nil
+		for _, lineC := range lineCs {
+			if lineC.Element1.GetID() == eID && lineC.Element2.GetID() == other.GetID() {
+				canSolve = lineC
+				break
+			}
+			if lineC.Element2.GetID() == eID && lineC.Element1.GetID() == other.GetID() {
+				canSolve = lineC
+				break
+			}
+		}
+		if solved == 1 && canSolve != nil {
+			lines[other.GetID()] = canSolve
+		}
+	}
+	return lines
+}
+
+// LocalSolve attempts to solve the constraints in the cluster, returns solution state
+func (g *GraphCluster) localSolve() solver.SolveState {
 	// solver changes element instances in constraints, so rebuild the element map
 	defer g.rebuildMap()
 	var last uint
 
 	fmt.Println("Local Solve Step 0")
 	for _, c := range g.constraints {
-		if _, ok := eToC[c.Element1.GetID()]; !ok {
-			eToC[c.Element1.GetID()] = make([]*Constraint, 0, 1)
-		}
-		if _, ok := eToC[c.Element2.GetID()]; !ok {
-			eToC[c.Element2.GetID()] = make([]*Constraint, 0, 1)
-		}
-		eToC[c.Element1.GetID()] = append(eToC[c.Element1.GetID()], c)
-		eToC[c.Element2.GetID()] = append(eToC[c.Element2.GetID()], c)
-
 		if c.Type == constraint.Angle {
 			fmt.Println("Solving constraint", c.GetID())
 			solver.SolveAngleConstraint(c)
-			solved.Add(c.GetID())
+			g.solved.Add(c.GetID())
 		}
 	}
 
 	// Both g.elements and eToC are maps so order is not guaranteed. Get all keys and sort.
 	var min = len(g.constraints)
 	for e := range g.elements {
-		c := unsolvedConstraintsFor(e)
+		c := g.unsolvedConstraintsFor(e)
 		fmt.Println("c len for", e, "is", len(c))
 		if len(c) < min {
 			last = e
@@ -313,21 +301,14 @@ func (g *GraphCluster) localSolve() solver.SolveState {
 	state := solver.Solved
 	// Pick 2 from constraintList and solve. If only 1 in constraintList, solve just the one
 
-	for len(eToC) > 0 {
-		// Clean up eToC map -- remove any solved elements
-		for el := range eToC {
-			if elementSolveCount(el) > 1 {
-				delete(eToC, el)
-			}
-		}
-
+	for g.solved.Count() < len(g.constraints) {
 		// Step 1
 		fmt.Println("Local Solve Step 1")
-		e, c := findSolvableElement(last)
+		e, c := g.findSolvableElement(last)
 
 		fmt.Println("Solving for element", e)
-		if len(c) == 0 && len(eToC) > 0 {
-			fmt.Println("Could not find a constraint to solve with", len(eToC), "constraints left to solve")
+		if len(c) == 0 {
+			fmt.Println("Could not find a constraint to solve with", len(g.constraints)-g.solved.Count(), "constraints left to solve")
 			state = solver.NonConvergent
 			break
 		}
@@ -339,23 +320,21 @@ func (g *GraphCluster) localSolve() solver.SolveState {
 			fmt.Println("solve state changed to", s)
 			state = s
 		}
-		solved.Add(c[0].GetID())
-		solved.Add(c[1].GetID())
-		delete(eToC, e)
+		g.solved.Add(c[0].GetID())
+		g.solved.Add(c[1].GetID())
 
 		// Step 3
 		// Look for lines connected to e that have 1 solved constraint
 		fmt.Println("Local Solve Step 3")
-		lines := solvableLines(e)
+		lines := g.solvableLines(e)
 		fmt.Println("lines found", lines)
-		for l, c := range lines {
+		for _, c := range lines {
 			fmt.Println("Solving constraint", c.GetID())
 			if s := solver.MoveLineToPoint(c); state == solver.Solved {
 				fmt.Println("solve state changed to", s)
 				state = s
 			}
-			solved.Add(c.GetID())
-			delete(eToC, l)
+			g.solved.Add(c.GetID())
 		}
 		fmt.Println("Local Solve Step 4 (check for completion)")
 		last = e
