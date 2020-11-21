@@ -200,10 +200,14 @@ func TestRotate(t *testing.T) {
 
 	g.Rotate(o, math.Pi/2.0)
 
-	if utils.StandardFloatCompare(e3.GetA(), 0.5) != 0 ||
-		utils.StandardFloatCompare(e3.GetB(), -1.0) != 0 ||
-		utils.StandardFloatCompare(e3.GetC(), 0.5) != 0 {
-		t.Error("Expected e3 to be 0.5, -1, 0.5. Got", e3.GetA(), ",", e3.GetB(), ",", e3.GetC())
+	mag := math.Sqrt((0.4 * 0.4) + (0.8 * 0.8))
+	A := -0.4 / mag
+	B := 0.8 / mag
+	C := -0.4 / mag
+	if utils.StandardFloatCompare(e3.GetA(), A) != 0 ||
+		utils.StandardFloatCompare(e3.GetB(), B) != 0 ||
+		utils.StandardFloatCompare(e3.GetC(), C) != 0 {
+		t.Error("Expected e3 to be", A, ",", B, ",", C, ". Got", e3.GetA(), ",", e3.GetB(), ",", e3.GetC())
 	}
 
 	if utils.StandardFloatCompare(e1.GetX(), -1) != 0 ||
@@ -233,9 +237,14 @@ func TestLocalSolve(t *testing.T) {
 	g.AddConstraint(c3)
 	c4 := constraint.NewConstraint(3, constraint.Distance, p2, l2, 0)
 	g.AddConstraint(c4)
-	c5 := constraint.NewConstraint(4, constraint.Angle, l1, l2, math.Pi/2)
+	c5 := constraint.NewConstraint(4, constraint.Angle, l2, l1, math.Pi/2)
 	g.AddConstraint(c5)
 
+	// Solves:
+	// 0. l1 to l2 angle first
+	// 1. Then p2 to l1 and l2
+	// 2. Finally p1 to p2 and l1
+	// Steps 1 and 2 appear to be failing
 	state := g.localSolve()
 
 	if state != solver.Solved {
@@ -286,17 +295,28 @@ func TestLocalSolve2(t *testing.T) {
 	/*
 			A more complicated cluster to solve. The below is a diagram of the desired result
 
-		      *              *
-		       \            /
-		    	\          /
-				 *--------*
+		        * p3
+			     \              /
+			      \ l5         / l3
+				   \          /
+				p5  *--------* p4
+					  l4
+
+			Graph should look like:
+
+			* p3           * l3
+		    | \ l5    l4 / |
+		    |  *-------*   |
+		    | /,------´  \ |
+			*--------------*
+			p5             p4
 	*/
-	l3 := el.NewSketchLine(0, 1, -0.3, -4)  // top line
-	l4 := el.NewSketchLine(1, 0, 1, 0)      // right line
-	l5 := el.NewSketchLine(2, 2.3, 1, -3.7) // right line
-	p3 := el.NewSketchPoint(3, 1, 2)        // top left
-	p4 := el.NewSketchPoint(4, 4, 0)        // top right
-	p5 := el.NewSketchPoint(5, 2, 0)        // top right
+	l3 := el.NewSketchLine(0, -1, 0.3, 4)
+	l4 := el.NewSketchLine(1, 0, 1, 0)
+	l5 := el.NewSketchLine(2, 2.3, 1, -3.7)
+	p3 := el.NewSketchPoint(3, 1, 2)
+	p4 := el.NewSketchPoint(4, 4, 0)
+	p5 := el.NewSketchPoint(5, 2, 0)
 	c1 := constraint.NewConstraint(0, constraint.Distance, p3, p5, 2)
 	g.AddConstraint(c1)
 	c2 := constraint.NewConstraint(1, constraint.Distance, p4, p5, 2)
@@ -313,7 +333,7 @@ func TestLocalSolve2(t *testing.T) {
 	g.AddConstraint(c7)
 	c8 := constraint.NewConstraint(7, constraint.Angle, l5, l4, math.Pi*2/3)
 	g.AddConstraint(c8)
-	c9 := constraint.NewConstraint(8, constraint.Angle, l4, l3, math.Pi*2/3)
+	c9 := constraint.NewConstraint(8, constraint.Angle, l3, l4, math.Pi*2/3)
 	g.AddConstraint(c9)
 
 	state := g.localSolve()
@@ -339,47 +359,47 @@ func TestLocalSolve2(t *testing.T) {
 	)
 
 	cValue := c1.Element1.DistanceTo(c1.Element2)
-	if utils.StandardFloatCompare(cValue, 2) != 0 {
-		t.Error("Expected point p3 to distance 2 from point p5, distance is", p3.DistanceTo(p5))
+	if utils.StandardFloatCompare(cValue, c1.Value) != 0 {
+		t.Error("Expected point p3 to distance", c1.Value, "from point p5, distance is", cValue)
 	}
 
 	cValue = c2.Element1.DistanceTo(c2.Element2)
-	if utils.StandardFloatCompare(cValue, 2) != 0 {
-		t.Error("Expected point p4 to distance 2 from point p5, distance is", p4.DistanceTo(p5))
+	if utils.StandardFloatCompare(cValue, c2.Value) != 0 {
+		t.Error("Expected point p4 to distance", c2.Value, "from point p5, distance is", cValue)
 	}
 
 	cValue = c3.Element1.DistanceTo(c3.Element2)
-	if utils.StandardFloatCompare(p3.DistanceTo(l5), 0) != 0 {
-		t.Error("Expected point p3 to be on line l5, distance is", p3.DistanceTo(l5))
+	if utils.StandardFloatCompare(cValue, c3.Value) != 0 {
+		t.Error("Expected point p3 to be on line l5, distance is", cValue)
 	}
 
 	cValue = c4.Element1.DistanceTo(c4.Element2)
-	if utils.StandardFloatCompare(p4.DistanceTo(l5), 0) != 0 {
-		t.Error("Expected point p4 to be on line l5, distance is", p4.DistanceTo(l5))
+	if utils.StandardFloatCompare(cValue, c4.Value) != 0 {
+		t.Error("Expected point p4 to be on line l4, distance is", cValue)
 	}
 
 	cValue = c5.Element1.DistanceTo(c5.Element2)
-	if utils.StandardFloatCompare(p5.DistanceTo(l5), 0) != 0 {
-		t.Error("Expected point p5 to be on line l5, distance is", p5.DistanceTo(l5))
+	if utils.StandardFloatCompare(cValue, c5.Value) != 0 {
+		t.Error("Expected point p5 to be on line l5, distance is", cValue)
 	}
 
 	cValue = c6.Element1.DistanceTo(c6.Element2)
-	if utils.StandardFloatCompare(p4.DistanceTo(l3), 0) != 0 {
-		t.Error("Expected point p4 to be on line l3, distance is", p4.DistanceTo(l3))
+	if utils.StandardFloatCompare(cValue, c6.Value) != 0 {
+		t.Error("Expected point p4 to be on line l3, distance is", cValue)
 	}
 
 	cValue = c7.Element1.DistanceTo(c7.Element2)
-	if utils.StandardFloatCompare(p4.DistanceTo(l4), 0) != 0 {
-		t.Error("Expected point p4 to be on line l4, distance is", p4.DistanceTo(l4))
+	if utils.StandardFloatCompare(cValue, c7.Value) != 0 {
+		t.Error("Expected point p4 to be on line l4, distance is", cValue)
 	}
 
-	angle := c8.Element1.(*el.SketchLine).AngleToLine(c8.Element2.(*el.SketchLine))
+	angle := c8.Element1.AsLine().AngleToLine(c8.Element2.AsLine())
 	if utils.StandardFloatCompare(angle, math.Pi*2/3) != 0 {
 		t.Error("Expected line l5 to be", math.Pi*2/3, " radians from line l4, angle is", angle)
 	}
 
-	angle = c9.Element1.(*el.SketchLine).AngleToLine(c9.Element2.(*el.SketchLine))
+	angle = c9.Element1.AsLine().AngleToLine(c9.Element2.AsLine())
 	if utils.StandardFloatCompare(angle, math.Pi*2/3) != 0 {
-		t.Error("Expected line l4 to be", math.Pi*2/3, " radians from line l3, angle is", angle)
+		t.Error("Expected line l3 to be", math.Pi*2/3, " radians from line l4, angle is", angle)
 	}
 }

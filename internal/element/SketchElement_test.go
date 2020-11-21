@@ -11,14 +11,14 @@ func TestIntersection(t *testing.T) {
 	var l1 = NewSketchLine(0, 1, 2, -4)
 	var l2 = NewSketchLine(0, 3, -1, 2)
 	var result = l1.Intersection(l2)
-	if result.GetX() != 0 || result.GetY() != 2 {
+	if utils.StandardFloatCompare(result.GetX(), 0) != 0 || utils.StandardFloatCompare(result.GetY(), 2) != 0 {
 		t.Error("Expected vector(0, 2), got ", result)
 	}
 
 	l1 = NewSketchLine(0, 1, 2, 1)
 	l2 = NewSketchLine(0, 2, 3, 5)
 	result = l1.Intersection(l2)
-	if result.GetX() != -7 || result.GetY() != 3 {
+	if utils.StandardFloatCompare(result.GetX(), -7) != 0 || utils.StandardFloatCompare(result.GetY(), 3) != 0 {
 		t.Error("Expected vector(-7, 3), got ", result)
 	}
 }
@@ -36,9 +36,13 @@ func TestReverseTranslateByElement(t *testing.T) {
 	var p1 = NewSketchPoint(0, 1, 1)
 	t.Log("before translate point nearest origin: ", l1.PointNearestOrigin())
 	l1.ReverseTranslateByElement(p1)
+	v := &Vector{1, 2}
+	v, _ = v.UnitVector()
 	t.Log("after translate point nearest origin: ", l1.PointNearestOrigin())
-	if l1.GetA() != 1 || l1.GetB() != 2 || l1.GetC() != -1 {
-		t.Error("Expected Line(1, 2, -1), got ", l1)
+	if utils.StandardFloatCompare(l1.GetA(), v.GetX()) != 0 ||
+		utils.StandardFloatCompare(l1.GetB(), v.GetY()) != 0 ||
+		utils.StandardFloatCompare(l1.GetC(), v.GetX()*-1) != 0 {
+		t.Error("Expected Line(", v.GetX(), ",", v.GetY(), ",", v.GetX()*-1, ") got ", l1)
 	}
 }
 
@@ -59,13 +63,18 @@ func TestTranslateByElement(t *testing.T) {
 
 func TestTranslated(t *testing.T) {
 	var l1 = NewSketchLine(0, 1, 2, -1)
+	originalC := l1.GetC()
 	nearest1 := l1.PointNearestOrigin()
 	result := l1.Translated(1, 1)
 	t.Log("before translate point nearest origin: ", l1.PointNearestOrigin())
 	nearest2 := l1.PointNearestOrigin()
+	v := &Vector{1, 2}
+	v, _ = v.UnitVector()
 	t.Log("after translate point nearest origin: ", result.PointNearestOrigin())
-	if result.GetA() != 1 || result.GetB() != 2 || result.GetC() != -4 {
-		t.Error("Expected Line(1, 2, -4), got ", result)
+	if utils.StandardFloatCompare(result.GetA(), v.GetX()) != 0 ||
+		utils.StandardFloatCompare(result.GetB(), v.GetY()) != 0 ||
+		utils.StandardFloatCompare(result.GetC(), -1.7888543819998317) != 0 {
+		t.Error("Expected Line(", v.GetX(), ",", v.GetY(), ", -1.7888543819998317) got ", l1)
 	}
 	xDiff := nearest1.GetX() - nearest2.GetX()
 	yDiff := nearest1.GetY() - nearest2.GetY()
@@ -76,26 +85,35 @@ func TestTranslated(t *testing.T) {
 
 	result = result.Translated(-1, -1)
 	t.Log("after translate point nearest origin: ", result.PointNearestOrigin())
-	if result.GetA() != 1 || result.GetB() != 2 || utils.StandardFloatCompare(result.GetC(), -1) != 0 {
-		t.Error("Expected Line(1, 2, -1), got ", result)
+	if utils.StandardFloatCompare(result.GetA(), v.GetX()) != 0 ||
+		utils.StandardFloatCompare(result.GetB(), v.GetY()) != 0 ||
+		utils.StandardFloatCompare(result.GetC(), originalC) != 0 {
+		t.Error("Expected Line(", v.GetX(), ",", v.GetY(), ",", originalC, "), got ", result)
 	}
 }
 
 func TestTranslatedDistance(t *testing.T) {
 	var l1 = NewSketchLine(0, 1, 2, -1)
+	originalC := l1.GetC()
+	v := &Vector{1, 2}
+	v, _ = v.UnitVector()
 	t.Log("before translate point nearest origin: ", l1.PointNearestOrigin())
 	t.Log("initial dist to origin: ", l1.distanceToPoint(0, 0))
 	result := l1.TranslatedDistance(1)
 	t.Log("after translate point nearest origin: ", result.PointNearestOrigin())
 	t.Log("after dist to origin: ", result.distanceToPoint(0, 0))
-	if result.GetA() != 1 || result.GetB() != 2 || utils.StandardFloatCompare(result.GetC(), -3.236067977) != 0 {
-		t.Error("Expected Line(1, 2, -3.236067977), got ", result)
+	if utils.StandardFloatCompare(result.GetA(), v.GetX()) != 0 ||
+		utils.StandardFloatCompare(result.GetB(), v.GetY()) != 0 ||
+		utils.StandardFloatCompare(result.GetC(), -1.4472135954999579) != 0 {
+		t.Error("Expected Line(", v.GetX(), ",", v.GetY(), ", -1.4472135954999579), got ", result)
 	}
 
 	result = result.TranslatedDistance(-1)
 	t.Log("after translate point nearest origin: ", result.PointNearestOrigin())
-	if result.GetA() != 1 || result.GetB() != 2 || utils.StandardFloatCompare(result.GetC(), -1) != 0 {
-		t.Error("Expected Line(1, 2, -1), got ", result)
+	if utils.StandardFloatCompare(result.GetA(), v.GetX()) != 0 ||
+		utils.StandardFloatCompare(result.GetB(), v.GetY()) != 0 ||
+		utils.StandardFloatCompare(result.GetC(), originalC) != 0 {
+		t.Error("Expected Line(", v.GetX(), ",", v.GetY(), ",", originalC, "), got ", result)
 	}
 }
 
@@ -120,7 +138,7 @@ func TestGetOriginDistance(t *testing.T) {
 func TestAngleTo(t *testing.T) {
 	var l1 = NewSketchLine(0, 1, 1, 1)
 	result := l1.AngleTo(&Vector{1, 0})
-	var fourtyFive = -45 * math.Pi / 180
+	var fourtyFive = 45 * math.Pi / 180
 	if utils.StandardFloatCompare(result, fourtyFive) != 0 {
 		t.Errorf("Expected %f, got %f\n", fourtyFive, result)
 	}
@@ -133,7 +151,7 @@ func TestRotated(t *testing.T) {
 	if utils.StandardFloatCompare(result.GetA(), math.Sqrt(0)) != 0 {
 		t.Errorf("Expected result.GetA() == 0, got %f\n", result.GetA())
 	}
-	if utils.StandardFloatCompare(result.GetB(), math.Sqrt(2)) != 0 {
+	if utils.StandardFloatCompare(result.GetB(), 1) != 0 {
 		t.Errorf("Expected result.GetB() == √2, got %f\n", result.GetB())
 	}
 	if utils.StandardFloatCompare(result.GetOriginDistance(), l1.GetOriginDistance()) != 0 {

@@ -124,7 +124,7 @@ func SolveAngleConstraint(c *constraint.Constraint) SolveState {
 	l1 := c.Element1.(*el.SketchLine)
 	l2 := c.Element2.(*el.SketchLine)
 	angle := l2.AngleToLine(l1)
-	rotate := angle - c.Value
+	rotate := c.Value - angle
 	l1.Rotate(rotate)
 	return Solved
 }
@@ -143,6 +143,7 @@ func GetPointFromPoints(p1 el.SketchElement, originalP2 el.SketchElement, origin
 	}
 
 	if utils.StandardFloatCompare(pointDistance, constraintDist) == 0 {
+		// TODO: Wrong! Fix this!
 		return el.NewSketchPoint(p3.GetID(), 0, 0), Solved
 	}
 
@@ -201,6 +202,10 @@ func PointFromPoints(c1 *constraint.Constraint, c2 *constraint.Constraint) Solve
 
 	newP3, solved := GetPointFromPoints(p1, p2, p3, p1Radius, p2Radius)
 
+	if solved != Solved {
+		return solved
+	}
+
 	switch {
 	case c1.Element1.Is(c2.Element1):
 		c1.Element1.AsPoint().X = newP3.X
@@ -248,7 +253,7 @@ func pointFromPointLine(originalP1 el.SketchElement, originalL2 el.SketchElement
 	p3.Rotate(-angle)
 
 	// translate l2 to X axis
-	yTranslate := -l2.(*el.SketchLine).GetOriginDistance() + lineDist
+	yTranslate := l2.(*el.SketchLine).GetOriginDistance() + lineDist
 	l2.Translate(0, -yTranslate)
 	// move p1 to Y axis
 	xTranslate := p1.GetX()
@@ -307,6 +312,10 @@ func PointFromPointLine(c1 *constraint.Constraint, c2 *constraint.Constraint) So
 	}
 
 	newP3, solved := pointFromPointLine(p1, l2, p3, pointDist, lineDist)
+
+	if solved != Solved {
+		return solved
+	}
 
 	switch {
 	case c1.Element1.Is(c2.Element1):
@@ -379,6 +388,10 @@ func PointFromLineLine(c1 *constraint.Constraint, c2 *constraint.Constraint) Sol
 	}
 
 	newP3, solved := pointFromLineLine(l1, l2, p3, line1Dist, line2Dist)
+
+	if solved != Solved {
+		return solved
+	}
 
 	switch {
 	case c1.Element1.Is(c2.Element1):

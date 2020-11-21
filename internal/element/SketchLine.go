@@ -2,8 +2,6 @@ package element
 
 import (
 	"math"
-
-	"github.com/marcuswu/dlineate/utils"
 )
 
 // SketchLine represents a line in a 2D sketch in the form
@@ -18,12 +16,19 @@ type SketchLine struct {
 
 // NewSketchLine creates a new SketchLine
 func NewSketchLine(id uint, a float64, b float64, c float64) *SketchLine {
+	// A & B represent a normal vector for the line. This also determines
+	// the direction of the line. C represents a magnitude of the normal
+	// vector to reach from origin to the line.
+	magnitude := math.Sqrt((a * a) + (b * b))
+	A := a / magnitude
+	B := b / magnitude
+	C := c / magnitude
 	return &SketchLine{
 		elementType: Line,
 		id:          id,
-		a:           a,
-		b:           b,
-		c:           c,
+		a:           A,
+		b:           B,
+		c:           C,
 	}
 }
 
@@ -69,9 +74,8 @@ func (l *SketchLine) distanceToPoint(x float64, y float64) float64 {
 
 // NearestPoint returns the point on the line nearest the provided point
 func (l *SketchLine) NearestPoint(x float64, y float64) *SketchPoint {
-	squareMagnitude := l.a*l.a + l.b*l.b
-	px := ((l.b * ((l.b * x) - (l.a * y))) - l.a*l.c) / squareMagnitude
-	py := ((l.a * ((l.a * y) - (l.b * x))) - l.b*l.c) / squareMagnitude
+	px := (l.b * ((l.b * x) - (l.a * y))) - l.a*l.c
+	py := (l.a * ((l.a * y) - (l.b * x))) - l.b*l.c
 
 	return NewSketchPoint(0, px, py)
 }
@@ -93,11 +97,10 @@ func (l *SketchLine) GetOriginDistance() float64 { return l.distanceToPoint(0, 0
 
 // PointNearestOrigin get the point on the line nearest to the origin
 func (l *SketchLine) PointNearestOrigin() *SketchPoint {
-	squareMagnitude := l.a*l.a + l.b*l.b
 	return NewSketchPoint(
 		0,
-		(-l.GetC()*l.GetA())/squareMagnitude,
-		(-l.GetC()*l.GetB())/squareMagnitude)
+		-l.GetC()*l.GetA(),
+		-l.GetC()*l.GetB())
 }
 
 // TranslateDistance translates the line by a distance along its normal
@@ -108,19 +111,15 @@ func (l *SketchLine) TranslateDistance(dist float64) {
 
 // TranslatedDistance returns the line translated by a distance along its normal
 func (l *SketchLine) TranslatedDistance(dist float64) *SketchLine {
-	// find point nearest to origin
-	p := l.PointNearestOrigin()
-	move, _ := p.UnitVector()
-	move.Scaled(dist)
-	return l.Translated(move.GetX(), move.GetY())
+	return &SketchLine{Line, l.GetID(), l.GetA(), l.GetB(), l.GetC() - dist}
 }
 
 // Translated returns a line translated by an x and y value
 func (l *SketchLine) Translated(tx float64, ty float64) *SketchLine {
-	pointOnLine := Vector{0, -l.GetC() / l.GetB()}
+	pointOnLine := Vector{l.GetA() * -l.GetC(), l.GetB() * -l.GetC()}
 	pointOnLine.Translate(tx, ty)
 	newC := (-l.GetA() * pointOnLine.GetX()) - (l.GetB() * pointOnLine.GetY())
-	return NewSketchLine(l.GetID(), l.GetA(), l.GetB(), newC)
+	return &SketchLine{Line, l.GetID(), l.GetA(), l.GetB(), newC}
 }
 
 // Translate translates the location of this line by an x and y distance
@@ -158,56 +157,23 @@ func (l *SketchLine) GetSlope() float64 {
 // AngleTo returns the angle to another vector in radians
 func (l *SketchLine) AngleTo(u *Vector) float64 {
 	// point [0, -C / B] - point[-C / A, 0]
-	lv := Vector{l.GetC() / l.GetA(), -l.GetC() / l.GetB()}
-	if utils.StandardFloatCompare(l.GetA(), 0) == 0 {
-		lv = Vector{l.GetB() / math.Abs(l.GetB()), 0}
-	}
+	lv := &Vector{l.GetB(), -l.GetA()}
 	return lv.AngleTo(u)
 }
 
 // AngleToLine returns the angle to another vector in radians
 func (l *SketchLine) AngleToLine(o *SketchLine) float64 {
-	// point [0, -C / B] - point[-C / A, 0]
-	lv := Vector{l.GetC() / l.GetA(), -l.GetC() / l.GetB()}
-	if utils.StandardFloatCompare(l.GetA(), 0) == 0 {
-		lv = Vector{l.GetB() / math.Abs(l.GetB()), 0}
-	}
-	if utils.StandardFloatCompare(l.GetB(), 0) == 0 {
-		lv = Vector{0, l.GetA() / math.Abs(l.GetA())}
-	}
-	ov := &Vector{o.GetC() / o.GetA(), -o.GetC() / o.GetB()}
-	if utils.StandardFloatCompare(o.GetA(), 0) == 0 {
-		ov = &Vector{o.GetB() / math.Abs(o.GetB()), 0}
-	}
-	if utils.StandardFloatCompare(o.GetB(), 0) == 0 {
-		ov = &Vector{0, o.GetA() / math.Abs(o.GetA())}
-	}
+	lv := &Vector{l.GetB(), -l.GetA()}
+	ov := &Vector{o.GetB(), -o.GetA()}
 	return lv.AngleTo(ov)
 }
 
 // Rotated returns a line representing this line rotated around the origin by angle radians
 func (l *SketchLine) Rotated(angle float64) *SketchLine {
 	// create vectors with points from the line (x and y intercepts)
-	p1 := Vector{-l.GetC() / l.GetA(), 0}
-	p2 := Vector{0, -l.GetC() / l.GetB()}
-
-	if utils.StandardFloatCompare(l.GetA(), 0) == 0 {
-		p1 = Vector{1, -l.GetC() / l.GetB()}
-	}
-	if utils.StandardFloatCompare(l.GetB(), 0) == 0 {
-		p2 = Vector{-l.GetC() / l.GetA(), 1}
-	}
-	// rotate those vectors to get points from the rotated line
-	p1.Rotate(angle)
-	p2.Rotate(angle)
-	// -A / B is slope and slope is y diff / x diff, so
-	// A is -y diff and B is x diff
-	A := -(p2.GetY() - p1.GetY())
-	B := p2.GetX() - p1.GetX()
-	// Calculate C based on points from the rotated vectors
-	// based on the general form line Ax + Bx + C = 0 formula
-	C := -((A * p1.GetX()) + (B * p1.GetY()))
-	return NewSketchLine(l.GetID(), A, B, C)
+	n := &Vector{l.GetA(), l.GetB()}
+	n.Rotate(angle)
+	return NewSketchLine(l.GetID(), n.GetX(), n.GetY(), l.GetC())
 }
 
 // Rotate returns a line representing this line rotated around the origin by angle radians
