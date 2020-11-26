@@ -2,6 +2,8 @@ package element
 
 import (
 	"math"
+
+	"github.com/marcuswu/dlineate/utils"
 )
 
 // SketchLine represents a line in a 2D sketch in the form
@@ -66,10 +68,7 @@ func (l *SketchLine) SquareDistanceTo(o SketchElement) float64 {
 }
 
 func (l *SketchLine) distanceToPoint(x float64, y float64) float64 {
-	// This formula can be found on wikipedia
-	// https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line#Line_defined_by_an_equation
-	magnitude := math.Sqrt(l.a*l.a + l.b*l.b)
-	return math.Abs((l.GetA()*x)+(l.GetB()*y)+l.GetC()) / magnitude
+	return math.Abs((l.a * x) + (l.b * y) + l.c)
 }
 
 // NearestPoint returns the point on the line nearest the provided point
@@ -186,11 +185,15 @@ func (l *SketchLine) Rotate(angle float64) {
 
 // Intersection returns the intersection of two lines
 func (l *SketchLine) Intersection(l2 *SketchLine) Vector {
-	// y := ((l.GetC() / l.GetA()) + (l2.GetC() / l2.GetA())) * (1 - (l2.GetA() / l.GetB()))
-	// (x, y)  = [b1c2−b2c1/a1b2−a2b1, a2c1−a1c2/a1b2−a2b1]
-	return Vector{
-		((l.GetB() * l2.GetC()) - (l2.GetB() * l.GetC())) / ((l.GetA() * l2.GetB()) - (l2.GetA() * l.GetB())),
-		((l.GetC() * l2.GetA()) - (l2.GetC() * l.GetA())) / ((l.GetA() * l2.GetB()) - (l2.GetA() * l.GetB()))}
+	y := ((l.a * l2.c) - (l.c * l2.a)) / ((l.b * l2.a) - (l.a * l2.b))
+	var x float64 = 0.0
+	if utils.StandardFloatCompare(l2.a, 0) == 0 {
+		x = ((l.b * y) + l.c) / -l.a
+	} else {
+		x = ((l2.b * y) + l2.c) / -l2.a
+	}
+
+	return Vector{x, y}
 }
 
 // VectorTo returns a Vector to SketchElement o

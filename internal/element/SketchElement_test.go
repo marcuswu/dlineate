@@ -12,14 +12,21 @@ func TestIntersection(t *testing.T) {
 	var l2 = NewSketchLine(0, 3, -1, 2)
 	var result = l1.Intersection(l2)
 	if utils.StandardFloatCompare(result.GetX(), 0) != 0 || utils.StandardFloatCompare(result.GetY(), 2) != 0 {
-		t.Error("Expected vector(0, 2), got ", result)
+		t.Error("Expected vector(0, 2), got", result)
 	}
 
 	l1 = NewSketchLine(0, 1, 2, 1)
 	l2 = NewSketchLine(0, 2, 3, 5)
 	result = l1.Intersection(l2)
 	if utils.StandardFloatCompare(result.GetX(), -7) != 0 || utils.StandardFloatCompare(result.GetY(), 3) != 0 {
-		t.Error("Expected vector(-7, 3), got ", result)
+		t.Error("Expected vector(-7, 3), got", result)
+	}
+
+	l1 = NewSketchLine(0, 0, 1, 3.83)
+	l2 = NewSketchLine(0, 1, 0, 0)
+	result = l1.Intersection(l2)
+	if utils.StandardFloatCompare(result.GetX(), 0) != 0 || utils.StandardFloatCompare(result.GetY(), -3.83) != 0 {
+		t.Error("Expected vector(0, -3.83), got", result)
 	}
 }
 

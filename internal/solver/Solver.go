@@ -253,7 +253,7 @@ func pointFromPointLine(originalP1 el.SketchElement, originalL2 el.SketchElement
 	p3.Rotate(-angle)
 
 	// translate l2 to X axis
-	yTranslate := l2.(*el.SketchLine).GetOriginDistance() + lineDist
+	yTranslate := lineDist - l2.(*el.SketchLine).GetOriginDistance()
 	l2.Translate(0, -yTranslate)
 	// move p1 to Y axis
 	xTranslate := p1.GetX()
@@ -343,19 +343,15 @@ func PointFromPointLine(c1 *constraint.Constraint, c2 *constraint.Constraint) So
 	return solved
 }
 
-func pointFromLineLine(originalL1 el.SketchElement, originalL2 el.SketchElement, originalP3 el.SketchElement, line1Dist float64, line2Dist float64) (*el.SketchPoint, SolveState) {
-	l1 := el.CopySketchElement(originalL1)
-	l2 := el.CopySketchElement(originalL2)
-	p3 := el.CopySketchElement(originalP3)
+func pointFromLineLine(l1 *el.SketchLine, l2 *el.SketchLine, p3 *el.SketchPoint, line1Dist float64, line2Dist float64) (*el.SketchPoint, SolveState) {
 	// If l1 and l2 are parallel, there is no solution
-	line1, line2 := l1.(*el.SketchLine), l2.(*el.SketchLine)
-	if line1.GetSlope() == line2.GetSlope() {
+	if utils.StandardFloatCompare(l1.GetSlope(), l2.GetSlope()) == 0 {
 		return nil, NonConvergent
 	}
 	// Translate l1 line1Dist
-	line1Translated := line1.TranslatedDistance(line1Dist)
+	line1Translated := l1.TranslatedDistance(line1Dist)
 	// Translate l2 line2Dist
-	line2Translated := line2.TranslatedDistance(line2Dist)
+	line2Translated := l2.TranslatedDistance(line2Dist)
 	// Return intersection point
 	intersection := line1Translated.Intersection(line2Translated)
 
@@ -387,7 +383,7 @@ func PointFromLineLine(c1 *constraint.Constraint, c2 *constraint.Constraint) Sol
 		break
 	}
 
-	newP3, solved := pointFromLineLine(l1, l2, p3, line1Dist, line2Dist)
+	newP3, solved := pointFromLineLine(l1.AsLine(), l2.AsLine(), p3.AsPoint(), line1Dist, line2Dist)
 
 	if solved != Solved {
 		return solved

@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	"sort"
 
 	"github.com/marcuswu/dlineate/internal/constraint"
 	el "github.com/marcuswu/dlineate/internal/element"
@@ -89,10 +90,6 @@ func (g *GraphCluster) SharedElements(gc *GraphCluster) *utils.Set {
 		}
 	}
 
-	for _, c := range g.others {
-		shared.AddSet(c.SharedElements(gc))
-	}
-
 	return shared
 }
 
@@ -137,13 +134,13 @@ func (g *GraphCluster) elementSolveCount(eID uint) int {
 	return len(solvedC)
 }
 
-func (g *GraphCluster) connectedElements(eID uint) []uint {
+func (g *GraphCluster) connectedPoints(eID uint) []uint {
 	elements := utils.NewSet()
 	for _, c := range g.eToC[eID] {
-		if g.elementSolveCount(c.Element1.GetID()) < 2 {
+		if g.elementSolveCount(c.Element1.GetID()) < 2 && c.Element1.GetType() == el.Point {
 			elements.Add(c.Element1.GetID())
 		}
-		if g.elementSolveCount(c.Element2.GetID()) < 2 {
+		if g.elementSolveCount(c.Element2.GetID()) < 2 && c.Element2.GetType() == el.Point {
 			elements.Add(c.Element2.GetID())
 		}
 	}
@@ -181,6 +178,26 @@ func (g *GraphCluster) solvableConstraintsFor(eID uint) []*Constraint {
 	return append(solvable, done...)
 }
 
+func (g *GraphCluster) orderedConstraintsFor(eID uint) []*Constraint {
+	var constraints = g.unsolvedConstraintsFor(eID)
+	var done = g.solvedConstraintsFor(eID)
+	var solvable = make([]*Constraint, 0, len(constraints))
+	var others = make([]*Constraint, 0, len(constraints))
+	for _, c := range constraints {
+		other := c.Element1.GetID()
+		if other == eID {
+			other = c.Element2.GetID()
+		}
+		if g.elementSolveCount(other) > 0 {
+			solvable = append(solvable, c)
+		} else {
+			others = append(others, c)
+		}
+	}
+
+	return append(append(solvable, done...), others...)
+}
+
 func (g *GraphCluster) unsolvedElements() []uint {
 	unsolved := make([]uint, 0, len(g.eToC))
 	for e := range g.eToC {
@@ -192,36 +209,68 @@ func (g *GraphCluster) unsolvedElements() []uint {
 	return unsolved
 }
 
-func (g *GraphCluster) findSolvableElement(eID uint) (uint, []*Constraint) {
-	// if eID is solved, solve an element connected to it
-	// if eID is not solved and is solvable, use it to solve
-	fmt.Println("Find solvable element for", eID)
-	if g.elementSolveCount(eID) < 2 && len(g.solvableConstraintsFor(eID)) > 1 {
-		return eID, g.solvableConstraintsFor(eID)
-	}
-	potentials := g.connectedElements(eID)
-	if len(potentials) < 1 {
-		potentials = g.unsolvedElements()
-	}
-	if len(potentials) > 0 {
-		toSolve := potentials[0]
-		best := float64(len(g.solvableConstraintsFor(toSolve))) / float64(len(g.unsolvedConstraintsFor(toSolve)))
-		for _, e := range potentials {
-			if g.elements[e].GetType() == el.Line {
-				continue
-			}
-			if g.elementSolveCount(e) > 1 {
-				continue
-			}
-			ratio := float64(len(g.solvableConstraintsFor(e))) / float64(len(g.unsolvedConstraintsFor(e)))
-			fmt.Println("Solve ratio for", e, "is", ratio)
-			if ratio >= best {
-				toSolve = e
-			}
+func (g *GraphCluster) solvedElements() []uint {
+	solved := make([]uint, 0, len(g.eToC))
+	for e := range g.eToC {
+		solveCount := g.elementSolveCount(e)
+		if solveCount > 1 {
+			solved = append(solved, e)
 		}
-		return toSolve, g.solvableConstraintsFor(toSolve)
 	}
-	return 0, []*Constraint{}
+	return solved
+}
+
+type elementSolvability struct {
+	ID          uint
+	Solvability int
+}
+type bySolvability []elementSolvability
+
+func (a bySolvability) Len() int           { return len(a) }
+func (a bySolvability) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a bySolvability) Less(i, j int) bool { return a[i].Solvability > a[j].Solvability }
+func (g *GraphCluster) toSolvability(es []uint) bySolvability {
+	result := make([]elementSolvability, 0, 1)
+	for _, e := range es {
+		if g.elements[e].GetType() == el.Line {
+			continue
+		}
+		total := len(g.eToC[e])
+		solvable := len(g.solvableConstraintsFor(e))
+		solved := len(g.solvedConstraintsFor(e))
+		unsolvable := total - (solvable + solved)
+		fmt.Println(e, ": total", total, ", solvable", solvable, ", solved", solved, ", unsolvable", unsolvable)
+		result = append(result, elementSolvability{ID: e, Solvability: (solvable + solved) - unsolvable})
+	}
+	return bySolvability(result)
+}
+
+func (g *GraphCluster) startElement() uint {
+	unsolved := g.toSolvability(g.unsolvedElements())
+	for _, e := range unsolved {
+		fmt.Println("unsolved element", e.ID, "has solvability score", e.Solvability)
+	}
+	sort.Sort(unsolved)
+	return unsolved[0].ID
+}
+
+func (g *GraphCluster) findElement() (uint, []*Constraint) {
+	best := g.startElement()
+	score := -len(g.constraints)
+	solved := g.solvedElements()
+	for _, e := range solved {
+		points := g.toSolvability(g.connectedPoints(e))
+		if len(points) == 0 {
+			continue
+		}
+		sort.Sort(points)
+		if points[0].Solvability > score {
+			best = points[0].ID
+			score = points[0].Solvability
+		}
+	}
+
+	return best, g.orderedConstraintsFor(best)
 }
 
 func (g *GraphCluster) solvableLines(eID uint) map[uint]*Constraint {
@@ -259,7 +308,6 @@ func (g *GraphCluster) solvableLines(eID uint) map[uint]*Constraint {
 func (g *GraphCluster) localSolve() solver.SolveState {
 	// solver changes element instances in constraints, so rebuild the element map
 	defer g.rebuildMap()
-	var last uint
 
 	fmt.Println("Local Solve Step 0")
 	for _, c := range g.constraints {
@@ -267,17 +315,6 @@ func (g *GraphCluster) localSolve() solver.SolveState {
 			fmt.Println("Solving constraint", c.GetID())
 			solver.SolveAngleConstraint(c)
 			g.solved.Add(c.GetID())
-		}
-	}
-
-	// Both g.elements and eToC are maps so order is not guaranteed. Get all keys and sort.
-	var min = len(g.constraints)
-	for e := range g.elements {
-		c := g.unsolvedConstraintsFor(e)
-		fmt.Println("c len for", e, "is", len(c))
-		if len(c) < min {
-			last = e
-			min = len(c)
 		}
 	}
 
@@ -304,7 +341,7 @@ func (g *GraphCluster) localSolve() solver.SolveState {
 	for g.solved.Count() < len(g.constraints) {
 		// Step 1
 		fmt.Println("Local Solve Step 1")
-		e, c := g.findSolvableElement(last)
+		e, c := g.findElement()
 
 		fmt.Println("Solving for element", e)
 		if len(c) == 0 {
@@ -337,7 +374,6 @@ func (g *GraphCluster) localSolve() solver.SolveState {
 			g.solved.Add(c.GetID())
 		}
 		fmt.Println("Local Solve Step 4 (check for completion)")
-		last = e
 	}
 
 	fmt.Println("finished with state", state)
