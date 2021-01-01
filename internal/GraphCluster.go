@@ -36,8 +36,12 @@ func NewGraphCluster() *GraphCluster {
 // AddConstraint adds a constraint to the cluster
 func (g *GraphCluster) AddConstraint(c *Constraint) {
 	g.constraints = append(g.constraints, c)
-	g.elements[c.Element1.GetID()] = c.Element1
-	g.elements[c.Element2.GetID()] = c.Element2
+	if _, ok := g.elements[c.Element1.GetID()]; !ok {
+		g.elements[c.Element1.GetID()] = c.Element1
+	}
+	if _, ok := g.elements[c.Element2.GetID()]; !ok {
+		g.elements[c.Element2.GetID()] = c.Element2
+	}
 	if _, ok := g.eToC[c.Element1.GetID()]; !ok {
 		g.eToC[c.Element1.GetID()] = make([]*Constraint, 0, 1)
 	}
@@ -102,10 +106,11 @@ func (g *GraphCluster) Translate(xDist float64, yDist float64) {
 
 // Rotate rotates all elements in the cluster around a point by an angle
 func (g *GraphCluster) Rotate(origin *el.SketchPoint, angle float64) {
+	v := el.Vector{X: origin.GetX(), Y: origin.GetY()}
 	for _, e := range g.elements {
-		e.Translate(-origin.GetX(), -origin.GetY())
+		e.Translate(-v.X, -v.Y)
 		e.Rotate(angle)
-		e.Translate(origin.GetX(), origin.GetY())
+		e.Translate(v.X, v.Y)
 	}
 }
 
@@ -380,8 +385,25 @@ func (g *GraphCluster) localSolve() solver.SolveState {
 	return state
 }
 
+func (g *GraphCluster) logElements() {
+	logElement := func(e el.SketchElement) {
+		point := e.AsPoint()
+		line := e.AsLine()
+		if point == nil {
+			fmt.Printf("element %d: %fx + %fy + %f = 0\n", line.GetID(), line.GetA(), line.GetB(), line.GetC())
+			return
+		}
+		fmt.Printf("element %d: (%f, %f)\n", point.GetID(), point.GetX(), point.GetY())
+	}
+
+	for _, e := range g.elements {
+		logElement(e)
+	}
+}
+
 // SolveMerge resolves merging solved child clusters to this one
 func (g *GraphCluster) solveMerge(c1 *GraphCluster, c2 *GraphCluster) solver.SolveState {
+	g.logElements()
 	// Find the shared element between g and c1
 	sharedSet := g.SharedElements(c1)
 	if len(sharedSet.Contents()) != 1 {
@@ -393,7 +415,8 @@ func (g *GraphCluster) solveMerge(c1 *GraphCluster, c2 *GraphCluster) solver.Sol
 
 	// Translate c1 by the difference in position
 	translateVector := c1SharedG.VectorTo(gElement)
-	c1.Translate(translateVector.X, translateVector.Y)
+	c1.Translate(-translateVector.X, -translateVector.Y)
+	c1.logElements()
 
 	// Find the shared element between g and c2
 	sharedSet = g.SharedElements(c2)
@@ -406,7 +429,8 @@ func (g *GraphCluster) solveMerge(c1 *GraphCluster, c2 *GraphCluster) solver.Sol
 
 	// Translate c2 by the difference in position
 	translateVector = c2SharedG.VectorTo(gElement)
-	c2.Translate(translateVector.X, translateVector.Y)
+	c2.Translate(-translateVector.X, -translateVector.Y)
+	c2.logElements()
 
 	// Find the shared element between c1 and c2
 	sharedSet = c1.SharedElements(c2)
@@ -433,19 +457,39 @@ func (g *GraphCluster) solveMerge(c1 *GraphCluster, c2 *GraphCluster) solver.Sol
 	if p3 == nil {
 		p3 = c1P3.AsLine().PointNearestOrigin()
 	}
+
+	outputShared := func() {
+		fmt.Println("shared from c1", c1SharedG, "original", g.elements[c1SharedG.GetID()])
+		fmt.Println("shared from c2", c2SharedG, "original", g.elements[c2SharedG.GetID()])
+	}
+
+	outputShared()
 	newP3, solved := solver.GetPointFromPoints(p1, p2, p3, c1Dist, c2Dist)
 	if solved != solver.Solved {
 		return solved
 	}
+	outputShared()
 	// Calculate the angle of rotation for c1 and c2 by creating
 	// vectors from their points and getting the angle between the vectors
 	// Rotate c1 and c2 so the shared element meets
-	c1Angle, c1Desired := p1.VectorTo(p3), p1.VectorTo(newP3)
-	c2Angle, c2Desired := p2.VectorTo(p3), p2.VectorTo(newP3)
+	c1Angle, c1Desired := p1.VectorTo(c1P3), p1.VectorTo(newP3)
+	c2Angle, c2Desired := p2.VectorTo(c2P3), p2.VectorTo(newP3)
 	c1Rotate := c1Angle.AngleTo(c1Desired)
 	c2Rotate := c2Angle.AngleTo(c2Desired)
+	fmt.Println("Angle to desired for cluster 1", c1Rotate)
+	fmt.Println("Angle to desired for cluster 2", c2Rotate)
 	c1.Rotate(p1, c1Rotate)
 	c2.Rotate(p2, c2Rotate)
+	c1P3, _ = c1.GetElement(c1P3.GetID())
+	c2P3, _ = c2.GetElement(c2P3.GetID())
+	c1Angle = p1.VectorTo(c1P3)
+	c2Angle = p2.VectorTo(c2P3)
+	fmt.Println("Angle to desired for cluster 1", c1Angle.AngleTo(c1Desired))
+	fmt.Println("Angle to desired for cluster 2", c2Angle.AngleTo(c2Desired))
+	outputShared()
+	g.logElements()
+	c1.logElements()
+	c2.logElements()
 
 	// Move constraints / elements from c1 to g
 	for _, c := range c1.constraints {

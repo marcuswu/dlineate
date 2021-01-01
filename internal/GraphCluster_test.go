@@ -228,11 +228,10 @@ func TestRotate(t *testing.T) {
 func TestLocalSolve0(t *testing.T) {
 	g := NewGraphCluster()
 
-	// lines and points for a square -- intentionally off
-	l1 := el.NewSketchLine(0, 0, 1, -1.1) // top line
-	p1 := el.NewSketchPoint(2, 0.1, 1)    // top left
-	p2 := el.NewSketchPoint(3, 1, 1.1)    // top right
-	c1 := constraint.NewConstraint(0, constraint.Distance, p1, p2, 4)
+	l1 := el.NewSketchLine(0, 0, 1, 0)
+	p1 := el.NewSketchPoint(1, 0, 0)
+	p2 := el.NewSketchPoint(2, 3.13, 0)
+	c1 := constraint.NewConstraint(0, constraint.Distance, p2, p1, 4)
 	g.AddConstraint(c1)
 	c2 := constraint.NewConstraint(1, constraint.Distance, p1, l1, 0)
 	g.AddConstraint(c2)
@@ -246,9 +245,9 @@ func TestLocalSolve0(t *testing.T) {
 	}
 
 	t.Logf(`elements after solve: 
-	l1(A: %f, B: %f, C: %f)
-	p1(X: %f, Y: %f)
-	p2(X: %f, Y: %f)
+	l1: %fx + %fy + %f = 0
+	p1: (%f, %f)
+	p2: (%f, %f)
 	`,
 		l1.GetA(), l1.GetB(), l1.GetC(),
 		p1.GetX(), p1.GetY(),
@@ -274,20 +273,19 @@ func TestLocalSolve0(t *testing.T) {
 func TestLocalSolve1(t *testing.T) {
 	g := NewGraphCluster()
 
-	// lines and points for a square -- intentionally off
-	l1 := el.NewSketchLine(0, 0, 1, -1.1) // top line
-	l2 := el.NewSketchLine(1, 1, 0.1, -1) // right line
-	p1 := el.NewSketchPoint(2, 0.1, 1)    // top left
-	p2 := el.NewSketchPoint(3, 1, 1.1)    // top right
-	c1 := constraint.NewConstraint(0, constraint.Distance, p1, p2, 4)
+	l2 := el.NewSketchLine(3, -2.27, 2.01, 7.1)
+	l3 := el.NewSketchLine(4, 2.45, 2.86, 19.1)
+	p2 := el.NewSketchPoint(2, 3.13, 0)
+	p3 := el.NewSketchPoint(5, 5.14, 2.27)
+	c1 := constraint.NewConstraint(0, constraint.Distance, p2, p3, 4)
 	g.AddConstraint(c1)
-	c2 := constraint.NewConstraint(1, constraint.Distance, p1, l1, 0)
+	c2 := constraint.NewConstraint(1, constraint.Distance, p2, l2, 0)
 	g.AddConstraint(c2)
-	c3 := constraint.NewConstraint(2, constraint.Distance, p2, l1, 0)
+	c3 := constraint.NewConstraint(2, constraint.Distance, p3, l2, 0)
 	g.AddConstraint(c3)
-	c4 := constraint.NewConstraint(3, constraint.Distance, p2, l2, 0)
+	c4 := constraint.NewConstraint(3, constraint.Distance, p3, l3, 0)
 	g.AddConstraint(c4)
-	c5 := constraint.NewConstraint(4, constraint.Angle, l2, l1, (72.0/180.0)*math.Pi)
+	c5 := constraint.NewConstraint(4, constraint.Angle, l2, l3, (108.0/180.0)*math.Pi)
 	g.AddConstraint(c5)
 
 	// Solves:
@@ -302,15 +300,15 @@ func TestLocalSolve1(t *testing.T) {
 	}
 
 	t.Logf(`elements after solve: 
-	l1(A: %f, B: %f, C: %f)
-	l2(A: %f, B: %f, C: %f)
-	p1(X: %f, Y: %f)
-	p2(X: %f, Y: %f)
+	l2: %fx + %fy + %f = 0
+	l3: %fx + %fy + %f = 0
+	p2: (%f, %f)
+	p3: (%f, %f)
 	`,
-		l1.GetA(), l1.GetB(), l1.GetC(),
 		l2.GetA(), l2.GetB(), l2.GetC(),
-		p1.GetX(), p1.GetY(),
+		l3.GetA(), l3.GetB(), l3.GetC(),
 		p2.GetX(), p2.GetY(),
+		p3.GetX(), p3.GetY(),
 	)
 
 	cValue := c1.Element1.DistanceTo(c1.Element2)
@@ -361,17 +359,17 @@ func TestLocalSolve2(t *testing.T) {
 		*--------------*
 		p5             p4
 	*/
-	l3 := el.NewSketchLine(0, -1, 0.3, 4)
-	l4 := el.NewSketchLine(1, 0, 1, 0)
-	l5 := el.NewSketchLine(2, 2.3, 1, -3.7)
-	p3 := el.NewSketchPoint(3, 1, 2)
-	p4 := el.NewSketchPoint(4, 4, 0)
-	p5 := el.NewSketchPoint(5, 2, 0)
-	c1 := constraint.NewConstraint(0, constraint.Distance, p3, p5, 4)
+	l3 := el.NewSketchLine(4, 2.45, 2.86, -19.1)
+	l4 := el.NewSketchLine(6, 1.16, -3.32, 13)
+	l5 := el.NewSketchLine(7, 3.56, 1.04, 0)
+	p1 := el.NewSketchPoint(1, 0, 0)
+	p4 := el.NewSketchPoint(8, 2.28, 4.72)
+	p5 := el.NewSketchPoint(9, -1.04, 3.56)
+	c1 := constraint.NewConstraint(0, constraint.Distance, p1, p5, 4)
 	g.AddConstraint(c1)
 	c2 := constraint.NewConstraint(1, constraint.Distance, p4, p5, 4)
 	g.AddConstraint(c2)
-	c3 := constraint.NewConstraint(2, constraint.Distance, p3, l5, 0)
+	c3 := constraint.NewConstraint(2, constraint.Distance, p1, l5, 0)
 	g.AddConstraint(c3)
 	c4 := constraint.NewConstraint(3, constraint.Distance, p5, l4, 0)
 	g.AddConstraint(c4)
@@ -381,9 +379,9 @@ func TestLocalSolve2(t *testing.T) {
 	g.AddConstraint(c6)
 	c7 := constraint.NewConstraint(6, constraint.Distance, p4, l4, 0)
 	g.AddConstraint(c7)
-	c8 := constraint.NewConstraint(7, constraint.Angle, l5, l4, (72.0/180.0)*math.Pi)
+	c8 := constraint.NewConstraint(7, constraint.Angle, l3, l4, (108.0/180.0)*math.Pi)
 	g.AddConstraint(c8)
-	c9 := constraint.NewConstraint(8, constraint.Angle, l3, l4, (72.0/180.0)*math.Pi)
+	c9 := constraint.NewConstraint(8, constraint.Angle, l4, l5, (108.0/180.0)*math.Pi)
 	g.AddConstraint(c9)
 
 	state := g.localSolve()
@@ -393,17 +391,17 @@ func TestLocalSolve2(t *testing.T) {
 	}
 
 	t.Logf(`elements after solve: 
-	l3(A: %f, B: %f, C: %f)
-	l4(A: %f, B: %f, C: %f)
-	l5(A: %f, B: %f, C: %f)
-	p3(X: %f, Y: %f)
-	p4(X: %f, Y: %f)
-	p5(X: %f, Y: %f)
+	l3: %fx + %fy + %f = 0
+	l4: %fx + %fy + %f = 0
+	l5: %fx + %fy + %f = 0
+	p1: (%f, %f)
+	p4: (%f, %f)
+	p5: (%f, %f)
 	`,
 		l3.GetA(), l3.GetB(), l3.GetC(),
 		l4.GetA(), l4.GetB(), l4.GetC(),
 		l5.GetA(), l5.GetB(), l5.GetC(),
-		p3.GetX(), p3.GetY(),
+		p1.GetX(), p1.GetY(),
 		p4.GetX(), p4.GetY(),
 		p5.GetX(), p5.GetY(),
 	)
@@ -425,7 +423,7 @@ func TestLocalSolve2(t *testing.T) {
 
 	cValue = c4.Element1.DistanceTo(c4.Element2)
 	if utils.StandardFloatCompare(cValue, c4.Value) != 0 {
-		t.Error("Expected point p4 to be on line l4, distance is", cValue)
+		t.Error("Expected point p5 to be on line l4, distance is", cValue)
 	}
 
 	cValue = c5.Element1.DistanceTo(c5.Element2)
@@ -457,23 +455,23 @@ func TestLocalSolve2(t *testing.T) {
 func TestSolveMerge(t *testing.T) {
 	/*
 		GraphCluster 0 (from test)
-			l1(A: 0.000000, B: 1.000000, C: -1.100000)
-			p1(X: -3.000000, Y: 1.100000)
-			p2(X: -7.000000, Y: 1.100000)
+			l1: 0.000000x + 1.000000y + 0.000000 = 0
+			p1: (0.000000, 0.000000)
+			p2: (4.000000, 0.000000)
 
 		GraphCluster 1 (from test)
-			l1(A: 0.000000, B: 1.000000, C: -1.100000)
-			l2(A: -0.951057, B: 0.309017 C: -0.995037)
-			p1(X: -4.688832, Y: 1.100000)
-			p2(X: -0.688832, Y: 1.100000)
+			l2: -0.748682x + 0.662930y + 2.341692 = 0
+			l3: -0.399128x + -0.916895y + 5.071811 = 0
+			p2: (3.141144, 0.015123)
+			p3: (5.792863, 3.009850))
 
 		GraphCluster 2 (fron test)
-			l3(A: -0.951057, B: 0.309017, C: 3.831305)
-			l4(A: 0.000000, B: 1.000000, C: 0.000000)
-			l5(A: -0.951057, B: 0.309017, C: 0.027079)
-			p1(X: 1.264541, Y: 3.804226)
-			p4(X: 4.028473, Y: 0.000000)
-			p5(X: 0.028473, Y: 0.000000)
+			l3: 0.650573x + 0.759444y + -5.071811 = 0
+			l4: -0.923312x + 0.384050y + 3.696525 = 0
+			l5: -0.079934x + -0.996800y + -1.016993 = 0
+			p1: (-0.523558, -0.978273)
+			p4: (4.999844, 2.395239)
+			p5: (3.463643, -1.298010)
 
 		Each cluster shares one element with another:
 			GraphCluster 0 and 1 share p2
@@ -484,9 +482,9 @@ func TestSolveMerge(t *testing.T) {
 	*/
 	g0 := NewGraphCluster()
 
-	l1 := el.NewSketchLine(0, 0, 1, -1.1)
-	p1 := el.NewSketchPoint(1, -3, 1.1)
-	p2 := el.NewSketchPoint(2, -7, 1.1)
+	l1 := el.NewSketchLine(0, 0, 1, 0)
+	p1 := el.NewSketchPoint(1, 0.0, 0.0)
+	p2 := el.NewSketchPoint(2, 4.0, 0)
 	c1 := constraint.NewConstraint(0, constraint.Distance, p1, p2, 4)
 	g0.AddConstraint(c1)
 	c2 := constraint.NewConstraint(1, constraint.Distance, p1, l1, 0)
@@ -496,29 +494,29 @@ func TestSolveMerge(t *testing.T) {
 
 	g1 := NewGraphCluster()
 
-	l2 := el.NewSketchLine(3, 0, 1, -1.1)
-	l3 := el.NewSketchLine(4, -0.951057, 0.309017, -0.995037)
-	p2 = el.NewSketchPoint(2, -4.688832, 1.1)
-	p3 := el.NewSketchPoint(5, -0.688832, 1.1)
+	l2 := el.NewSketchLine(3, -0.748682, 0.662930, 2.341692)
+	l3 := el.NewSketchLine(4, -0.399128, -0.916895, 5.071811)
+	p2 = el.NewSketchPoint(2, 3.141144, 0.015123)
+	p3 := el.NewSketchPoint(5, 5.792863, 3.009850)
 	c4 := constraint.NewConstraint(3, constraint.Distance, p2, p3, 4)
 	g1.AddConstraint(c4)
 	c5 := constraint.NewConstraint(4, constraint.Distance, p2, l2, 0)
 	g1.AddConstraint(c5)
-	c6 := constraint.NewConstraint(5, constraint.Distance, p2, l2, 0)
+	c6 := constraint.NewConstraint(5, constraint.Distance, p3, l2, 0)
 	g1.AddConstraint(c6)
 	c7 := constraint.NewConstraint(6, constraint.Distance, p3, l3, 0)
 	g1.AddConstraint(c7)
-	c8 := constraint.NewConstraint(7, constraint.Angle, l3, l2, (72.0/180.0)*math.Pi)
+	c8 := constraint.NewConstraint(7, constraint.Angle, l3, l2, (108.0/180.0)*math.Pi)
 	g1.AddConstraint(c8)
 
 	g2 := NewGraphCluster()
 
-	l3 = el.NewSketchLine(4, -0.951057, 0.309017, 3.831305)
-	l4 := el.NewSketchLine(6, 0, 1, 0)
-	l5 := el.NewSketchLine(7, -0.951057, 0.309017, 0.027079)
-	p1 = el.NewSketchPoint(1, 1.264541, -3.804226)
-	p4 := el.NewSketchPoint(8, 4.028473, 0)
-	p5 := el.NewSketchPoint(9, 0.028473, 0)
+	l3 = el.NewSketchLine(4, 0.650573, 0.759444, -5.071811)
+	l4 := el.NewSketchLine(6, -0.923312, 0.384050, 3.696525)
+	l5 := el.NewSketchLine(7, -0.079934, -0.996800, -1.016993)
+	p1 = el.NewSketchPoint(1, -0.523558, -0.978273)
+	p4 := el.NewSketchPoint(8, 4.999844, 2.395239)
+	p5 := el.NewSketchPoint(9, 3.463643, -1.298010)
 	c9 := constraint.NewConstraint(8, constraint.Distance, p1, p5, 4)
 	g2.AddConstraint(c9)
 	c10 := constraint.NewConstraint(9, constraint.Distance, p4, p5, 4)
@@ -533,9 +531,9 @@ func TestSolveMerge(t *testing.T) {
 	g2.AddConstraint(c14)
 	c15 := constraint.NewConstraint(14, constraint.Distance, p4, l4, 0)
 	g2.AddConstraint(c15)
-	c16 := constraint.NewConstraint(15, constraint.Angle, l5, l4, (72.0/180.0)*math.Pi)
+	c16 := constraint.NewConstraint(15, constraint.Angle, l5, l4, (108.0/180.0)*math.Pi)
 	g2.AddConstraint(c16)
-	c17 := constraint.NewConstraint(16, constraint.Angle, l3, l4, (72.0/180.0)*math.Pi)
+	c17 := constraint.NewConstraint(16, constraint.Angle, l3, l4, (108.0/180.0)*math.Pi)
 	g2.AddConstraint(c17)
 
 	g0.others = append(g0.others, g1)
@@ -548,16 +546,16 @@ func TestSolveMerge(t *testing.T) {
 	}
 
 	t.Logf(`elements after solve: 
-	l1(A: %f, B: %f, C: %f)
-	l2(A: %f, B: %f, C: %f)
-	l3(A: %f, B: %f, C: %f)
-	l4(A: %f, B: %f, C: %f)
-	l5(A: %f, B: %f, C: %f)
-	p1(X: %f, Y: %f)
-	p2(X: %f, Y: %f)
-	p3(X: %f, Y: %f)
-	p4(X: %f, Y: %f)
-	p5(X: %f, Y: %f)
+	l1: %fx + %fy + %f = 0
+	l2: %fx + %fy + %f = 0
+	l3: %fx + %fy + %f = 0
+	l4: %fx + %fy + %f = 0
+	l5: %fx + %fy + %f = 0
+	p1: (%f, %f)
+	p2: (%f, %f)
+	p3: (%f, %f)
+	p4: (%f, %f)
+	p5: (%f, %f)
 	`,
 		l1.GetA(), l1.GetB(), l1.GetC(),
 		l2.GetA(), l2.GetB(), l2.GetC(),

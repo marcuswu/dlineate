@@ -35,7 +35,14 @@ func (v *Vector) Magnitude() float64 {
 
 // AngleTo returns the angle to another vector in radians
 func (v *Vector) AngleTo(u *Vector) float64 {
-	return math.Atan2(v.X*u.Y+v.Y*u.X, v.Dot(u))
+	angle := math.Atan2(u.Y, u.X) - math.Atan2(v.Y, v.X)
+	if angle > math.Pi {
+		angle -= 2 * math.Pi
+	}
+	if angle <= -math.Pi {
+		angle += 2 * math.Pi
+	}
+	return angle
 }
 
 // Rotated returns a vector representing this vector rotated around the origin by angle radians

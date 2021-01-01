@@ -110,7 +110,7 @@ func MoveLineToPoint(c *constraint.Constraint) SolveState {
 	// If two points, get distance between them, translate constraint value - distance between
 	// If point and line, get distance between them, translate normal to line constraint value - distance between
 	dist := line.DistanceTo(point)
-	line.TranslateDistance(c.GetValue() - dist)
+	line.TranslateDistance(-(c.GetValue() - dist))
 
 	return Solved
 }
@@ -123,9 +123,9 @@ func SolveAngleConstraint(c *constraint.Constraint) SolveState {
 
 	l1 := c.Element1.(*el.SketchLine)
 	l2 := c.Element2.(*el.SketchLine)
-	angle := l2.AngleToLine(l1)
+	angle := l1.AngleToLine(l2)
 	rotate := c.Value - angle
-	l1.Rotate(rotate)
+	l2.Rotate(rotate)
 	return Solved
 }
 
@@ -153,8 +153,8 @@ func GetPointFromPoints(p1 el.SketchElement, originalP2 el.SketchElement, origin
 	p3.ReverseTranslateByElement(p1)
 	// rotate p2 and p3 so p2 is on x axis
 	angle := p2.AngleTo(&el.Vector{X: 1, Y: 0})
-	p2.Rotate(-angle)
-	p3.Rotate(-angle)
+	p2.Rotate(angle)
+	p3.Rotate(angle)
 	// calculate possible p3s
 	p2Dist := p2.(*el.SketchPoint).GetX()
 
@@ -172,7 +172,7 @@ func GetPointFromPoints(p1 el.SketchElement, originalP2 el.SketchElement, origin
 		actualP3 = newP32
 	}
 	// unrotate actualP3
-	actualP3.Rotate(angle)
+	actualP3.Rotate(-angle)
 	// untranslate actualP3
 	actualP3.TranslateByElement(p1)
 
@@ -248,35 +248,35 @@ func pointFromPointLine(originalP1 el.SketchElement, originalL2 el.SketchElement
 
 	// rotate l2 to X axis
 	angle := l2.AngleTo(&el.Vector{X: 1, Y: 0})
-	l2.Rotate(-angle)
-	p1.Rotate(-angle)
-	p3.Rotate(-angle)
+	l2.Rotate(angle)
+	p1.Rotate(angle)
+	p3.Rotate(angle)
 
 	// translate l2 to X axis
 	yTranslate := lineDist - l2.(*el.SketchLine).GetOriginDistance()
-	l2.Translate(0, -yTranslate)
+	if l2.(*el.SketchLine).GetC()-yTranslate != 0 {
+		yTranslate *= -1
+	}
+	l2.Translate(0, yTranslate)
 	// move p1 to Y axis
 	xTranslate := p1.GetX()
-	p1.Translate(-xTranslate, -yTranslate)
-	p3.Translate(-xTranslate, -yTranslate)
-
-	if distanceDifference == lineDist {
-		actualP3 := el.NewSketchPoint(p3.GetID(), p1.GetX()-pointDist, p1.GetY())
-		actualP3.Translate(xTranslate, yTranslate)
-		actualP3.Rotate(angle)
-		return actualP3, Solved
-	}
+	p1.Translate(-xTranslate, yTranslate)
+	p3.Translate(-xTranslate, yTranslate)
 
 	// Find points where circle at p1 with radius pointDist intersects with x axis
 	xPos := math.Sqrt(math.Abs((pointDist * pointDist) - (p1.GetY() * p1.GetY())))
+	if utils.StandardFloatCompare(distanceDifference, 0) == 0 {
+		xPos = pointDist
+	}
+
 	newP31 := el.NewSketchPoint(p3.GetID(), xPos, 0)
 	newP32 := el.NewSketchPoint(p3.GetID(), -xPos, 0)
 	actualP3 := newP31
 	if newP32.SquareDistanceTo(p3) < newP31.SquareDistanceTo(p3) {
 		actualP3 = newP32
 	}
-	actualP3.Translate(xTranslate, yTranslate)
-	actualP3.Rotate(angle)
+	actualP3.Translate(xTranslate, -yTranslate)
+	actualP3.Rotate(-angle)
 
 	return actualP3, Solved
 }
