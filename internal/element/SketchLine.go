@@ -60,6 +60,13 @@ func (l *SketchLine) Is(o SketchElement) bool {
 	return l.id == o.GetID()
 }
 
+// IsEquivalent returns true if the two lines are equivalent
+func (l *SketchLine) IsEquivalent(o *SketchLine) bool {
+	return utils.StandardFloatCompare(l.a, o.a) == 0 &&
+		utils.StandardFloatCompare(l.b, o.b) == 0 &&
+		utils.StandardFloatCompare(l.c, o.c) == 0
+}
+
 // SquareDistanceTo returns the squared distance to the other element
 func (l *SketchLine) SquareDistanceTo(o SketchElement) float64 {
 	d := l.DistanceTo(o)

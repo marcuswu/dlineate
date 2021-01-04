@@ -38,6 +38,36 @@ func typeCounts(c1 *constraint.Constraint, c2 *constraint.Constraint) (int, int)
 
 // SolveConstraints solve two constraints and return the solution state
 func SolveConstraints(c1 *constraint.Constraint, c2 *constraint.Constraint) SolveState {
+	newP3, state := ConstraintResult(c1, c2)
+
+	switch {
+	case c1.Element1.Is(c2.Element1):
+		c1.Element1.AsPoint().X = newP3.X
+		c1.Element1.AsPoint().Y = newP3.Y
+		c2.Element1.AsPoint().X = newP3.X
+		c2.Element1.AsPoint().Y = newP3.Y
+	case c1.Element2.Is(c2.Element1):
+		c1.Element2.AsPoint().X = newP3.X
+		c1.Element2.AsPoint().Y = newP3.Y
+		c2.Element1.AsPoint().X = newP3.X
+		c2.Element1.AsPoint().Y = newP3.Y
+	case c1.Element1.Is(c2.Element2):
+		c1.Element1.AsPoint().X = newP3.X
+		c1.Element1.AsPoint().Y = newP3.Y
+		c2.Element2.AsPoint().X = newP3.X
+		c2.Element2.AsPoint().Y = newP3.Y
+	case c1.Element2.Is(c2.Element2):
+		c1.Element2.AsPoint().X = newP3.X
+		c1.Element2.AsPoint().Y = newP3.Y
+		c2.Element2.AsPoint().X = newP3.X
+		c2.Element2.AsPoint().Y = newP3.Y
+	}
+
+	return state
+}
+
+// ConstraintResult returns the result of solving two constraints sharing one point
+func ConstraintResult(c1 *constraint.Constraint, c2 *constraint.Constraint) (*el.SketchPoint, SolveState) {
 	numPoints, _ := typeCounts(c1, c2)
 	// 4 points -> PointFromPoints
 	if numPoints == 4 {
@@ -53,7 +83,7 @@ func SolveConstraints(c1 *constraint.Constraint, c2 *constraint.Constraint) Solv
 		return PointFromLineLine(c1, c2)
 	}
 
-	return NonConvergent
+	return nil, NonConvergent
 }
 
 // SolveDistanceConstraint solves a distance constraint and returns the solution state
@@ -182,7 +212,7 @@ func GetPointFromPoints(p1 el.SketchElement, originalP2 el.SketchElement, origin
 
 // PointFromPoints calculates a new p3 representing p3 moved to satisfy
 // distance constraints from p1 and p2
-func PointFromPoints(c1 *constraint.Constraint, c2 *constraint.Constraint) SolveState {
+func PointFromPoints(c1 *constraint.Constraint, c2 *constraint.Constraint) (*el.SketchPoint, SolveState) {
 	p1 := c1.Element1
 	p2 := c2.Element1
 	p3 := c1.Element2
@@ -200,36 +230,7 @@ func PointFromPoints(c1 *constraint.Constraint, c2 *constraint.Constraint) Solve
 		break
 	}
 
-	newP3, solved := GetPointFromPoints(p1, p2, p3, p1Radius, p2Radius)
-
-	if solved != Solved {
-		return solved
-	}
-
-	switch {
-	case c1.Element1.Is(c2.Element1):
-		c1.Element1.AsPoint().X = newP3.X
-		c1.Element1.AsPoint().Y = newP3.Y
-		c2.Element1.AsPoint().X = newP3.X
-		c2.Element1.AsPoint().Y = newP3.Y
-	case c1.Element2.Is(c2.Element1):
-		c1.Element2.AsPoint().X = newP3.X
-		c1.Element2.AsPoint().Y = newP3.Y
-		c2.Element1.AsPoint().X = newP3.X
-		c2.Element1.AsPoint().Y = newP3.Y
-	case c1.Element1.Is(c2.Element2):
-		c1.Element1.AsPoint().X = newP3.X
-		c1.Element1.AsPoint().Y = newP3.Y
-		c2.Element2.AsPoint().X = newP3.X
-		c2.Element2.AsPoint().Y = newP3.Y
-	case c1.Element2.Is(c2.Element2):
-		c1.Element2.AsPoint().X = newP3.X
-		c1.Element2.AsPoint().Y = newP3.Y
-		c2.Element2.AsPoint().X = newP3.X
-		c2.Element2.AsPoint().Y = newP3.Y
-	}
-
-	return solved
+	return GetPointFromPoints(p1, p2, p3, p1Radius, p2Radius)
 }
 
 func pointFromPointLine(originalP1 el.SketchElement, originalL2 el.SketchElement, originalP3 el.SketchElement, pointDist float64, lineDist float64) (*el.SketchPoint, SolveState) {
@@ -282,7 +283,7 @@ func pointFromPointLine(originalP1 el.SketchElement, originalL2 el.SketchElement
 }
 
 // PointFromPointLine construct a point from a point and a line. c2 must contain the line.
-func PointFromPointLine(c1 *constraint.Constraint, c2 *constraint.Constraint) SolveState {
+func PointFromPointLine(c1 *constraint.Constraint, c2 *constraint.Constraint) (*el.SketchPoint, SolveState) {
 	p1 := c1.Element1
 	l2 := c2.Element1
 	p3 := c1.Element2
@@ -311,36 +312,7 @@ func PointFromPointLine(c1 *constraint.Constraint, c2 *constraint.Constraint) So
 		pointDist, lineDist = lineDist, pointDist
 	}
 
-	newP3, solved := pointFromPointLine(p1, l2, p3, pointDist, lineDist)
-
-	if solved != Solved {
-		return solved
-	}
-
-	switch {
-	case c1.Element1.Is(c2.Element1):
-		c1.Element1.AsPoint().X = newP3.X
-		c1.Element1.AsPoint().Y = newP3.Y
-		c2.Element1.AsPoint().X = newP3.X
-		c2.Element1.AsPoint().Y = newP3.Y
-	case c1.Element2.Is(c2.Element1):
-		c1.Element2.AsPoint().X = newP3.X
-		c1.Element2.AsPoint().Y = newP3.Y
-		c2.Element1.AsPoint().X = newP3.X
-		c2.Element1.AsPoint().Y = newP3.Y
-	case c1.Element1.Is(c2.Element2):
-		c1.Element1.AsPoint().X = newP3.X
-		c1.Element1.AsPoint().Y = newP3.Y
-		c2.Element2.AsPoint().X = newP3.X
-		c2.Element2.AsPoint().Y = newP3.Y
-	case c1.Element2.Is(c2.Element2):
-		c1.Element2.AsPoint().X = newP3.X
-		c1.Element2.AsPoint().Y = newP3.Y
-		c2.Element2.AsPoint().X = newP3.X
-		c2.Element2.AsPoint().Y = newP3.Y
-	}
-
-	return solved
+	return pointFromPointLine(p1, l2, p3, pointDist, lineDist)
 }
 
 func pointFromLineLine(l1 *el.SketchLine, l2 *el.SketchLine, p3 *el.SketchPoint, line1Dist float64, line2Dist float64) (*el.SketchPoint, SolveState) {
@@ -359,7 +331,7 @@ func pointFromLineLine(l1 *el.SketchLine, l2 *el.SketchLine, p3 *el.SketchPoint,
 }
 
 // PointFromLineLine construct a point from two lines. c2 must contain the point.
-func PointFromLineLine(c1 *constraint.Constraint, c2 *constraint.Constraint) SolveState {
+func PointFromLineLine(c1 *constraint.Constraint, c2 *constraint.Constraint) (*el.SketchPoint, SolveState) {
 	l1 := c1.Element1
 	l2 := c2.Element1
 	p3 := c1.Element2
@@ -383,34 +355,5 @@ func PointFromLineLine(c1 *constraint.Constraint, c2 *constraint.Constraint) Sol
 		break
 	}
 
-	newP3, solved := pointFromLineLine(l1.AsLine(), l2.AsLine(), p3.AsPoint(), line1Dist, line2Dist)
-
-	if solved != Solved {
-		return solved
-	}
-
-	switch {
-	case c1.Element1.Is(c2.Element1):
-		c1.Element1.AsPoint().X = newP3.X
-		c1.Element1.AsPoint().Y = newP3.Y
-		c2.Element1.AsPoint().X = newP3.X
-		c2.Element1.AsPoint().Y = newP3.Y
-	case c1.Element2.Is(c2.Element1):
-		c1.Element2.AsPoint().X = newP3.X
-		c1.Element2.AsPoint().Y = newP3.Y
-		c2.Element1.AsPoint().X = newP3.X
-		c2.Element1.AsPoint().Y = newP3.Y
-	case c1.Element1.Is(c2.Element2):
-		c1.Element1.AsPoint().X = newP3.X
-		c1.Element1.AsPoint().Y = newP3.Y
-		c2.Element2.AsPoint().X = newP3.X
-		c2.Element2.AsPoint().Y = newP3.Y
-	case c1.Element2.Is(c2.Element2):
-		c1.Element2.AsPoint().X = newP3.X
-		c1.Element2.AsPoint().Y = newP3.Y
-		c2.Element2.AsPoint().X = newP3.X
-		c2.Element2.AsPoint().Y = newP3.Y
-	}
-
-	return solved
+	return pointFromLineLine(l1.AsLine(), l2.AsLine(), p3.AsPoint(), line1Dist, line2Dist)
 }

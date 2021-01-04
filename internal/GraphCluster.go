@@ -403,90 +403,137 @@ func (g *GraphCluster) logElements() {
 
 // SolveMerge resolves merging solved child clusters to this one
 func (g *GraphCluster) solveMerge(c1 *GraphCluster, c2 *GraphCluster) solver.SolveState {
-	g.logElements()
-	// Find the shared element between g and c1
+	clusters := []*GraphCluster{g, c1, c2}
 	sharedSet := g.SharedElements(c1)
-	if len(sharedSet.Contents()) != 1 {
+	sharedSet.AddSet(g.SharedElements(c2))
+	sharedSet.AddSet(c1.SharedElements(c2))
+	sharedElements := sharedSet.Contents()
+
+	clustersFor := func(e uint) []*GraphCluster {
+		matching := make([]*GraphCluster, 0, len(clusters))
+		for _, c := range clusters {
+			if _, ok := c.elements[e]; !ok {
+				continue
+			}
+			matching = append(matching, c)
+		}
+		return matching
+	}
+
+	if len(sharedElements) != 3 {
 		return solver.NonConvergent
 	}
-	elementID := sharedSet.Contents()[0]
-	c1SharedG, _ := c1.GetElement(elementID)
-	gElement, _ := g.GetElement(elementID)
 
-	// Translate c1 by the difference in position
-	translateVector := c1SharedG.VectorTo(gElement)
-	c1.Translate(-translateVector.X, -translateVector.Y)
-	c1.logElements()
+	// Solve two of the elements
+	// Prefer solving lines first
+	unsolved := 2
+	var e [3]uint
+	for i, se := range sharedElements {
+		parents := clustersFor(se)
+		if len(parents) != 2 {
+			return solver.NonConvergent
+		}
 
-	// Find the shared element between g and c2
-	sharedSet = g.SharedElements(c2)
-	if len(sharedSet.Contents()) != 1 {
-		return solver.NonConvergent
+		eType := parents[0].elements[se].GetType()
+		if eType != el.Line && i < len(sharedElements)-unsolved {
+			e[2] = uint(i)
+			continue
+		}
+
+		// Solve element
+		// if element is a line, rotate it into place first
+		ec1 := parents[0].elements[se]
+		ec2 := parents[1].elements[se]
+		if eType == el.Line {
+			angle := ec1.AsLine().AngleToLine(ec2.AsLine())
+			parents[1].Rotate(ec2.AsLine().PointNearestOrigin(), -angle)
+		}
+
+		// translate element into place
+		translation := ec2.VectorTo(ec1)
+		parents[1].Translate(-translation.X, -translation.Y)
+		e[2-unsolved] = se
+
+		unsolved--
+		if unsolved == 0 {
+			if i < len(sharedElements) {
+				e[2] = uint(len(sharedElements) - 1)
+			}
+			break
+		}
 	}
-	elementID = sharedSet.Contents()[0]
-	c2SharedG, _ := c2.GetElement(elementID)
-	gElement, _ = g.GetElement(elementID)
 
-	// Translate c2 by the difference in position
-	translateVector = c2SharedG.VectorTo(gElement)
-	c2.Translate(-translateVector.X, -translateVector.Y)
-	c2.logElements()
+	// Solve the third element in relation to the other two
+	parents := clustersFor(e[2])
+	c0E2 := parents[0].elements[e[2]]
+	c1E2 := parents[1].elements[e[2]]
+	e2Type := c0E2.GetType()
+	if e2Type == el.Line {
+		// We avoid e2 being a line, so if it is one, the other two are also lines.
+		// This means e2 should already be placed correctly since the other two are.
+		state := solver.Solved
+		c0E2 := parents[0].elements[e[2]]
+		c1E2 := parents[1].elements[e[2]]
+		if !c0E2.AsLine().IsEquivalent(c1E2.AsLine()) {
+			state = solver.NonConvergent
+		}
 
-	// Find the shared element between c1 and c2
-	sharedSet = c1.SharedElements(c2)
-	if len(sharedSet.Contents()) != 1 {
-		return solver.NonConvergent
+		return state
 	}
-	elementID = sharedSet.Contents()[0]
-	c1P3, _ := c1.GetElement(elementID)
-	c2P3, _ := c2.GetElement(elementID)
-	p1, p2 := c1SharedG.AsPoint(), c2SharedG.AsPoint()
+
+	var constraint1, constraint2 *Constraint
+	var e1, e2 el.SketchElement
+	var p1, p2 *el.SketchPoint
+	if e, ok := parents[0].elements[e[0]]; ok {
+		e1 = e
+		dist := c0E2.DistanceTo(e)
+		constraint1 = constraint.NewConstraint(0, constraint.Distance, c0E2, e, dist)
+	}
+	if e, ok := parents[1].elements[e[0]]; ok {
+		e2 = e
+		dist := c0E2.DistanceTo(e)
+		constraint1 = constraint.NewConstraint(0, constraint.Distance, c0E2, e, dist)
+	}
+	if e, ok := parents[0].elements[e[1]]; ok {
+		e1 = e
+		dist := c0E2.DistanceTo(e)
+		constraint2 = constraint.NewConstraint(0, constraint.Distance, c0E2, e, dist)
+	}
+	if e, ok := parents[1].elements[e[1]]; ok {
+		e2 = e
+		dist := c0E2.DistanceTo(e)
+		constraint2 = constraint.NewConstraint(0, constraint.Distance, c0E2, e, dist)
+	}
+
+	newP3, state := solver.ConstraintResult(constraint1, constraint2)
+
+	if state != solver.Solved {
+		return state
+	}
+
+	p1 = e1.AsPoint()
+	p2 = e2.AsPoint()
 	if p1 == nil {
-		p1 = c1SharedG.AsLine().PointNearestOrigin()
+		p1 = e1.AsLine().PointNearestOrigin()
 	}
 	if p2 == nil {
-		p2 = c2SharedG.AsLine().PointNearestOrigin()
+		p2 = e2.AsLine().PointNearestOrigin()
 	}
-	// Find the rotation for c1 and c2 that allows shared element to meet
-	// To do that, use the shared elements from g to c1 and c2
-	// as p1 and p2 and the distances to the shared element between c1 and c2
-	// as p3 as constraint distances. Use GetPointFromPoints to determine
-	// the point c1 and c2 rotate to join on their shared element
-	c1Dist, c2Dist := p1.DistanceTo(c1P3), p2.DistanceTo(c2P3)
-	p3 := c1P3.AsPoint()
-	if p3 == nil {
-		p3 = c1P3.AsLine().PointNearestOrigin()
-	}
-
-	outputShared := func() {
-		fmt.Println("shared from c1", c1SharedG, "original", g.elements[c1SharedG.GetID()])
-		fmt.Println("shared from c2", c2SharedG, "original", g.elements[c2SharedG.GetID()])
-	}
-
-	outputShared()
-	newP3, solved := solver.GetPointFromPoints(p1, p2, p3, c1Dist, c2Dist)
-	if solved != solver.Solved {
-		return solved
-	}
-	outputShared()
-	// Calculate the angle of rotation for c1 and c2 by creating
-	// vectors from their points and getting the angle between the vectors
-	// Rotate c1 and c2 so the shared element meets
-	c1Angle, c1Desired := p1.VectorTo(c1P3), p1.VectorTo(newP3)
-	c2Angle, c2Desired := p2.VectorTo(c2P3), p2.VectorTo(newP3)
+	c0Angle, c0Desired := p1.VectorTo(c0E2), p1.VectorTo(newP3)
+	c1Angle, c1Desired := p2.VectorTo(c1E2), p2.VectorTo(newP3)
+	c0Rotate := c0Angle.AngleTo(c0Desired)
 	c1Rotate := c1Angle.AngleTo(c1Desired)
-	c2Rotate := c2Angle.AngleTo(c2Desired)
-	fmt.Println("Angle to desired for cluster 1", c1Rotate)
-	fmt.Println("Angle to desired for cluster 2", c2Rotate)
-	c1.Rotate(p1, c1Rotate)
-	c2.Rotate(p2, c2Rotate)
-	c1P3, _ = c1.GetElement(c1P3.GetID())
-	c2P3, _ = c2.GetElement(c2P3.GetID())
-	c1Angle = p1.VectorTo(c1P3)
-	c2Angle = p2.VectorTo(c2P3)
-	fmt.Println("Angle to desired for cluster 1", c1Angle.AngleTo(c1Desired))
-	fmt.Println("Angle to desired for cluster 2", c2Angle.AngleTo(c2Desired))
-	outputShared()
+	fmt.Println("Angle to desired for cluster 1", c0Rotate)
+	fmt.Println("Angle to desired for cluster 2", c1Rotate)
+	parents[0].Rotate(p1, c0Rotate)
+	parents[1].Rotate(p2, c1Rotate)
+	// c0E2, _ = parents[0].GetElement(c0E2.GetID())
+	// c1E2, _ = parents[1].GetElement(c1E2.GetID())
+	c0Angle = p1.VectorTo(c0E2)
+	c1Angle = p2.VectorTo(c1E2)
+	fmt.Println("Angle to desired for cluster 1", c0Angle.AngleTo(c0Desired))
+	fmt.Println("Angle to desired for cluster 2", c1Angle.AngleTo(c1Desired))
+	// outputShared()
 	g.logElements()
 	c1.logElements()
 	c2.logElements()
