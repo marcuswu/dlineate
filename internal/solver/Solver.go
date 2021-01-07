@@ -40,6 +40,10 @@ func typeCounts(c1 *constraint.Constraint, c2 *constraint.Constraint) (int, int)
 func SolveConstraints(c1 *constraint.Constraint, c2 *constraint.Constraint) SolveState {
 	newP3, state := ConstraintResult(c1, c2)
 
+	if newP3 == nil {
+		return state
+	}
+
 	switch {
 	case c1.Element1.Is(c2.Element1):
 		c1.Element1.AsPoint().X = newP3.X
@@ -239,14 +243,6 @@ func pointFromPointLine(originalP1 el.SketchElement, originalL2 el.SketchElement
 	p3 := el.CopySketchElement(originalP3).(*el.SketchPoint)
 	distanceDifference := l2.DistanceTo(p1)
 
-	if distanceDifference+pointDist < lineDist+pointDist {
-		return nil, NonConvergent
-	}
-
-	if distanceDifference > lineDist+pointDist {
-		return nil, NonConvergent
-	}
-
 	// rotate l2 to X axis
 	angle := l2.AngleTo(&el.Vector{X: 1, Y: 0})
 	l2.Rotate(angle)
@@ -254,7 +250,7 @@ func pointFromPointLine(originalP1 el.SketchElement, originalL2 el.SketchElement
 	p3.Rotate(angle)
 
 	// translate l2 to X axis
-	yTranslate := lineDist - l2.(*el.SketchLine).GetOriginDistance()
+	yTranslate := l2.(*el.SketchLine).GetOriginDistance() - lineDist
 	if l2.(*el.SketchLine).GetC()-yTranslate != 0 {
 		yTranslate *= -1
 	}
@@ -263,6 +259,10 @@ func pointFromPointLine(originalP1 el.SketchElement, originalL2 el.SketchElement
 	xTranslate := p1.GetX()
 	p1.Translate(-xTranslate, yTranslate)
 	p3.Translate(-xTranslate, yTranslate)
+
+	if pointDist < math.Abs(p1.GetY()) {
+		return nil, NonConvergent
+	}
 
 	// Find points where circle at p1 with radius pointDist intersects with x axis
 	xPos := math.Sqrt(math.Abs((pointDist * pointDist) - (p1.GetY() * p1.GetY())))

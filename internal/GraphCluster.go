@@ -424,56 +424,109 @@ func (g *GraphCluster) solveMerge(c1 *GraphCluster, c2 *GraphCluster) solver.Sol
 		return solver.NonConvergent
 	}
 
+	numSharedLines := func(g *GraphCluster) int {
+		lines := 0
+		for _, se := range sharedElements {
+			if e, ok := g.elements[se]; ok && e.GetType() == el.Line {
+				lines++
+			}
+		}
+		return lines
+	}
+
+	// Find root cluster
+	// Prefer keeping lines on the root cluster (solve lines first)
+	rootCluster := g
+	sharedLines := numSharedLines(g)
+	c1SharedLines := numSharedLines(c1)
+	c2SharedLines := numSharedLines(c2)
+	if c1SharedLines > sharedLines {
+		rootCluster = c1
+		sharedLines = c1SharedLines
+	}
+	if c2SharedLines > sharedLines {
+		rootCluster = c2
+		sharedLines = c2SharedLines
+	}
+
 	// Solve two of the elements
-	// Prefer solving lines first
-	unsolved := 2
-	var e [3]uint
-	for i, se := range sharedElements {
+	final := sharedElements[0]
+	finalIndex := 0
+	for i, ec := range clusters {
+		if ec == rootCluster {
+			finalIndex = i
+			break
+		}
+	}
+	fmt.Printf("root cluster is g%d\n", finalIndex)
+	fmt.Printf("Initial configuration:\n")
+	g.logElements()
+	c1.logElements()
+	c2.logElements()
+	fmt.Println("")
+
+	for _, se := range sharedElements {
 		parents := clustersFor(se)
 		if len(parents) != 2 {
 			return solver.NonConvergent
 		}
 
-		eType := parents[0].elements[se].GetType()
-		if eType != el.Line && i < len(sharedElements)-unsolved {
-			e[2] = uint(i)
+		if parents[0] != rootCluster && parents[1] != rootCluster {
+			final = se
 			continue
 		}
+		fmt.Printf("Solving for element %d\n", se)
+
+		eType := parents[0].elements[se].GetType()
 
 		// Solve element
 		// if element is a line, rotate it into place first
-		ec1 := parents[0].elements[se]
-		ec2 := parents[1].elements[se]
+		other := parents[0]
+		if other == rootCluster {
+			other = parents[1]
+		}
+		ec1 := other.elements[se]
+		ec2 := rootCluster.elements[se]
 		if eType == el.Line {
 			angle := ec1.AsLine().AngleToLine(ec2.AsLine())
-			parents[1].Rotate(ec2.AsLine().PointNearestOrigin(), -angle)
+			other.Rotate(ec2.AsLine().PointNearestOrigin(), angle)
 		}
 
 		// translate element into place
 		translation := ec2.VectorTo(ec1)
-		parents[1].Translate(-translation.X, -translation.Y)
-		e[2-unsolved] = se
+		other.Translate(translation.X, translation.Y)
 
-		unsolved--
-		if unsolved == 0 {
-			if i < len(sharedElements) {
-				e[2] = uint(len(sharedElements) - 1)
-			}
-			break
-		}
+		fmt.Printf("Solved for element %d:\n", se)
+		g.logElements()
+		c1.logElements()
+		c2.logElements()
+		fmt.Println("")
 	}
 
+	var e = [2]uint{sharedElements[0], sharedElements[1]}
+	if e[0] == final {
+		e[0] = sharedElements[2]
+	}
+	if e[1] == final {
+		e[1] = sharedElements[2]
+	}
+	fmt.Printf("Solved all but final element (%d): %d, %d\n", final, e[0], e[1])
+	g.logElements()
+	c1.logElements()
+	c2.logElements()
+	fmt.Println("")
+
 	// Solve the third element in relation to the other two
-	parents := clustersFor(e[2])
-	c0E2 := parents[0].elements[e[2]]
-	c1E2 := parents[1].elements[e[2]]
+	parents := clustersFor(final)
+	c0E2 := parents[0].elements[final]
+	c1E2 := parents[1].elements[final]
 	e2Type := c0E2.GetType()
 	if e2Type == el.Line {
 		// We avoid e2 being a line, so if it is one, the other two are also lines.
 		// This means e2 should already be placed correctly since the other two are.
 		state := solver.Solved
-		c0E2 := parents[0].elements[e[2]]
-		c1E2 := parents[1].elements[e[2]]
+		c0E2 := parents[0].elements[final]
+		c1E2 := parents[1].elements[final]
 		if !c0E2.AsLine().IsEquivalent(c1E2.AsLine()) {
 			state = solver.NonConvergent
 		}
@@ -483,57 +536,55 @@ func (g *GraphCluster) solveMerge(c1 *GraphCluster, c2 *GraphCluster) solver.Sol
 
 	var constraint1, constraint2 *Constraint
 	var e1, e2 el.SketchElement
-	var p1, p2 *el.SketchPoint
 	if e, ok := parents[0].elements[e[0]]; ok {
 		e1 = e
 		dist := c0E2.DistanceTo(e)
 		constraint1 = constraint.NewConstraint(0, constraint.Distance, c0E2, e, dist)
+		fmt.Printf("Creating constraint from %d to %d with distance %f\n", c0E2.GetID(), e.GetID(), dist)
 	}
 	if e, ok := parents[1].elements[e[0]]; ok {
 		e2 = e
-		dist := c0E2.DistanceTo(e)
-		constraint1 = constraint.NewConstraint(0, constraint.Distance, c0E2, e, dist)
+		dist := c1E2.DistanceTo(e)
+		constraint1 = constraint.NewConstraint(0, constraint.Distance, c1E2, e, dist)
+		fmt.Printf("Creating constraint from %d to %d with distance %f\n", c1E2.GetID(), e.GetID(), dist)
 	}
 	if e, ok := parents[0].elements[e[1]]; ok {
 		e1 = e
 		dist := c0E2.DistanceTo(e)
 		constraint2 = constraint.NewConstraint(0, constraint.Distance, c0E2, e, dist)
+		fmt.Printf("Creating constraint from %d to %d with distance %f\n", c0E2.GetID(), e.GetID(), dist)
 	}
 	if e, ok := parents[1].elements[e[1]]; ok {
 		e2 = e
-		dist := c0E2.DistanceTo(e)
-		constraint2 = constraint.NewConstraint(0, constraint.Distance, c0E2, e, dist)
+		dist := c1E2.DistanceTo(e)
+		constraint2 = constraint.NewConstraint(0, constraint.Distance, c1E2, e, dist)
+		fmt.Printf("Creating constraint from %d to %d with distance %f\n", c1E2.GetID(), e.GetID(), dist)
 	}
 
 	newP3, state := solver.ConstraintResult(constraint1, constraint2)
 
 	if state != solver.Solved {
+		fmt.Println("Final element solve failed")
 		return state
 	}
 
-	p1 = e1.AsPoint()
-	p2 = e2.AsPoint()
-	if p1 == nil {
-		p1 = e1.AsLine().PointNearestOrigin()
+	fmt.Printf("Desired merge point for c1 and c2: %f, %f\n", newP3.GetX(), newP3.GetY())
+
+	moveCluster := func(c *GraphCluster, pivot el.SketchElement, from *el.SketchPoint, to *el.SketchPoint) {
+		if pivot.GetType() == el.Line {
+			move := from.VectorTo(to)
+			c.Translate(-move.X, -move.Y)
+			return
+		}
+
+		current, desired := pivot.VectorTo(from), pivot.VectorTo(to)
+		angle := current.AngleTo(desired)
+		c.Rotate(pivot.AsPoint(), angle)
 	}
-	if p2 == nil {
-		p2 = e2.AsLine().PointNearestOrigin()
-	}
-	c0Angle, c0Desired := p1.VectorTo(c0E2), p1.VectorTo(newP3)
-	c1Angle, c1Desired := p2.VectorTo(c1E2), p2.VectorTo(newP3)
-	c0Rotate := c0Angle.AngleTo(c0Desired)
-	c1Rotate := c1Angle.AngleTo(c1Desired)
-	fmt.Println("Angle to desired for cluster 1", c0Rotate)
-	fmt.Println("Angle to desired for cluster 2", c1Rotate)
-	parents[0].Rotate(p1, c0Rotate)
-	parents[1].Rotate(p2, c1Rotate)
-	// c0E2, _ = parents[0].GetElement(c0E2.GetID())
-	// c1E2, _ = parents[1].GetElement(c1E2.GetID())
-	c0Angle = p1.VectorTo(c0E2)
-	c1Angle = p2.VectorTo(c1E2)
-	fmt.Println("Angle to desired for cluster 1", c0Angle.AngleTo(c0Desired))
-	fmt.Println("Angle to desired for cluster 2", c1Angle.AngleTo(c1Desired))
-	// outputShared()
+
+	moveCluster(parents[0], e1, c0E2.AsPoint(), newP3)
+	moveCluster(parents[1], e2, c1E2.AsPoint(), newP3)
+
 	g.logElements()
 	c1.logElements()
 	c2.logElements()
