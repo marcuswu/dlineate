@@ -567,6 +567,56 @@ func TestSolveMerge(t *testing.T) {
 		t.Error("Expected solved state(4), got", state)
 	}
 
+	rad2Deg := func(rad float64) float64 { return (rad / math.Pi) * 180 }
+	deg2Rad := func(deg float64) float64 { return (deg / 180) * math.Pi }
+	desired := deg2Rad(72)
+	angle := l1.AngleToLine(l2)
+	if utils.StandardFloatCompare(angle, desired) != 0 {
+		t.Error("Expected l1 to l2 to be", 72, "degrees, got", rad2Deg(angle))
+	}
+	desired = deg2Rad(-108)
+	angle = l2.AngleToLine(l3)
+	if utils.StandardFloatCompare(angle, desired) != 0 {
+		t.Error("Expected l2 to l3 to be", -108, "degrees, got", rad2Deg(angle))
+	}
+	desired = deg2Rad(-108)
+	angle = l3.AngleToLine(l4)
+	if utils.StandardFloatCompare(angle, desired) != 0 {
+		t.Error("Expected l3 to l4 to be", -108, "degrees, got", rad2Deg(angle))
+	}
+	desired = deg2Rad(-108)
+	angle = l4.AngleToLine(l5)
+	if utils.StandardFloatCompare(angle, desired) != 0 {
+		t.Error("Expected l4 to l5 to be", -108, "degrees, got", rad2Deg(angle))
+	}
+	desired = deg2Rad(-108)
+	angle = l5.AngleToLine(l1)
+	if utils.StandardFloatCompare(angle, desired) != 0 {
+		t.Error("Expected l5 to l1 to be", -108, "degrees, got", rad2Deg(angle))
+	}
+
+	desired = 4.0
+	measured := p1.DistanceTo(p2)
+	if utils.StandardFloatCompare(measured, desired) != 0 {
+		t.Error("Expected p1 to p2 to be", desired, ", got", measured)
+	}
+	measured = p2.DistanceTo(p3)
+	if utils.StandardFloatCompare(measured, desired) != 0 {
+		t.Error("Expected p2 to p3 to be", desired, ", got", measured)
+	}
+	measured = p3.DistanceTo(p4)
+	if utils.StandardFloatCompare(measured, desired) != 0 {
+		t.Error("Expected p3 to p4 to be", desired, ", got", measured)
+	}
+	measured = p4.DistanceTo(p5)
+	if utils.StandardFloatCompare(measured, desired) != 0 {
+		t.Error("Expected p4 to p5 to be", desired, ", got", measured)
+	}
+	measured = p5.DistanceTo(p1)
+	if utils.StandardFloatCompare(measured, desired) != 0 {
+		t.Error("Expected p5 to p1 to be", desired, ", got", measured)
+	}
+
 	t.Logf(`elements after solve: 
 	l1: %fx + %fy + %f = 0
 	l2: %fx + %fy + %f = 0
