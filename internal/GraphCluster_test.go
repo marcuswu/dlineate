@@ -306,7 +306,6 @@ func TestLocalSolve1(t *testing.T) {
 	// 0. l1 to l2 angle first
 	// 1. Then p2 to l1 and l2
 	// 2. Finally p1 to p2 and l1
-	// Steps 1 and 2 appear to be failing
 	state := g.localSolve()
 
 	if state != solver.Solved {
