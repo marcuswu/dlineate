@@ -18,6 +18,18 @@ type SketchGraph struct {
 	degreesOfFreedom uint
 }
 
+// NewSketch creates a new sketch for solving
+func NewSketch() *SketchGraph {
+	g := new(SketchGraph)
+	g.constraints = make(map[uint]*Constraint, 0)
+	g.elements = make(map[uint]el.SketchElement, 0)
+	g.clusters = make([]*GraphCluster, 0, 1)
+	g.freeNodes = utils.NewSet()
+	g.state = solver.None
+	g.degreesOfFreedom = 6
+	return g
+}
+
 // GetElement gets an element from the graph
 func (g *SketchGraph) GetElement(id uint) el.SketchElement {
 	return g.elements[id]
