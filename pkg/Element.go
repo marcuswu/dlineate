@@ -33,29 +33,6 @@ func emptyElement() *Element{
 	return &Element{}
 }
 
-func (e *Element) addToSketch(s *core.SketchGraph) {
-	switch elementType {
-	case Point: 
-		append(s.elements, s.AddPoint(e.values[0], e.values[1]))
-	case Line:
-		// calculate a, b, c from point [0, 1] & [2, 3]
-		a := e.values[3] - e.values[1] // y' - y
-		b := e.values[0] - e.values[2] // x - x'
-		c := (-a * e.values[0]) - (b * e.values[1]) // c = -ax - by from ax + by + c = 0
-		append(e.elements, s.AddLine(a, b, c)) // AddLine normalizes a, b, c
-		append(e.elements, s.AddPoint(e.values[0], e.values[1]))
-		append(e.elements, s.AddPoint(e.values[2], e.values[3]))
-		append(e.constraints, s.AddConstraint(c.Distance, e.elements[0], e.elements[1], 0.0))
-		append(e.constraints, s.AddConstraint(c.Distance, e.elements[0], e.elements[2], 0.0))
-	case Circle:
-		append(e.elements, s.AddPoint(e.values[0], e.values[1])) 
-	case Arc:
-		append(e.elements, s.AddPoint(e.values[0], e.values[1]))
-		append(e.elements, s.AddPoint(e.values[2], e.values[3]))
-		append(e.elements, s.AddPoint(e.values[4], e.values[5]))
-	}
-}
-
 func (e *Element) valuesFromSketch() error {
 	switch elementType {
 	case Point:
@@ -116,43 +93,4 @@ func (e *Element) getCircleRadius(Constraint c) (float64, error) {
 func (e *Element) Values() []float64 {
 	e.valuesFromSketch()
 	return e.values
-}
-
-func NewPoint(x double, y double) *Element {
-	p := emptyElement()
-	p.elementType = Point
-	append(p.values, x)
-	append(p.values, y)
-	return p
-}
-
-func NewLine(x1 double, y1 double, x2 double, y2 double) *Element {
-	l := emptyElement()
-	l.elementType = Line
-	append(l.values, x1)
-	append(l.values, y1)
-	append(l.values, x2)
-	append(l.values, y2)
-	return l
-}
-
-func NewCircle(x double, y double, r double) *Element {
-	c := emptyElement()
-	c.elementType = Circle
-	append(c.values, x)
-	append(c.values, y)
-	append(c.values, r)
-	return c
-}
-
-func NewArc(x1 double, y1 double, x2 double, y2 double, x3 double, y3 double) *Element {
-	a := emptyElement()
-	a.elementType = Arc
-	append(a.values, x1)
-	append(a.values, y1)
-	append(a.values, x2)
-	append(a.values, y2)
-	append(a.values, x3)
-	append(a.values, y3)
-	return a
 }

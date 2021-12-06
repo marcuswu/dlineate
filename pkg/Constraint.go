@@ -25,3 +25,19 @@ func emptyConstraint() *Constraint {
 	ec.elements = make([]*el.SketchElement, 0, 1)
 	return &Constraint{}
 }
+
+/*
+
+Distance constraint -- line segment, between elements, radius
+Coincident constraint -- points, point & line, point & curve, line & curve
+Equal constraint -- 2nd pass constraint
+Distance ratio constraint -- 2nd pass constraint
+Equal angle -- 2nd pass constraint
+Symmetric -- TODO
+Midpoint -- 2nd pass constraint (equal distances to either end of the line)
+Angle -- two lines
+Perpendicular -- two lines
+Parallel -- two lines
+Tangent -- line and curve
+
+*/

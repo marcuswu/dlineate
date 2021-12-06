@@ -13,7 +13,7 @@ type Solver struct {
 	graph *core.SketchGraph
 }
 
-/*------------ Everything below here needs rewrite -------------*/
+/*------------ Everything below here being rewritten into pkg/Solver.go -------------*/
 
 // Geometry any geometry in a sketch
 type Geometry interface {
