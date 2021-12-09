@@ -23,13 +23,23 @@
       - [x] AddCircle(PointRef, Radius)
       - [x] AddArc(PointRef, PointRef, PointRef)
       - [-] AddElement(Element)
-      - [ ] AddConstraint(Constraint)
+      - [-] AddConstraint(Constraint)
+      - [-] Elements()
       - [ ] Solve()
-      - [ ] Elements()
     - [x] Constraint.go -- Base Constraint interface
       - [x] Also defines base constraint functionality
       - [x] Constraints will own internal constraints and internal elements
-    - [ ] XConstraint.go -- Implementations of different constraint types
+    - [x] Distance constraint -- line segment, between elements, radius
+    - [x] Coincident constraint -- points, point & line, point & curve, line & curve
+    - [x] Angle -- two lines
+    - [x] Perpendicular -- two lines
+    - [x] Parallel -- two lines
+    - [ ] Tangent -- 2nd pass constraint line and curve -- line distance to curve center must equal curve radius
+    - [ ] Equal constraint -- 2nd pass constraint
+    - [ ] Distance ratio constraint -- 2nd pass constraint
+    - [ ] Equal angle -- 2nd pass constraint
+    - [ ] Symmetric -- Future -- not MVP
+    - [ ] Midpoint -- 2nd pass constraint (equal distances to either end of the line)
     - [x] Element.go -- Base Element interface
       - [x] Also defines base element functionality
       - [x] Elements will own internal constraints and internal elements

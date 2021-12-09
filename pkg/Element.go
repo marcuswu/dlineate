@@ -2,9 +2,9 @@ package dlineate
 
 import (
 	"errors"
-	el "github.com/marcuswu/dlineate/internal/element"
+
 	c "github.com/marcuswu/dlineate/internal/constraint"
-	core "github.com/marcuswu/dlineate/internal/core"
+	el "github.com/marcuswu/dlineate/internal/element"
 )
 
 // Type of a Constraint(Distance or Angle)
@@ -19,22 +19,22 @@ const (
 )
 
 type Element struct {
-	values []float64
+	values      []float64
 	elementType ElementType
 	constraints []*c.Constraint
-	elements []*el.SketchElement
+	elements    []el.SketchElement
 }
 
-func emptyElement() *Element{
+func emptyElement() *Element {
 	ec := new(Element)
 	ec.values = make([]float64, 0, 2)
 	ec.constraints = make([]*c.Constraint, 0, 1)
-	ec.elements = make([]*el.SketchElement, 0, 1)
+	ec.elements = make([]el.SketchElement, 0, 1)
 	return &Element{}
 }
 
-func (e *Element) valuesFromSketch() error {
-	switch elementType {
+func (e *Element) valuesFromSketch(s *Sketch) error {
+	switch e.elementType {
 	case Point:
 		p := e.elements[0].AsPoint()
 		e.values[0] = p.GetX()
@@ -48,31 +48,36 @@ func (e *Element) valuesFromSketch() error {
 		e.values[3] = p2.GetY()
 	case Circle:
 		/*
-		Circle radius is determined either by
-		  * a distance constraint against the Circle
-		  * a coincident constraint against a Circle with the location of the center constrained
+			Circle radius is determined either by
+			  * a distance constraint against the Circle
+			  * a coincident constraint against a Circle with the location of the center constrained
 		*/
+		var err error = nil
 		c := e.elements[0].AsPoint()
 		e.values[0] = c.GetX()
 		e.values[1] = c.GetY()
-		e.values[2], err = e.getCircleRadius(c.GetX(), c.GetY())
+		// find distance constraint on e
+		constraint, err := s.findConstraint(Distance, e)
+		e.values[2], err = e.getCircleRadius(constraint)
 		if err != nil {
-			return error
+			return err
 		}
 	case Arc:
-		c := e.elements[0].AsPoint()
-		s := e.elements[1].AsPoint()
-		e := e.elements[2].AsPoint()
-		e.values[0] = c.GetX()
-		e.values[1] = c.GetY()
-		e.values[2] = s.GetX()
-		e.values[3] = s.GetY()
-		e.values[4] = e.GetX()
-		e.values[5] = e.GetY()
+		center := e.elements[0].AsPoint()
+		start := e.elements[1].AsPoint()
+		end := e.elements[2].AsPoint()
+		e.values[0] = center.GetX()
+		e.values[1] = center.GetY()
+		e.values[2] = start.GetX()
+		e.values[3] = start.GetY()
+		e.values[4] = end.GetX()
+		e.values[5] = end.GetY()
 	}
+
+	return nil
 }
 
-func (e *Element) getCircleRadius(Constraint c) (float64, error) {
+func (e *Element) getCircleRadius(c *Constraint) (float64, error) {
 	if e.elementType != Circle {
 		return 0, errors.New("Can't return radius for a non-circle")
 	}
@@ -82,7 +87,9 @@ func (e *Element) getCircleRadius(Constraint c) (float64, error) {
 	if c.constraintType == Coincident {
 		constraint := c.constraints[0]
 		other := constraint.Element1
-		if (other == e) { other = constraint.Element2 }
+		if other == e.elements[0] {
+			other = constraint.Element2
+		}
 
 		return other.DistanceTo(e.elements[0].AsPoint()), nil
 	}
@@ -90,7 +97,7 @@ func (e *Element) getCircleRadius(Constraint c) (float64, error) {
 	return 0, errors.New("Constraint type for circle radius myst be Distance or Coincident")
 }
 
-func (e *Element) Values() []float64 {
-	e.valuesFromSketch()
+func (e *Element) Values(s *Sketch) []float64 {
+	e.valuesFromSketch(s)
 	return e.values
 }
