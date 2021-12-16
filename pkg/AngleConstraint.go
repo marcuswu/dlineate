@@ -19,7 +19,7 @@ func (s *Sketch) AddAngleConstraint(p1 *Element, p2 *Element, v float64) (*Const
 	c := AngleConstraint(p1, p2)
 
 	if p1.elementType != Line || p2.elementType != Line {
-		return nil, errors.New("Incorrect element types for angle constraint")
+		return nil, errors.New("incorrect element types for angle constraint")
 	}
 
 	constraint := s.sketch.AddConstraint(ic.Angle, p1.elements[0], p2.elements[0], v)

@@ -58,6 +58,9 @@ func (e *Element) valuesFromSketch(s *Sketch) error {
 		e.values[1] = c.GetY()
 		// find distance constraint on e
 		constraint, err := s.findConstraint(Distance, e)
+		if err != nil {
+			return err
+		}
 		e.values[2], err = e.getCircleRadius(constraint)
 		if err != nil {
 			return err
@@ -79,7 +82,7 @@ func (e *Element) valuesFromSketch(s *Sketch) error {
 
 func (e *Element) getCircleRadius(c *Constraint) (float64, error) {
 	if e.elementType != Circle {
-		return 0, errors.New("Can't return radius for a non-circle")
+		return 0, errors.New("can't return radius for a non-circle")
 	}
 	if c.constraintType == Distance && len(c.elements) == 1 {
 		return c.constraints[0].Value, nil

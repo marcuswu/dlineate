@@ -37,7 +37,7 @@ func (s *Sketch) findConstraint(ctype ConstraintType, e *Element) (*Constraint, 
 		}
 	}
 
-	return nil, errors.New("No such constraint")
+	return nil, errors.New("no such constraint")
 }
 
 func (s *Sketch) AddPoint(x float64, y float64) *Element {
@@ -99,6 +99,14 @@ func (s *Sketch) NewArc(x1 float64, y1 float64, x2 float64, y2 float64, x3 float
 	return a
 }
 
+func (s *Sketch) resolveConstraintDependencies() {
+	
+}
+
 func (s *Sketch) Solve() error {
+
+
+
+
 	return nil
 }

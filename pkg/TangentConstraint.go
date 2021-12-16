@@ -25,7 +25,7 @@ func (s *Sketch) AddTangentConstraint(p1 *Element, p2 *Element, v float64) (*Con
 		curve = p1
 	}
 	if l.elementType != Line || (curve.elementType != Circle && curve.elementType != Arc) {
-		return nil, errors.New("Incorrect element types for tangent constraint")
+		return nil, errors.New("incorrect element types for tangent constraint")
 	}
 
 	constraint := s.sketch.AddConstraint(ic.Distance, p1.elements[0], p2.elements[0], v)
