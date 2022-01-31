@@ -21,12 +21,14 @@ type Constraint struct {
 	constraints    []*c.Constraint
 	elements       []*Element
 	constraintType ConstraintType
+	resolved       bool
 }
 
 func emptyConstraint() *Constraint {
 	ec := new(Constraint)
 	ec.constraints = make([]*c.Constraint, 0, 1)
 	ec.elements = make([]*Element, 0, 1)
+	ec.resolved = false
 	return &Constraint{}
 }
 

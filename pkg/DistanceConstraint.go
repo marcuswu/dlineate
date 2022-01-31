@@ -9,6 +9,7 @@ func DistanceConstraint(p1 *Element, p2 *Element) *Constraint {
 	constraint.elements = append(constraint.elements, p1)
 	constraint.elements = append(constraint.elements, p2)
 	constraint.constraintType = Distance
+	constraint.resolved = true
 
 	return constraint
 }
@@ -50,7 +51,7 @@ func (s *Sketch) AddDistanceConstraint(p1 *Element, p2 *Element, v float64) *Con
 	c := DistanceConstraint(p1, p2)
 
 	constraint := s.addDistanceConstraint(p1, p2, v)
-	if (constraint != nil) {
+	if constraint != nil {
 		c.constraints = append(c.constraints, constraint)
 		s.constraints = append(s.constraints, c)
 	}

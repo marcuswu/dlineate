@@ -11,6 +11,7 @@ func AngleConstraint(p1 *Element, p2 *Element) *Constraint {
 	constraint.elements = append(constraint.elements, p1)
 	constraint.elements = append(constraint.elements, p2)
 	constraint.constraintType = Angle
+	constraint.resolved = true
 
 	return constraint
 }
