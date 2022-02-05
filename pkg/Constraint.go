@@ -15,6 +15,9 @@ const (
 	Perpendicular
 	Parallel
 	Tangent
+
+	// Two pass constraints
+	Equal
 )
 
 type Constraint struct {
@@ -34,16 +37,21 @@ func emptyConstraint() *Constraint {
 
 /*
 
+One Pass Constraints
+-------------
 Distance constraint -- line segment, between elements, radius
 Coincident constraint -- points, point & line, point & curve, line & curve
 Equal constraint -- 2nd pass constraint
 Distance ratio constraint -- 2nd pass constraint
-Equal angle -- 2nd pass constraint
-Symmetric -- TODO
-Midpoint -- 2nd pass constraint (equal distances to either end of the line)
 Angle -- two lines
 Perpendicular -- two lines
 Parallel -- two lines
+
+Two Pass Constraints
+-------------
+Equal angle -- 2nd pass constraint
+Midpoint -- 2nd pass constraint (equal distances to either end of the line)
 Tangent -- line and curve
+Symmetric -- TODO
 
 */

@@ -99,14 +99,27 @@ func (s *Sketch) NewArc(x1 float64, y1 float64, x2 float64, y2 float64, x3 float
 	return a
 }
 
-func (s *Sketch) resolveConstraintDependencies() {
-	
+func (s *Sketch) resolveConstraint(c *Constraint) bool {
+	switch c.constraintType {
+	case Coincident:
+		fallthrough
+	case Distance:
+		fallthrough
+	case Angle:
+		fallthrough
+	case Perpendicular:
+		fallthrough
+	case Parallel:
+		c.resolved = true
+		return true
+	case Equal:
+		return s.resolveEqualConstraint(c)
+	}
+
+	return c.resolved
 }
 
 func (s *Sketch) Solve() error {
-
-
-
 
 	return nil
 }
