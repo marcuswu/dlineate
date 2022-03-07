@@ -2,8 +2,6 @@ package dlineate
 
 import (
 	"errors"
-
-	ic "github.com/marcuswu/dlineate/internal/constraint"
 )
 
 func TangentConstraint(p1 *Element, p2 *Element, p3 *Element) *Constraint {
@@ -12,7 +10,7 @@ func TangentConstraint(p1 *Element, p2 *Element, p3 *Element) *Constraint {
 	constraint.elements = append(constraint.elements, p2)
 	constraint.elements = append(constraint.elements, p3)
 	constraint.constraintType = Tangent
-	constraint.resolved = false
+	constraint.state = Unresolved
 
 	return constraint
 }
@@ -26,11 +24,11 @@ func (s *Sketch) AddTangentConstraint(p1 *Element, p2 *Element, p3 *Element) (*C
 
 	c := TangentConstraint(line, point, curve)
 
-	// Look for curve radius. Can be defined as a Distance constraint or derived from a 2nd pass
+	// TODO: Look for curve radius. Can be defined as a Distance constraint or derived from a 2nd pass
 
-	constraint := s.sketch.AddConstraint(ic.Distance, p1.elements[0], p2.elements[0], v)
+	/*constraint := s.sketch.AddConstraint(ic.Distance, p1.elements[0], p2.elements[0], v)
 	c.constraints = append(c.constraints, constraint)
-	s.constraints = append(s.constraints, c)
+	s.constraints = append(s.constraints, c)*/
 
 	return c, nil
 }

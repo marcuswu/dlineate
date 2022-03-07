@@ -22,26 +22,29 @@ type Element struct {
 	values      []float64
 	elementType ElementType
 	constraints []*c.Constraint
-	elements    []el.SketchElement
+	element     el.SketchElement
+	children    []*Element
+	isChild     bool
 }
 
 func emptyElement() *Element {
 	ec := new(Element)
 	ec.values = make([]float64, 0, 2)
 	ec.constraints = make([]*c.Constraint, 0, 1)
-	ec.elements = make([]el.SketchElement, 0, 1)
+	ec.children = make([]*Element, 0, 1)
+	ec.isChild = false
 	return &Element{}
 }
 
 func (e *Element) valuesFromSketch(s *Sketch) error {
 	switch e.elementType {
 	case Point:
-		p := e.elements[0].AsPoint()
+		p := e.element.AsPoint()
 		e.values[0] = p.GetX()
 		e.values[1] = p.GetY()
 	case Line:
-		p1 := e.elements[1].AsPoint()
-		p2 := e.elements[2].AsPoint()
+		p1 := e.children[0].element.AsPoint()
+		p2 := e.children[1].element.AsPoint()
 		e.values[0] = p1.GetX()
 		e.values[1] = p1.GetY()
 		e.values[2] = p2.GetX()
@@ -53,7 +56,7 @@ func (e *Element) valuesFromSketch(s *Sketch) error {
 			  * a coincident constraint against a Circle with the location of the center constrained
 		*/
 		var err error = nil
-		c := e.elements[0].AsPoint()
+		c := e.children[0].element.AsPoint()
 		e.values[0] = c.GetX()
 		e.values[1] = c.GetY()
 		// find distance constraint on e
@@ -66,9 +69,9 @@ func (e *Element) valuesFromSketch(s *Sketch) error {
 			return err
 		}
 	case Arc:
-		center := e.elements[0].AsPoint()
-		start := e.elements[1].AsPoint()
-		end := e.elements[2].AsPoint()
+		center := e.children[0].element.AsPoint()
+		start := e.children[1].element.AsPoint()
+		end := e.children[2].element.AsPoint()
 		e.values[0] = center.GetX()
 		e.values[1] = center.GetY()
 		e.values[2] = start.GetX()
@@ -90,11 +93,11 @@ func (e *Element) getCircleRadius(c *Constraint) (float64, error) {
 	if c.constraintType == Coincident {
 		constraint := c.constraints[0]
 		other := constraint.Element1
-		if other == e.elements[0] {
+		if other == e.children[0].element {
 			other = constraint.Element2
 		}
 
-		return other.DistanceTo(e.elements[0].AsPoint()), nil
+		return other.DistanceTo(e.children[0].element.AsPoint()), nil
 	}
 
 	return 0, errors.New("Constraint type for circle radius myst be Distance or Coincident")

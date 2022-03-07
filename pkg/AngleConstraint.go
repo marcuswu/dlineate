@@ -11,7 +11,7 @@ func AngleConstraint(p1 *Element, p2 *Element) *Constraint {
 	constraint.elements = append(constraint.elements, p1)
 	constraint.elements = append(constraint.elements, p2)
 	constraint.constraintType = Angle
-	constraint.resolved = true
+	constraint.state = Resolved
 
 	return constraint
 }
@@ -23,7 +23,9 @@ func (s *Sketch) AddAngleConstraint(p1 *Element, p2 *Element, v float64) (*Const
 		return nil, errors.New("incorrect element types for angle constraint")
 	}
 
-	constraint := s.sketch.AddConstraint(ic.Angle, p1.elements[0], p2.elements[0], v)
+	constraint := s.sketch.AddConstraint(ic.Angle, p1.element, p2.element, v)
+	p1.constraints = append(p1.constraints, constraint)
+	p2.constraints = append(p2.constraints, constraint)
 	c.constraints = append(c.constraints, constraint)
 	s.constraints = append(s.constraints, c)
 
