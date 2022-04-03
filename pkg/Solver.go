@@ -144,8 +144,8 @@ func (s *Sketch) resolveConstraint(c *Constraint) bool {
 	case Parallel:
 		c.state = Resolved
 		return true
-	case Equal:
-		return s.resolveEqualConstraint(c)
+	case Ratio:
+		return s.resolveRatioConstraint(c)
 	}
 
 	return c.state == Resolved
@@ -192,6 +192,65 @@ func (s *Sketch) getDistanceConstraint(e *Element) (*Constraint, bool) {
 	}
 
 	return nil, false
+}
+
+func (s *Sketch) resolveLineLength(e *Element) (float64, bool) {
+	if e.elementType != Line {
+		return 0, false
+	}
+
+	dc, ok := s.getDistanceConstraint(e)
+	if ok {
+		v := dc.constraints[0].Value
+		return v, ok
+	}
+
+	startConstrained := s.isElementSolved(e.children[0])
+	endConstrained := s.isElementSolved(e.children[1])
+	if startConstrained && endConstrained {
+		// resolve constraint setting p2's distance to the distance from p1 start to p1 end
+		v := e.children[0].element.AsPoint().DistanceTo(e.children[1].element.AsPoint())
+
+		return v, true
+	}
+
+	return 0, false
+}
+
+func (s *Sketch) resolveCurveRadius(e *Element) (float64, bool) {
+	if e.elementType != Arc && e.elementType != Circle {
+		return 0, false
+	}
+
+	dc, ok := s.getDistanceConstraint(e)
+	if ok {
+		v := dc.constraints[0].Value
+		return v, ok
+	}
+
+	// Circles and Arcs with solved center and solved elements coincident or distance to the circle / arc
+	if centerSolved := s.isElementSolved(e.children[0]); centerSolved {
+		eAll := s.findConstraints(e)
+		var other *Element = nil
+		for _, ec := range eAll {
+			if ec.constraintType != Distance && ec.constraintType != Coincident {
+				continue
+			}
+			other = ec.elements[0]
+			if other == e {
+				other = ec.elements[1]
+			}
+			if !s.isElementSolved(other) {
+				continue
+			}
+			// Other & e have a distance constraint between them. dist(other, e.center) - c.value is radius
+			distFromCurve := other.element.AsPoint().DistanceTo(e.children[0].element.AsPoint())
+			radius := distFromCurve - ec.constraints[0].Value
+			return radius, true
+		}
+	}
+
+	return 0, false
 }
 
 func (s *Sketch) Solve() error {

@@ -17,7 +17,8 @@ const (
 	Tangent
 
 	// Two pass constraints
-	Equal
+	Ratio
+	Midpoint
 )
 
 type ConstraintState uint
@@ -33,6 +34,7 @@ type Constraint struct {
 	elements       []*Element
 	constraintType ConstraintType
 	state          ConstraintState
+	dataValue      float64
 }
 
 func emptyConstraint() *Constraint {
@@ -57,7 +59,7 @@ Two Pass Constraints
 -------------
 Equal constraint -- 2nd pass constraint
 Distance ratio constraint -- 2nd pass constraint
-Midpoint -- 2nd pass constraint (equal distances to either end of the line)
+Midpoint -- 2nd pass constraint (equal distances to either end of the line or arc)
 Tangent -- line and curve
 Symmetric -- TODO
 
