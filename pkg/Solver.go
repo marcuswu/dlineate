@@ -146,6 +146,10 @@ func (s *Sketch) resolveConstraint(c *Constraint) bool {
 		return true
 	case Ratio:
 		return s.resolveRatioConstraint(c)
+	case Midpoint:
+		return s.resolveMidpointConstraint(c)
+	case Tangent:
+		return s.resolveTangentConstraint(c)
 	}
 
 	return c.state == Resolved
