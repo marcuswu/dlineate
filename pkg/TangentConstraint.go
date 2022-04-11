@@ -24,11 +24,7 @@ func (s *Sketch) AddTangentConstraint(p1 *Element, p2 *Element, p3 *Element) (*C
 
 	c := TangentConstraint(line, point, curve)
 
-	// TODO: Look for curve radius. Can be defined as a Distance constraint or derived from a 2nd pass
-
-	/*constraint := s.sketch.AddConstraint(ic.Distance, p1.elements[0], p2.elements[0], v)
-	c.constraints = append(c.constraints, constraint)
-	s.constraints = append(s.constraints, c)*/
+	s.resolveTangentConstraint(c)
 
 	return c, nil
 }
@@ -68,4 +64,22 @@ func orderParams(p1 *Element, p2 *Element, p3 *Element) (*Element, *Element, *El
 	}
 
 	return line, point, curve, nil
+}
+
+func (s *Sketch) resolveTangentConstraint(c *Constraint) bool {
+	radius, ok := s.resolveCurveRadius(c.elements[2])
+	if ok {
+		constraint := s.AddDistanceConstraint(c.elements[0], c.elements[2], radius)
+		c.constraints = append(c.constraints, constraint)
+		s.constraints = append(s.constraints, c)
+		constraint = s.AddDistanceConstraint(c.elements[1], c.elements[2], radius)
+		c.constraints = append(c.constraints, constraint)
+		s.constraints = append(s.constraints, c)
+		constraint = s.AddDistanceConstraint(c.elements[1], c.elements[0], 0)
+		c.constraints = append(c.constraints, constraint)
+		s.constraints = append(s.constraints, c)
+		c.state = Resolved
+	}
+
+	return c.state == Resolved
 }

@@ -1,5 +1,11 @@
 package dlineate
 
+import (
+	"math"
+
+	el "github.com/marcuswu/dlineate/internal/element"
+)
+
 func (e *Element) isLineOrArc() bool {
 	return e.elementType == Line || e.elementType == Arc
 }
@@ -58,10 +64,45 @@ func (s *Sketch) resolveMidpointConstraint(c *Constraint) bool {
 		return c.state == Resolved
 	}
 
-	// Ensure start and end of arc is fully constrained and solved
+	// Ensure start, end, and center of arc is fully constrained and solved
 	// calculate angle between lines formed from center to start and center to end
 	// calculate line through center with half that angle
 	// place midpoint at radius distance from center along calculated line
+	centerSolved := s.isElementSolved(other.children[0])
+	startSolved := s.isElementSolved(other.children[1])
+	endSolved := s.isElementSolved(other.children[2])
+	if centerSolved && startSolved && endSolved {
+		centerX := other.children[0].values[0]
+		centerY := other.children[0].values[1]
+		startX := other.children[1].values[0]
+		startY := other.children[1].values[1]
+		endX := other.children[2].values[0]
+		endY := other.children[2].values[1]
+		// Calculate vector from center to start
+		start := el.Vector{startX - centerX, startY - centerY}
+		// Calculate vector from center to end
+		end := el.Vector{endX - centerX, endY - centerY}
+
+		// Calculate center vector
+		halfAngle := start.AngleTo(&end) / 2.0
+		start.Rotate(halfAngle)
+		midPoint := start.Translated(centerX, centerY)
+
+		// Calculate distance from point to start / end
+		a := midPoint.X - startX
+		b := midPoint.Y - startY
+		midDist := math.Sqrt((a * a) + (b * b))
+		// Set coincident and distance constraints
+		constraint := s.addDistanceConstraint(other.children[1], point, midDist)
+		c.constraints = append(c.constraints, constraint)
+		s.constraints = append(s.constraints, c)
+		constraint = s.addDistanceConstraint(point, other, 0)
+		c.constraints = append(c.constraints, constraint)
+		s.constraints = append(s.constraints, c)
+		c.state = Resolved
+
+		return c.state == Resolved
+	}
 
 	return c.state == Resolved
 }
