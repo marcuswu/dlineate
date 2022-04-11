@@ -69,13 +69,13 @@ func orderParams(p1 *Element, p2 *Element, p3 *Element) (*Element, *Element, *El
 func (s *Sketch) resolveTangentConstraint(c *Constraint) bool {
 	radius, ok := s.resolveCurveRadius(c.elements[2])
 	if ok {
-		constraint := s.AddDistanceConstraint(c.elements[0], c.elements[2], radius)
+		constraint := s.addDistanceConstraint(c.elements[0], c.elements[2], radius)
 		c.constraints = append(c.constraints, constraint)
 		s.constraints = append(s.constraints, c)
-		constraint = s.AddDistanceConstraint(c.elements[1], c.elements[2], radius)
+		constraint = s.addDistanceConstraint(c.elements[1], c.elements[2], radius)
 		c.constraints = append(c.constraints, constraint)
 		s.constraints = append(s.constraints, c)
-		constraint = s.AddDistanceConstraint(c.elements[1], c.elements[0], 0)
+		constraint = s.addDistanceConstraint(c.elements[1], c.elements[0], 0)
 		c.constraints = append(c.constraints, constraint)
 		s.constraints = append(s.constraints, c)
 		c.state = Resolved
