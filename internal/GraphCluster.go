@@ -604,18 +604,21 @@ func (g *GraphCluster) solveMerge(c1 *GraphCluster, c2 *GraphCluster) solver.Sol
 // Solve solves the cluster and any child clusters associated with it
 func (g *GraphCluster) Solve() solver.SolveState {
 	state := g.localSolve()
+	/* attempt as much of a solve as possible even if non-convergent
 	if state != solver.Solved {
 		return state
-	}
+	}*/
 	if len(g.others) == 0 {
 		return state
 	}
 
 	// If there are sub clusters, solve them
 	for _, cluster := range g.others {
-		state := cluster.Solve()
-		if state != solver.Solved {
-			return state
+		otherState := cluster.Solve()
+		if state == solver.Solved && otherState != solver.Solved {
+			state = otherState
+			// attempt as much of a solve as possible even if non-convergent
+			// return state
 		}
 	}
 
@@ -629,9 +632,11 @@ func (g *GraphCluster) Solve() solver.SolveState {
 		g.others[len(g.others)-1] = nil
 		g.others = g.others[:len(g.others)-2]
 
-		state = g.solveMerge(first, second)
-		if state != solver.Solved {
-			break
+		mergeState := g.solveMerge(first, second)
+		if state == solver.Solved && mergeState != solver.Solved {
+			state = mergeState
+			// attempt as much of a solve as possible even if non-convergent
+			//break
 		}
 	}
 

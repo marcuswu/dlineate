@@ -9,11 +9,12 @@ import (
 // SketchLine represents a line in a 2D sketch in the form
 // Ax + By + C = 0. A and B are represented as x and y in the BaseElement
 type SketchLine struct {
-	elementType Type
-	id          uint
-	a           float64
-	b           float64
-	c           float64
+	elementType     Type
+	id              uint
+	a               float64
+	b               float64
+	c               float64
+	constraintLevel ConstraintLevel
 }
 
 // NewSketchLine creates a new SketchLine
@@ -26,11 +27,12 @@ func NewSketchLine(id uint, a float64, b float64, c float64) *SketchLine {
 	B := b / magnitude
 	C := c / magnitude
 	return &SketchLine{
-		elementType: Line,
-		id:          id,
-		a:           A,
-		b:           B,
-		c:           C,
+		elementType:     Line,
+		id:              id,
+		a:               A,
+		b:               B,
+		c:               C,
+		constraintLevel: FullyConstrained,
 	}
 }
 
@@ -117,7 +119,7 @@ func (l *SketchLine) TranslateDistance(dist float64) {
 
 // TranslatedDistance returns the line translated by a distance along its normal
 func (l *SketchLine) TranslatedDistance(dist float64) *SketchLine {
-	return &SketchLine{Line, l.GetID(), l.GetA(), l.GetB(), l.GetC() - dist}
+	return &SketchLine{Line, l.GetID(), l.GetA(), l.GetB(), l.GetC() - dist, l.constraintLevel}
 }
 
 // Translated returns a line translated by an x and y value
@@ -125,7 +127,7 @@ func (l *SketchLine) Translated(tx float64, ty float64) *SketchLine {
 	pointOnLine := Vector{l.GetA() * -l.GetC(), l.GetB() * -l.GetC()}
 	pointOnLine.Translate(tx, ty)
 	newC := (-l.GetA() * pointOnLine.GetX()) - (l.GetB() * pointOnLine.GetY())
-	return &SketchLine{Line, l.GetID(), l.GetA(), l.GetB(), newC}
+	return &SketchLine{Line, l.GetID(), l.GetA(), l.GetB(), newC, l.constraintLevel}
 }
 
 // Translate translates the location of this line by an x and y distance
@@ -226,4 +228,12 @@ func (l *SketchLine) AsPoint() *SketchPoint {
 // AsLine returns a SketchElement as a *SketchLine or nil
 func (l *SketchLine) AsLine() *SketchLine {
 	return l
+}
+
+func (l *SketchLine) ConstraintLevel() ConstraintLevel {
+	return l.constraintLevel
+}
+
+func (l *SketchLine) SetConstraintLevel(cl ConstraintLevel) {
+	l.constraintLevel = cl
 }

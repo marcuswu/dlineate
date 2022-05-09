@@ -25,6 +25,7 @@ type Element struct {
 	element     el.SketchElement
 	children    []*Element
 	isChild     bool
+	valuePass   int
 }
 
 func emptyElement() *Element {
@@ -33,6 +34,7 @@ func emptyElement() *Element {
 	ec.constraints = make([]*c.Constraint, 0, 1)
 	ec.children = make([]*Element, 0, 1)
 	ec.isChild = false
+	ec.valuePass = 0
 	return &Element{}
 }
 
@@ -79,6 +81,7 @@ func (e *Element) valuesFromSketch(s *Sketch) error {
 		e.values[4] = end.GetX()
 		e.values[5] = end.GetY()
 	}
+	e.valuePass = s.passes
 
 	return nil
 }
@@ -104,6 +107,20 @@ func (e *Element) getCircleRadius(c *Constraint) (float64, error) {
 }
 
 func (e *Element) Values(s *Sketch) []float64 {
-	e.valuesFromSketch(s)
+	if e.valuePass != s.passes {
+		e.valuesFromSketch(s)
+	}
 	return e.values
+}
+
+func (e *Element) ConstraintLevel() el.ConstraintLevel {
+	level := e.element.ConstraintLevel()
+	var childLevel el.ConstraintLevel
+	for _, c := range e.children {
+		childLevel = c.element.ConstraintLevel()
+		if childLevel < level {
+			level = childLevel
+		}
+	}
+	return level
 }

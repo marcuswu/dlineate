@@ -23,6 +23,9 @@ func (s *Sketch) AddTangentConstraint(p1 *Element, p2 *Element, p3 *Element) (*C
 	}
 
 	c := TangentConstraint(line, point, curve)
+	s.eToC[p1.element.GetID()] = append(s.eToC[p1.element.GetID()], c)
+	s.eToC[p2.element.GetID()] = append(s.eToC[p2.element.GetID()], c)
+	s.eToC[p3.element.GetID()] = append(s.eToC[p3.element.GetID()], c)
 
 	s.resolveTangentConstraint(c)
 

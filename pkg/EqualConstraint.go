@@ -7,6 +7,8 @@ func (s *Sketch) AddEqualConstraint(p1 *Element, p2 *Element) *Constraint {
 		return nil
 	}
 	c.dataValue = 1
+	s.eToC[p1.element.GetID()] = append(s.eToC[p1.element.GetID()], c)
+	s.eToC[p2.element.GetID()] = append(s.eToC[p2.element.GetID()], c)
 
 	s.resolveRatioConstraint(c)
 

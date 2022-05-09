@@ -58,5 +58,7 @@ func (s *Sketch) AddDistanceConstraint(p1 *Element, p2 *Element, v float64) *Con
 		s.constraints = append(s.constraints, c)
 	}
 
+	s.eToC[p1.element.GetID()] = append(s.eToC[p1.element.GetID()], c)
+	s.eToC[p2.element.GetID()] = append(s.eToC[p2.element.GetID()], c)
 	return c
 }

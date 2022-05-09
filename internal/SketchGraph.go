@@ -16,6 +16,7 @@ type SketchGraph struct {
 
 	state            solver.SolveState
 	degreesOfFreedom uint
+	constraintMap    []int
 }
 
 // NewSketch creates a new sketch for solving
@@ -140,7 +141,7 @@ func (g *SketchGraph) mergeCluster(index int) bool {
 	// indicates that, "If other clusters have two elements in common with the new cluster,
 	// they can be merged into it as well."
 	cluster := g.clusters[index]
-	connected := make([]uint, 2, 2)
+	connected := make([]uint, 2)
 	found := 0
 
 	for i := range g.clusters {
@@ -189,16 +190,49 @@ func (g *SketchGraph) mergeClusters() {
 	}
 }
 
+func (g *SketchGraph) buildConstraintMap() {
+	g.constraintMap = make([]int, len(g.elements))
+	// Create an []int slice where indices represent element ids and values represent number of constraints
+	for _, c := range g.constraints {
+		g.constraintMap[c.Element1.GetID()]++
+		g.constraintMap[c.Element2.GetID()]++
+	}
+}
+
+func (g *SketchGraph) ConstraintLevel(e el.SketchElement) el.ConstraintLevel {
+	numConstraints := g.constraintMap[e.GetID()]
+	switch {
+	case numConstraints < 2:
+		return el.UnderConstrained
+	case numConstraints > 2:
+		return el.OverConstrained
+	default:
+		return el.FullyConstrained
+	}
+}
+
+func (g *SketchGraph) UpdateConstraintLevels() {
+	for _, e := range g.elements {
+		e.SetConstraintLevel(g.ConstraintLevel(e))
+	}
+}
+
 // Solve builds the graph and solves the sketch
 func (g *SketchGraph) Solve() solver.SolveState {
+	g.buildConstraintMap()
 	g.createClusters()
 	g.mergeClusters()
 	if len(g.clusters) > 1 {
 		g.state = solver.UnderConstrained
-		return g.state
+		// attempt to solve as much as possible
+		//return g.state
 	}
 
-	g.clusters[0].Solve()
+	clusterState := g.clusters[0].Solve()
+	if g.state == solver.Solved && clusterState != solver.Solved {
+		g.state = clusterState
+	}
+	g.UpdateConstraintLevels()
 	return g.state
 }
 

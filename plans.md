@@ -22,10 +22,10 @@
       - [x] AddLine(PointRef, PointRef)
       - [x] AddCircle(PointRef, Radius)
       - [x] AddArc(PointRef, PointRef, PointRef)
-      - [-] AddElement(Element)
-      - [-] AddConstraint(Constraint)
-      - [-] Elements()
-      - [ ] Solve()
+      - [x] AddElement(Element)
+      - [x] AddConstraint(Constraint)
+      - [x] Elements() // made solver.Elements public
+      - [x] Solve()
     - [x] Constraint.go -- Base Constraint interface
       - [x] Also defines base constraint functionality
       - [x] Constraints will own internal constraints and internal elements
@@ -34,12 +34,12 @@
     - [x] Angle -- two lines
     - [x] Perpendicular -- two lines
     - [x] Parallel -- two lines
-    - [ ] Tangent -- 2nd pass constraint line and curve -- line distance to curve center must equal curve radius
-    - [ ] Equal constraint -- 2nd pass constraint
-    - [ ] Distance ratio constraint -- 2nd pass constraint
+    - [x] Tangent -- 2nd pass constraint line and curve -- line distance to curve center must equal curve radius
+    - [x] Equal constraint -- 2nd pass constraint
+    - [x] Distance ratio constraint -- 2nd pass constraint
     - [ ] Equal angle -- 2nd pass constraint
     - [ ] Symmetric -- Future -- not MVP
-    - [ ] Midpoint -- 2nd pass constraint (equal distances to either end of the line)
+    - [x] Midpoint -- 2nd pass constraint (equal distances to either end of the line)
     - [x] Element.go -- Base Element interface
       - [x] Also defines base element functionality
       - [x] Elements will own internal constraints and internal elements

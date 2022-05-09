@@ -28,6 +28,8 @@ func (s *Sketch) AddAngleConstraint(p1 *Element, p2 *Element, v float64) (*Const
 	p2.constraints = append(p2.constraints, constraint)
 	c.constraints = append(c.constraints, constraint)
 	s.constraints = append(s.constraints, c)
+	s.eToC[p1.element.GetID()] = append(s.eToC[p1.element.GetID()], c)
+	s.eToC[p2.element.GetID()] = append(s.eToC[p2.element.GetID()], c)
 
 	return c, nil
 }

@@ -5,8 +5,9 @@ import "math"
 // SketchPoint represents a point in a 2D Sketch
 type SketchPoint struct {
 	Vector
-	elementType Type
-	id          uint
+	elementType     Type
+	id              uint
+	constraintLevel ConstraintLevel
 }
 
 // SetID sets the id of the element
@@ -113,9 +114,10 @@ func (p *SketchPoint) DistanceTo(o SketchElement) float64 {
 // NewSketchPoint creates a new SketchPoint
 func NewSketchPoint(id uint, x float64, y float64) *SketchPoint {
 	return &SketchPoint{
-		Vector:      Vector{x, y},
-		elementType: Point,
-		id:          id,
+		Vector:          Vector{x, y},
+		elementType:     Point,
+		id:              id,
+		constraintLevel: FullyConstrained,
 	}
 }
 
@@ -139,4 +141,12 @@ func (p *SketchPoint) AsPoint() *SketchPoint {
 // AsLine returns a SketchElement as a *SketchLine or nil
 func (p *SketchPoint) AsLine() *SketchLine {
 	return nil
+}
+
+func (p *SketchPoint) ConstraintLevel() ConstraintLevel {
+	return p.constraintLevel
+}
+
+func (p *SketchPoint) SetConstraintLevel(cl ConstraintLevel) {
+	p.constraintLevel = cl
 }

@@ -9,6 +9,14 @@ const (
 	Line
 )
 
+type ConstraintLevel uint
+
+const (
+	OverConstrained ConstraintLevel = iota
+	UnderConstrained
+	FullyConstrained
+)
+
 // SketchElement A 2D element within a Sketch
 type SketchElement interface {
 	SetID(uint)
@@ -25,6 +33,8 @@ type SketchElement interface {
 	VectorTo(SketchElement) *Vector
 	AsPoint() *SketchPoint
 	AsLine() *SketchLine
+	ConstraintLevel() ConstraintLevel
+	SetConstraintLevel(ConstraintLevel)
 }
 
 // List is a list of SketchElements

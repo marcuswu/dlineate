@@ -20,6 +20,8 @@ func (s *Sketch) AddRatioConstraint(p1 *Element, p2 *Element, v float64) *Constr
 	if p1.elementType == Point || p2.elementType == Point {
 		return nil
 	}
+	s.eToC[p1.element.GetID()] = append(s.eToC[p1.element.GetID()], c)
+	s.eToC[p2.element.GetID()] = append(s.eToC[p2.element.GetID()], c)
 
 	s.resolveRatioConstraint(c)
 

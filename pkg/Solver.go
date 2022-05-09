@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	core "github.com/marcuswu/dlineate/internal"
+	"github.com/marcuswu/dlineate/internal/solver"
 )
 
 type Sketch struct {
@@ -11,6 +12,7 @@ type Sketch struct {
 	sketch      *core.SketchGraph
 	Elements    []*Element
 	constraints []*Constraint
+	eToC        map[uint][]*Constraint
 	passes      int
 }
 
@@ -18,6 +20,7 @@ func NewSketch() *Sketch {
 	s := new(Sketch)
 	s.sketch = core.NewSketch()
 	s.passes = 0
+	s.eToC = make(map[uint][]*Constraint)
 
 	return s
 }
@@ -27,27 +30,15 @@ func (s *Sketch) SetWorkplane(plane *Workplane) {
 }
 
 func (s *Sketch) findConstraints(e *Element) []*Constraint {
-	found := make([]*Constraint, 0, 2)
-	for _, c := range s.constraints {
-		for _, el := range c.elements {
-			if el == e {
-				found = append(found, c)
-			}
-		}
-	}
-	return found
+	return s.eToC[e.element.GetID()]
 }
 
 func (s *Sketch) findConstraint(ctype ConstraintType, e *Element) (*Constraint, error) {
-	for _, c := range s.constraints {
+	for _, c := range s.eToC[e.element.GetID()] {
 		if c.constraintType != ctype {
 			continue
 		}
-		for _, el := range c.elements {
-			if el == e {
-				return c, nil
-			}
-		}
+		return c, nil
 	}
 
 	return nil, errors.New("no such constraint")
@@ -60,6 +51,7 @@ func (s *Sketch) AddPoint(x float64, y float64) *Element {
 	p.values = append(p.values, y)
 	p.element = s.sketch.AddPoint(p.values[0], p.values[1])
 	s.Elements = append(s.Elements, p)
+	s.eToC[p.element.GetID()] = make([]*Constraint, 2)
 	return p
 }
 
@@ -83,9 +75,12 @@ func (s *Sketch) AddLine(x1 float64, y1 float64, x2 float64, y2 float64) *Elemen
 	end := s.AddPoint(l.values[2], l.values[3])
 	end.isChild = true
 	l.children = append(l.children, start)
+	s.eToC[start.element.GetID()] = make([]*Constraint, 2)
 	l.children = append(l.children, end)
+	s.eToC[end.element.GetID()] = make([]*Constraint, 2)
 	s.addDistanceConstraint(l, start, 0.0)
 	s.addDistanceConstraint(l, end, 0.0)
+	s.eToC[l.element.GetID()] = make([]*Constraint, 2)
 	return l
 }
 
@@ -101,6 +96,8 @@ func (s *Sketch) NewCircle(x float64, y float64, r float64) *Element {
 	center := s.AddPoint(c.values[0], c.values[1])
 	center.isChild = true
 	c.children = append(c.children, center)
+	s.eToC[center.element.GetID()] = make([]*Constraint, 2)
+	s.eToC[c.element.GetID()] = make([]*Constraint, 2)
 	return c
 }
 
@@ -119,19 +116,27 @@ func (s *Sketch) NewArc(x1 float64, y1 float64, x2 float64, y2 float64, x3 float
 	center := s.AddPoint(a.values[0], a.values[1])
 	center.isChild = true
 	a.children = append(a.children, center)
+	s.eToC[center.element.GetID()] = make([]*Constraint, 2)
 
 	start := s.AddPoint(a.values[2], a.values[3])
 	start.isChild = true
+	s.eToC[start.element.GetID()] = make([]*Constraint, 2)
 	end := s.AddPoint(a.values[4], a.values[5])
 	end.isChild = true
+	s.eToC[end.element.GetID()] = make([]*Constraint, 2)
 	a.children = append(a.children, start)
 	a.children = append(a.children, end)
 	s.addDistanceConstraint(a, start, 0.0)
 	s.addDistanceConstraint(a, end, 0.0)
+	s.eToC[a.element.GetID()] = make([]*Constraint, 2)
 	return a
 }
 
 func (s *Sketch) resolveConstraint(c *Constraint) bool {
+	if c.state == Resolved {
+		return true
+	}
+
 	switch c.constraintType {
 	case Coincident:
 		fallthrough
@@ -153,6 +158,18 @@ func (s *Sketch) resolveConstraint(c *Constraint) bool {
 	}
 
 	return c.state == Resolved
+}
+
+func (s *Sketch) resolveConstraints() int {
+	unresolved := 0
+
+	for _, c := range s.constraints {
+		if !s.resolveConstraint(c) {
+			unresolved++
+		}
+	}
+
+	return unresolved
 }
 
 func (s *Sketch) isElementSolved(e *Element) bool {
@@ -258,6 +275,29 @@ func (s *Sketch) resolveCurveRadius(e *Element) (float64, bool) {
 }
 
 func (s *Sketch) Solve() error {
+	solveState := solver.None
+	passes := 0
 
-	return nil
+	// This isn't correct -- should run until everything is solved
+	for numUnresolved := s.resolveConstraints(); numUnresolved > 0 && passes < 2; numUnresolved = s.resolveConstraints() {
+		solveState = s.sketch.Solve()
+		passes++
+	}
+	s.passes += passes
+
+	switch solveState {
+	case solver.None:
+		return errors.New("unknown solver error")
+	case solver.UnderConstrained:
+		// TODO: return information about which elements are underconstrained
+		return errors.New("the sketch is under constrained")
+	case solver.OverConstrained:
+		// TODO: return information about which constraints are overconstrained
+		return errors.New("the sketch is over constrained")
+	case solver.NonConvergent:
+		// TODO: return information about which constraints did not converge on a solved state
+		return errors.New("the solver did not converge on a solution")
+	default:
+		return nil
+	}
 }
