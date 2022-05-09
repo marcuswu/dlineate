@@ -13,6 +13,7 @@ type ElementType uint
 // ElementType constants
 const (
 	Point ElementType = iota
+	Axis
 	Line
 	Circle
 	Arc
@@ -44,6 +45,11 @@ func (e *Element) valuesFromSketch(s *Sketch) error {
 		p := e.element.AsPoint()
 		e.values[0] = p.GetX()
 		e.values[1] = p.GetY()
+	case Axis:
+		p := e.element.AsLine()
+		p.values[0] = p.GetA()
+		p.values[1] = p.GetB()
+		p.values[2] = p.GetC()
 	case Line:
 		p1 := e.children[0].element.AsPoint()
 		p2 := e.children[1].element.AsPoint()

@@ -1,6 +1,8 @@
 package core
 
 import (
+	"errors"
+
 	"github.com/marcuswu/dlineate/internal/constraint"
 	el "github.com/marcuswu/dlineate/internal/element"
 	"github.com/marcuswu/dlineate/internal/solver"
@@ -215,6 +217,26 @@ func (g *SketchGraph) UpdateConstraintLevels() {
 	for _, e := range g.elements {
 		e.SetConstraintLevel(g.ConstraintLevel(e))
 	}
+}
+
+func (g *SketchGraph) Translate(x float64, y float64) error {
+	if len(g.clusters) > 1 {
+		return errors.New("Solve the sketch before translating it")
+	}
+
+	g.clusters[0].Translate(x, y)
+
+	return nil
+}
+
+func (g *SketchGraph) Rotate(origin *el.SketchPoint, angle float64) error {
+	if len(g.clusters) > 1 {
+		return errors.New("Solve the sketch before translating it")
+	}
+
+	g.clusters[0].Rotate(angle)
+
+	return nil
 }
 
 // Solve builds the graph and solves the sketch

@@ -14,6 +14,9 @@ type Sketch struct {
 	constraints []*Constraint
 	eToC        map[uint][]*Constraint
 	passes      int
+	Origin		*Element
+	XAxis		*Element
+	YAxis		*Element
 }
 
 func NewSketch() *Sketch {
@@ -21,6 +24,12 @@ func NewSketch() *Sketch {
 	s.sketch = core.NewSketch()
 	s.passes = 0
 	s.eToC = make(map[uint][]*Constraint)
+	s.Origin = s.addOrigin()
+	s.XAxis = s.addAxis(0, -1, 0)
+	s.YAxis = s.addAxis(1, 0, 0)
+	s.AddAngleConstraint(s.XAxis, s.YAxis, 90)
+	s.AddCoincidentConstraint(s.Origin, s.XAxis)
+	s.AddCoincidentConstraint(s.Origin, s.YAxis)
 
 	return s
 }
@@ -53,6 +62,27 @@ func (s *Sketch) AddPoint(x float64, y float64) *Element {
 	s.Elements = append(s.Elements, p)
 	s.eToC[p.element.GetID()] = make([]*Constraint, 2)
 	return p
+}
+
+func (s *Sketch) addOrigin() *Element {
+	o := emptyElement()
+	o.elementType = Point
+	o.values = append(o.values, 0)
+	o.values = append(o.values, 0)
+
+	o.element = s.sketch.AddPoint(0, 0) // AddLine normalizes a, b, c
+	return o
+}
+
+func (s *Sketch) addAxis(a float64, b float64, c float64) *Element {
+	a := emptyElement()
+	a.elementType = Axis
+	a.values = append(a.values, a)
+	a.values = append(a.values, b)
+	a.values = append(a.values, c)
+
+	a.element = s.sketch.AddLine(a, b, c) // AddLine normalizes a, b, c
+	return a
 }
 
 func (s *Sketch) AddLine(x1 float64, y1 float64, x2 float64, y2 float64) *Element {
@@ -284,6 +314,25 @@ func (s *Sketch) Solve() error {
 		passes++
 	}
 	s.passes += passes
+
+	// Handle if origin is translated
+	s.Origin.valuesFromSketch()
+	if s.Origin.GetX() != 0 || s.Origin.GetY() != 0 {
+		s.sketch.Translate(-s.Origin.GetX(), -s.Origin.GetY())
+	}
+
+	// Andle if x/y axes are rotated
+	s.Axis.valuesFromSketch()
+	yaxis := el.NewSketchLine(0, 1, 0, 0)
+	angle := s.YAxis.AngleTo(yaxis)
+	if angle != 0 {
+		s.sketch.Rotate(s.Origin.element.AsPoint(), angle)
+	}
+
+	// Load solved values back into our elements
+	for _, e := range s.Elements {
+		e.valuesFromSketch()
+	}
 
 	switch solveState {
 	case solver.None:

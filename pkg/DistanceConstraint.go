@@ -27,6 +27,8 @@ func (s *Sketch) addDistanceConstraint(p1 *Element, p2 *Element, v float64) *ic.
 			return s.sketch.AddConstraint(ic.Distance, p1.children[0].element, nil, v)
 		}
 		return s.sketch.AddConstraint(ic.Distance, p1.element, p2.element, v)
+	case Axis:
+		fallthrough
 	case Line:
 		isCircle := p2.elementType == Circle
 		isArc := p2.elementType == Arc
