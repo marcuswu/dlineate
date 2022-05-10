@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	core "github.com/marcuswu/dlineate/internal"
+	el "github.com/marcuswu/dlineate/internal/element"
 	"github.com/marcuswu/dlineate/internal/solver"
 )
 
@@ -14,9 +15,9 @@ type Sketch struct {
 	constraints []*Constraint
 	eToC        map[uint][]*Constraint
 	passes      int
-	Origin		*Element
-	XAxis		*Element
-	YAxis		*Element
+	Origin      *Element
+	XAxis       *Element
+	YAxis       *Element
 }
 
 func NewSketch() *Sketch {
@@ -75,14 +76,14 @@ func (s *Sketch) addOrigin() *Element {
 }
 
 func (s *Sketch) addAxis(a float64, b float64, c float64) *Element {
-	a := emptyElement()
-	a.elementType = Axis
-	a.values = append(a.values, a)
-	a.values = append(a.values, b)
-	a.values = append(a.values, c)
+	ax := emptyElement()
+	ax.elementType = Axis
+	ax.values = append(ax.values, a)
+	ax.values = append(ax.values, b)
+	ax.values = append(ax.values, c)
 
-	a.element = s.sketch.AddLine(a, b, c) // AddLine normalizes a, b, c
-	return a
+	ax.element = s.sketch.AddLine(a, b, c) // AddLine normalizes a, b, c
+	return ax
 }
 
 func (s *Sketch) AddLine(x1 float64, y1 float64, x2 float64, y2 float64) *Element {
@@ -316,22 +317,23 @@ func (s *Sketch) Solve() error {
 	s.passes += passes
 
 	// Handle if origin is translated
-	s.Origin.valuesFromSketch()
-	if s.Origin.GetX() != 0 || s.Origin.GetY() != 0 {
-		s.sketch.Translate(-s.Origin.GetX(), -s.Origin.GetY())
+	s.Origin.valuesFromSketch(s)
+	if s.Origin.element.AsPoint().X != 0 || s.Origin.element.AsPoint().Y != 0 {
+		s.sketch.Translate(-s.Origin.element.AsPoint().X, -s.Origin.element.AsPoint().Y)
 	}
 
 	// Andle if x/y axes are rotated
-	s.Axis.valuesFromSketch()
+	s.XAxis.valuesFromSketch(s)
+	s.YAxis.valuesFromSketch(s)
 	yaxis := el.NewSketchLine(0, 1, 0, 0)
-	angle := s.YAxis.AngleTo(yaxis)
+	angle := s.YAxis.element.AsLine().AngleToLine(yaxis)
 	if angle != 0 {
 		s.sketch.Rotate(s.Origin.element.AsPoint(), angle)
 	}
 
 	// Load solved values back into our elements
 	for _, e := range s.Elements {
-		e.valuesFromSketch()
+		e.valuesFromSketch(s)
 	}
 
 	switch solveState {

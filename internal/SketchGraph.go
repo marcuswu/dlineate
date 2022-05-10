@@ -234,7 +234,7 @@ func (g *SketchGraph) Rotate(origin *el.SketchPoint, angle float64) error {
 		return errors.New("Solve the sketch before translating it")
 	}
 
-	g.clusters[0].Rotate(angle)
+	g.clusters[0].Rotate(origin, angle)
 
 	return nil
 }
@@ -250,9 +250,11 @@ func (g *SketchGraph) Solve() solver.SolveState {
 		//return g.state
 	}
 
-	clusterState := g.clusters[0].Solve()
-	if g.state == solver.Solved && clusterState != solver.Solved {
-		g.state = clusterState
+	for _, c := range g.clusters {
+		clusterState := c.Solve()
+		if g.state == solver.Solved && clusterState != solver.Solved && len(g.clusters) == 1 {
+			g.state = clusterState
+		}
 	}
 	g.UpdateConstraintLevels()
 	return g.state
