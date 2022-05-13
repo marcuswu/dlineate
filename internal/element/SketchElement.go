@@ -1,5 +1,7 @@
 package element
 
+import "fmt"
+
 // Type of a SketchElement (Point or Line)
 type Type uint
 
@@ -16,6 +18,19 @@ const (
 	UnderConstrained
 	FullyConstrained
 )
+
+func (cl ConstraintLevel) String() string {
+	switch cl {
+	case OverConstrained:
+		return "over constrained"
+	case UnderConstrained:
+		return "under constrained"
+	case FullyConstrained:
+		return "fully constrained"
+	default:
+		return fmt.Sprintf("%d", int(cl))
+	}
+}
 
 // SketchElement A 2D element within a Sketch
 type SketchElement interface {

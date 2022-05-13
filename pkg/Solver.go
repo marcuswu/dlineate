@@ -1,11 +1,16 @@
-package dlineate
+package dlineation
 
 import (
 	"errors"
+	"fmt"
+	"math"
+	"os"
 
-	core "github.com/marcuswu/dlineate/internal"
-	el "github.com/marcuswu/dlineate/internal/element"
-	"github.com/marcuswu/dlineate/internal/solver"
+	svg "github.com/ajstarks/svgo"
+
+	core "github.com/marcuswu/dlineation/internal"
+	el "github.com/marcuswu/dlineation/internal/element"
+	"github.com/marcuswu/dlineation/internal/solver"
 )
 
 type Sketch struct {
@@ -20,6 +25,8 @@ type Sketch struct {
 	YAxis       *Element
 }
 
+// NewSketch creates a new sketch at [0, 0] with standard axis orientation and elements with constraints for origin and X/Y axes
+// It returns the new sketch
 func NewSketch() *Sketch {
 	s := new(Sketch)
 	s.sketch = core.NewSketch()
@@ -35,6 +42,7 @@ func NewSketch() *Sketch {
 	return s
 }
 
+// SetWorkplane sets the origin and axis orientation of the sketch
 func (s *Sketch) SetWorkplane(plane *Workplane) {
 	s.plane = plane
 }
@@ -54,6 +62,8 @@ func (s *Sketch) findConstraint(ctype ConstraintType, e *Element) (*Constraint, 
 	return nil, errors.New("no such constraint")
 }
 
+// AddPoint adds a point to the sketch at [x, y].
+// It returns the point element created.
 func (s *Sketch) AddPoint(x float64, y float64) *Element {
 	p := emptyElement()
 	p.elementType = Point
@@ -86,6 +96,8 @@ func (s *Sketch) addAxis(a float64, b float64, c float64) *Element {
 	return ax
 }
 
+// AddLine adds a line to the sketch from [x1, y1] to [x2, y2].
+// It returns the line element created.
 func (s *Sketch) AddLine(x1 float64, y1 float64, x2 float64, y2 float64) *Element {
 	l := emptyElement()
 	l.elementType = Line
@@ -109,13 +121,15 @@ func (s *Sketch) AddLine(x1 float64, y1 float64, x2 float64, y2 float64) *Elemen
 	s.eToC[start.element.GetID()] = make([]*Constraint, 2)
 	l.children = append(l.children, end)
 	s.eToC[end.element.GetID()] = make([]*Constraint, 2)
+	s.eToC[l.element.GetID()] = make([]*Constraint, 2)
 	s.addDistanceConstraint(l, start, 0.0)
 	s.addDistanceConstraint(l, end, 0.0)
-	s.eToC[l.element.GetID()] = make([]*Constraint, 2)
 	return l
 }
 
-func (s *Sketch) NewCircle(x float64, y float64, r float64) *Element {
+// AddCircle adds a circle to the sketch at the center point [x, y] with the radius r.
+// It returns the circle element created.
+func (s *Sketch) AddCircle(x float64, y float64, r float64) *Element {
 	c := emptyElement()
 	c.elementType = Circle
 	c.values = append(c.values, x)
@@ -132,7 +146,10 @@ func (s *Sketch) NewCircle(x float64, y float64, r float64) *Element {
 	return c
 }
 
-func (s *Sketch) NewArc(x1 float64, y1 float64, x2 float64, y2 float64, x3 float64, y3 float64) *Element {
+// AddArc adds an arc to the sketch with the center [x1, y1], start point [x2, y2], and end point [x3, y3].
+// The arc is created clockwise from start to end point. If the reverse arc is needed, swap start and end.
+// It returns the arc element created.
+func (s *Sketch) AddArc(x1 float64, y1 float64, x2 float64, y2 float64, x3 float64, y3 float64) *Element {
 	a := emptyElement()
 	a.elementType = Arc
 	a.values = append(a.values, x1)
@@ -155,11 +172,11 @@ func (s *Sketch) NewArc(x1 float64, y1 float64, x2 float64, y2 float64, x3 float
 	end := s.AddPoint(a.values[4], a.values[5])
 	end.isChild = true
 	s.eToC[end.element.GetID()] = make([]*Constraint, 2)
+	s.eToC[a.element.GetID()] = make([]*Constraint, 2)
 	a.children = append(a.children, start)
 	a.children = append(a.children, end)
 	s.addDistanceConstraint(a, start, 0.0)
 	s.addDistanceConstraint(a, end, 0.0)
-	s.eToC[a.element.GetID()] = make([]*Constraint, 2)
 	return a
 }
 
@@ -191,16 +208,20 @@ func (s *Sketch) resolveConstraint(c *Constraint) bool {
 	return c.state == Resolved
 }
 
-func (s *Sketch) resolveConstraints() int {
+func (s *Sketch) resolveConstraints() (int, int) {
 	unresolved := 0
+	unsolved := 0
 
 	for _, c := range s.constraints {
 		if !s.resolveConstraint(c) {
 			unresolved++
 		}
+		if c.state != Solved {
+			unsolved++
+		}
 	}
 
-	return unresolved
+	return unresolved, unsolved
 }
 
 func (s *Sketch) isElementSolved(e *Element) bool {
@@ -214,6 +235,10 @@ func (s *Sketch) isElementSolved(e *Element) bool {
 	// If those have been solved, then the element is solved
 	numSolved := 0
 	for _, c := range constraints {
+		if c == nil {
+			fmt.Printf("WTF, nil constraint for element %d!?\n", e.element.GetID())
+			continue
+		}
 		if c.state == Solved {
 			numSolved++
 		}
@@ -305,12 +330,18 @@ func (s *Sketch) resolveCurveRadius(e *Element) (float64, bool) {
 	return 0, false
 }
 
+// Solve attempts to solve the sketch by translating and rotating elements until they meet all constraints provided.
+// After a solve, each Element's ConstraintLevel will be defined.
+// It returns an error if one is encountered during the solve.
 func (s *Sketch) Solve() error {
 	solveState := solver.None
 	passes := 0
 
 	// This isn't correct -- should run until everything is solved
-	for numUnresolved := s.resolveConstraints(); numUnresolved > 0 && passes < 2; numUnresolved = s.resolveConstraints() {
+	for numUnresolved, numUnsolved := s.resolveConstraints(); 
+	numUnsolved > 0 || numUnresolved > 0;
+	numUnresolved, numUnsolved = s.resolveConstraints() {
+		fmt.Printf("Running solve pass %d\n", passes+1)
 		solveState = s.sketch.Solve()
 		passes++
 	}
@@ -351,4 +382,52 @@ func (s *Sketch) Solve() error {
 	default:
 		return nil
 	}
+}
+
+func (s *Sketch) calculateRectangle() (int, int, int, int) {
+	return 0, 0, 0, 0
+}
+
+// ExportImage exports an image representing the current state of the sketch.
+// The origin and axes will be colored gray. Fully constrained solved elements will be colored black.
+// Other elements will be colored blue.
+// It returns an error if unable to open the output file.
+func (s *Sketch) ExportImage(filename string, args ...int) error {
+	width := 500
+	height := 500
+
+	if len(args) > 0 {
+		width = args[0]
+	}
+	if len(args) > 1 {
+		height = args[1]
+	}
+
+	f, err := os.OpenFile(filename, os.O_CREATE|os.O_RDWR, 0644)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	img := svg.New(f)
+
+	minx, miny, maxx, maxy := s.calculateRectangle()
+
+	// Calculate viewbox
+	vw := float64(maxx-minx) / 0.9
+	vh := float64(maxy-miny) / 0.9
+	viewBoxSize := int(math.Max(vw, vh))
+
+	img.Startview(width, height, minx, miny, viewBoxSize, viewBoxSize)
+
+	// Draw axes
+	img.Line(minx, 0, maxx, 0, "fill:none;stroke:gray")
+	img.Line(minx, 0, maxx, 0, "fill:none;stroke:gray")
+
+	for _, e := range s.Elements {
+		e.DrawToSVG(s, img, 100.0)
+	}
+
+	img.End()
+
+	return nil
 }

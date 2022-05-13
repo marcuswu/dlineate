@@ -1,7 +1,7 @@
 package constraint
 
 import (
-	el "github.com/marcuswu/dlineate/internal/element"
+	el "github.com/marcuswu/dlineation/internal/element"
 )
 
 // Type of a Constraint(Distance or Angle)

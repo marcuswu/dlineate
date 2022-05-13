@@ -1,7 +1,14 @@
-package dlineate
+package dlineation
+
+import "fmt"
 
 func (s *Sketch) AddPerpendicularConstraint(p1 *Element, p2 *Element) (*Constraint, error) {
-	c, e := s.AddAngleConstraint(p1, p2, 90)
-	c.constraintType = Perpendicular
-	return c, e
+	c, err := s.AddAngleConstraint(p1, p2, 90)
+	if err != nil {
+		fmt.Printf("error: %s\n", err)
+	}
+	if c != nil {
+		c.constraintType = Perpendicular
+	}
+	return c, err
 }

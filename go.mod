@@ -1,4 +1,4 @@
-module github.com/marcuswu/dlineate
+module github.com/marcuswu/dlineation
 
 go 1.18
 

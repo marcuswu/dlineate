@@ -3,7 +3,7 @@ package element
 import (
 	"math"
 
-	"github.com/marcuswu/dlineate/utils"
+	"github.com/marcuswu/dlineation/utils"
 )
 
 // SketchLine represents a line in a 2D sketch in the form

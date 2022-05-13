@@ -1,4 +1,4 @@
-package dlineate
+package dlineation
 
 import "math"
 

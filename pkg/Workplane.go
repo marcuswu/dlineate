@@ -1,4 +1,4 @@
-package dlineate
+package dlineation
 
 type Workplane struct {
 	origin *Vector3D

@@ -1,9 +1,10 @@
-package dlineate
+package dlineation
 
 import (
+	"fmt"
 	"math"
 
-	el "github.com/marcuswu/dlineate/internal/element"
+	el "github.com/marcuswu/dlineation/internal/element"
 )
 
 func (e *Element) isLineOrArc() bool {
@@ -33,6 +34,8 @@ func (s *Sketch) AddMidpointConstraint(p1 *Element, p2 *Element) *Constraint {
 	if !p1.isLineOrArc() && !p2.isLineOrArc() {
 		return nil
 	}
+	fmt.Printf("for element %d adding midpoint constraint to element %d\n", p1.element.GetID(), p2.element.GetID())
+	fmt.Printf("for element %d adding midpoint constraint to element %d\n", p2.element.GetID(), p1.element.GetID())
 	s.eToC[p1.element.GetID()] = append(s.eToC[p1.element.GetID()], c)
 	s.eToC[p2.element.GetID()] = append(s.eToC[p2.element.GetID()], c)
 
@@ -57,10 +60,17 @@ func (s *Sketch) resolveMidpointConstraint(c *Constraint) bool {
 	if ok {
 		// coincident with line
 		constraint := s.addDistanceConstraint(other, point, 0)
+		fmt.Printf("resolveMidpointConstraint: added constraint id %d\n", constraint.GetID())
+		other.constraints = append(other.constraints, constraint)
+		point.constraints = append(point.constraints, constraint)
 		c.constraints = append(c.constraints, constraint)
-		s.constraints = append(s.constraints, c)
 		// distance from start
 		constraint = s.addDistanceConstraint(other.children[0], point, dist/2.0)
+		fmt.Printf("resolveMidpointConstraint: added constraint id %d\n", constraint.GetID())
+		other.children[0].constraints = append(other.children[0].constraints, constraint)
+		point.constraints = append(point.constraints, constraint)
+		c.constraints = append(c.constraints, constraint)
+		s.constraints = append(s.constraints, c)
 		c.state = Resolved
 
 		return c.state == Resolved
@@ -81,9 +91,9 @@ func (s *Sketch) resolveMidpointConstraint(c *Constraint) bool {
 		endX := other.children[2].values[0]
 		endY := other.children[2].values[1]
 		// Calculate vector from center to start
-		start := el.Vector{startX - centerX, startY - centerY}
+		start := el.Vector{X: startX - centerX, Y: startY - centerY}
 		// Calculate vector from center to end
-		end := el.Vector{endX - centerX, endY - centerY}
+		end := el.Vector{X: endX - centerX, Y: endY - centerY}
 
 		// Calculate center vector
 		halfAngle := start.AngleTo(&end) / 2.0
@@ -96,9 +106,14 @@ func (s *Sketch) resolveMidpointConstraint(c *Constraint) bool {
 		midDist := math.Sqrt((a * a) + (b * b))
 		// Set coincident and distance constraints
 		constraint := s.addDistanceConstraint(other.children[1], point, midDist)
+		fmt.Printf("resolveMidpointConstraint: added constraint id %d\n", constraint.GetID())
+		other.children[1].constraints = append(other.children[1].constraints, constraint)
+		point.constraints = append(point.constraints, constraint)
 		c.constraints = append(c.constraints, constraint)
-		s.constraints = append(s.constraints, c)
 		constraint = s.addDistanceConstraint(point, other, 0)
+		fmt.Printf("resolveMidpointConstraint: added constraint id %d\n", constraint.GetID())
+		other.constraints = append(other.constraints, constraint)
+		point.constraints = append(point.constraints, constraint)
 		c.constraints = append(c.constraints, constraint)
 		s.constraints = append(s.constraints, c)
 		c.state = Resolved

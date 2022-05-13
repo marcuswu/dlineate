@@ -2,10 +2,11 @@ package solver
 
 import (
 	"math"
+	"fmt"
 
-	"github.com/marcuswu/dlineate/internal/constraint"
-	el "github.com/marcuswu/dlineate/internal/element"
-	"github.com/marcuswu/dlineate/utils"
+	"github.com/marcuswu/dlineation/internal/constraint"
+	el "github.com/marcuswu/dlineation/internal/element"
+	"github.com/marcuswu/dlineation/utils"
 )
 
 // SolveState The state of the sketch graph
@@ -19,6 +20,21 @@ const (
 	NonConvergent
 	Solved
 )
+
+func (ss SolveState) String() string {
+	switch ss {
+	case UnderConstrained:
+		return "under constrained"
+	case OverConstrained:
+		return "over constrained"
+	case NonConvergent:
+		return "non-convergent"
+	case Solved:
+		return "solved"
+	default:
+		return fmt.Sprintf("%d", int(ss))
+	}
+}
 
 func typeCounts(c1 *constraint.Constraint, c2 *constraint.Constraint) (int, int) {
 	numPoints := 0
@@ -251,7 +267,7 @@ func pointFromPointLine(originalP1 el.SketchElement, originalL2 el.SketchElement
 
 	// translate l2 to X axis
 	yTranslate := l2.(*el.SketchLine).GetOriginDistance() - lineDist
-	if l2.(*el.SketchLine).GetC()-yTranslate != 0 {
+	if utils.StandardFloatCompare(l2.(*el.SketchLine).GetC()-yTranslate, lineDist) != 0 {
 		yTranslate *= -1
 	}
 	l2.Translate(0, yTranslate)

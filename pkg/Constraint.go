@@ -1,7 +1,7 @@
-package dlineate
+package dlineation
 
 import (
-	c "github.com/marcuswu/dlineate/internal/constraint"
+	c "github.com/marcuswu/dlineation/internal/constraint"
 )
 
 // Type of a Constraint(Distance or Angle)

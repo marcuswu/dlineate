@@ -2,11 +2,12 @@ package core
 
 import (
 	"errors"
+	"fmt"
 
-	"github.com/marcuswu/dlineate/internal/constraint"
-	el "github.com/marcuswu/dlineate/internal/element"
-	"github.com/marcuswu/dlineate/internal/solver"
-	"github.com/marcuswu/dlineate/utils"
+	"github.com/marcuswu/dlineation/internal/constraint"
+	el "github.com/marcuswu/dlineation/internal/element"
+	"github.com/marcuswu/dlineation/internal/solver"
+	"github.com/marcuswu/dlineation/utils"
 )
 
 // SketchGraph A graph representing a set of 2D sketch elements and constraints
@@ -124,6 +125,7 @@ func (g *SketchGraph) createCluster(first uint) *GraphCluster {
 	toAdd = append(toAdd, first)
 	for len(toAdd) > 0 {
 		for _, constraintID := range toAdd {
+			fmt.Printf("createCluster: adding constraint id %d\n", constraintID)
 			constraint := constraint.CopyConstraint(g.GetConstraint(constraintID))
 			c.AddConstraint(constraint)
 			g.freeNodes.Remove(constraint.Element1.GetID())
@@ -245,9 +247,8 @@ func (g *SketchGraph) Solve() solver.SolveState {
 	g.createClusters()
 	g.mergeClusters()
 	if len(g.clusters) > 1 {
+		// set state, but attempt to solve as much as possible
 		g.state = solver.UnderConstrained
-		// attempt to solve as much as possible
-		//return g.state
 	}
 
 	for _, c := range g.clusters {

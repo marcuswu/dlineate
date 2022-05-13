@@ -1,7 +1,9 @@
-package dlineate
+package dlineation
 
 import (
-	ic "github.com/marcuswu/dlineate/internal/constraint"
+	"fmt"
+
+	ic "github.com/marcuswu/dlineation/internal/constraint"
 )
 
 func DistanceConstraint(p1 *Element, p2 *Element) *Constraint {
@@ -30,13 +32,13 @@ func (s *Sketch) addDistanceConstraint(p1 *Element, p2 *Element, v float64) *ic.
 	case Axis:
 		fallthrough
 	case Line:
+		if p2 == nil {
+			return s.sketch.AddConstraint(ic.Distance, p1.children[0].element, p1.children[1].element, v)
+		}
 		isCircle := p2.elementType == Circle
 		isArc := p2.elementType == Arc
 		if isArc || isCircle {
 			return s.addDistanceConstraint(p2, p1, v)
-		}
-		if p2 == nil {
-			return s.sketch.AddConstraint(ic.Distance, p1.children[0].element, p1.children[1].element, v)
 		}
 		return s.sketch.AddConstraint(ic.Distance, p1.element, p2.element, v)
 	case Arc:
@@ -53,14 +55,23 @@ func (s *Sketch) AddDistanceConstraint(p1 *Element, p2 *Element, v float64) *Con
 	c := DistanceConstraint(p1, p2)
 
 	constraint := s.addDistanceConstraint(p1, p2, v)
+	fmt.Printf("AddDistanceConstraint: added constraint id %d\n", constraint.GetID())
 	if constraint != nil {
 		p1.constraints = append(p1.constraints, constraint)
-		p2.constraints = append(p2.constraints, constraint)
+		if p2 != nil {
+			p2.constraints = append(p2.constraints, constraint)
+		}
 		c.constraints = append(c.constraints, constraint)
 		s.constraints = append(s.constraints, c)
 	}
 
 	s.eToC[p1.element.GetID()] = append(s.eToC[p1.element.GetID()], c)
-	s.eToC[p2.element.GetID()] = append(s.eToC[p2.element.GetID()], c)
+	if p2 != nil {
+		s.eToC[p2.element.GetID()] = append(s.eToC[p2.element.GetID()], c)
+		fmt.Printf("for element %d adding distance constraint to element %d\n", p1.element.GetID(), p2.element.GetID())
+		fmt.Printf("for element %d adding distance constraint to element %d\n", p2.element.GetID(), p1.element.GetID())
+	} else {
+		fmt.Printf("for element %d adding distance constraint\n", p1.element.GetID())
+	}
 	return c
 }
