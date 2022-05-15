@@ -349,7 +349,7 @@ func (g *GraphCluster) localSolve() solver.SolveState {
 		e, c := g.findElement()
 
 		fmt.Println("Solving for element", e)
-		if len(c) == 0 {
+		if len(c) < 2 {
 			fmt.Println("Could not find a constraint to solve with", len(g.constraints)-g.solved.Count(), "constraints left to solve")
 			state = solver.NonConvergent
 			break

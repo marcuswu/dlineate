@@ -123,9 +123,10 @@ func (g *SketchGraph) createCluster(first uint) *GraphCluster {
 
 	toAdd := make([]uint, 0, 5)
 	toAdd = append(toAdd, first)
+	clusterNum := len(g.clusters)
 	for len(toAdd) > 0 {
 		for _, constraintID := range toAdd {
-			fmt.Printf("createCluster: adding constraint id %d\n", constraintID)
+			fmt.Printf("createCluster(%d): adding constraint id %d\n", clusterNum,  constraintID)
 			constraint := constraint.CopyConstraint(g.GetConstraint(constraintID))
 			c.AddConstraint(constraint)
 			g.freeNodes.Remove(constraint.Element1.GetID())
@@ -174,7 +175,9 @@ func (g *SketchGraph) mergeCluster(index int) bool {
 	copy(g.clusters[connected[0]:], g.clusters[connected[0]+1:])
 	g.clusters[len(g.clusters)-1] = nil
 	g.clusters = g.clusters[:len(g.clusters)-1]
-	copy(g.clusters[connected[1]:], g.clusters[connected[1]+1:])
+	if connected[1] < uint(len(g.clusters)-1) {
+		copy(g.clusters[connected[1]:], g.clusters[connected[1]+1:])
+	}
 	g.clusters[len(g.clusters)-1] = nil
 	g.clusters = g.clusters[:len(g.clusters)-1]
 	return true
@@ -182,7 +185,16 @@ func (g *SketchGraph) mergeCluster(index int) bool {
 
 func (g *SketchGraph) createClusters() {
 	for len(g.constraints) > 0 {
-		g.createCluster(0)
+		var minKey uint
+		for k := range g.constraints {
+			if k == 0 || minKey == 0 || minKey > k {
+				minKey = k
+			}
+			if minKey == 0 {
+				break
+			}
+		}
+		g.createCluster(minKey)
 	}
 }
 
