@@ -45,6 +45,16 @@ func emptyConstraint() *Constraint {
 	return &Constraint{}
 }
 
+func (c *Constraint) checkSolved() {
+	solved := true
+	for _, constraint := range c.constraints {
+		solved = solved && constraint.Solved
+	}
+	if solved {
+		c.state = Solved
+	}
+}
+
 /*
 
 One Pass Constraints

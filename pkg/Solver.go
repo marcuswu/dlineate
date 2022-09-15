@@ -9,7 +9,6 @@ import (
 	svg "github.com/ajstarks/svgo"
 
 	core "github.com/marcuswu/dlineation/internal"
-	el "github.com/marcuswu/dlineation/internal/element"
 	"github.com/marcuswu/dlineation/internal/solver"
 )
 
@@ -32,12 +31,13 @@ func NewSketch() *Sketch {
 	s.sketch = core.NewSketch()
 	s.passes = 0
 	s.eToC = make(map[uint][]*Constraint)
+	/* TODO: These need to be in a special cluster that isn't counted towards solving
 	s.Origin = s.addOrigin()
 	s.XAxis = s.addAxis(0, -1, 0)
 	s.YAxis = s.addAxis(1, 0, 0)
 	s.AddAngleConstraint(s.XAxis, s.YAxis, 90)
 	s.AddCoincidentConstraint(s.Origin, s.XAxis)
-	s.AddCoincidentConstraint(s.Origin, s.YAxis)
+	s.AddCoincidentConstraint(s.Origin, s.YAxis)*/
 
 	return s
 }
@@ -213,9 +213,10 @@ func (s *Sketch) resolveConstraints() (int, int) {
 	unsolved := 0
 
 	for _, c := range s.constraints {
-		if !s.resolveConstraint(c) {
+		if c.state == Unresolved && !s.resolveConstraint(c) {
 			unresolved++
 		}
+
 		if c.state != Solved {
 			unsolved++
 		}
@@ -239,6 +240,7 @@ func (s *Sketch) isElementSolved(e *Element) bool {
 			fmt.Printf("WTF, nil constraint for element %d!?\n", e.element.GetID())
 			continue
 		}
+		c.checkSolved()
 		if c.state == Solved {
 			numSolved++
 		}
@@ -338,17 +340,23 @@ func (s *Sketch) Solve() error {
 	passes := 0
 
 	// This isn't correct -- should run until everything is solved
-	for numUnresolved, numUnsolved := s.resolveConstraints(); 
-	numUnsolved > 0 || numUnresolved > 0;
-	numUnresolved, numUnsolved = s.resolveConstraints() {
+	lastUnsolved := 0
+	lastUnresolved := 0
+	for numUnresolved, numUnsolved := s.resolveConstraints(); numUnsolved > 0 || numUnresolved > 0; numUnresolved, numUnsolved = s.resolveConstraints() {
+		if lastUnsolved == numUnsolved && lastUnresolved == numUnresolved {
+			break
+		}
+		fmt.Printf("Have %d unresolved and %d unsolved constraints\n", numUnresolved, numUnsolved)
 		fmt.Printf("Running solve pass %d\n", passes+1)
 		solveState = s.sketch.Solve()
+		lastUnresolved = numUnresolved
+		lastUnsolved = numUnsolved
 		passes++
 	}
 	s.passes += passes
 
 	// Handle if origin is translated
-	s.Origin.valuesFromSketch(s)
+	/*s.Origin.valuesFromSketch(s)
 	if s.Origin.element.AsPoint().X != 0 || s.Origin.element.AsPoint().Y != 0 {
 		s.sketch.Translate(-s.Origin.element.AsPoint().X, -s.Origin.element.AsPoint().Y)
 	}
@@ -360,7 +368,7 @@ func (s *Sketch) Solve() error {
 	angle := s.YAxis.element.AsLine().AngleToLine(yaxis)
 	if angle != 0 {
 		s.sketch.Rotate(s.Origin.element.AsPoint(), angle)
-	}
+	}*/
 
 	// Load solved values back into our elements
 	for _, e := range s.Elements {

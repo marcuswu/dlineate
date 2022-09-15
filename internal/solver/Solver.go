@@ -1,8 +1,8 @@
 package solver
 
 import (
-	"math"
 	"fmt"
+	"math"
 
 	"github.com/marcuswu/dlineation/internal/constraint"
 	el "github.com/marcuswu/dlineation/internal/element"
@@ -90,20 +90,27 @@ func SolveConstraints(c1 *constraint.Constraint, c2 *constraint.Constraint) Solv
 func ConstraintResult(c1 *constraint.Constraint, c2 *constraint.Constraint) (*el.SketchPoint, SolveState) {
 	numPoints, _ := typeCounts(c1, c2)
 	// 4 points -> PointFromPoints
+	var point *el.SketchPoint = nil
+	var solveState SolveState = NonConvergent
 	if numPoints == 4 {
-		return PointFromPoints(c1, c2)
+		point, solveState = PointFromPoints(c1, c2)
 	}
 
 	// 3 points, 1 line -> PointFromPointLine
 	if numPoints == 3 {
-		return PointFromPointLine(c1, c2)
+		point, solveState = PointFromPointLine(c1, c2)
 	}
 	// 2 points, 2 lines -> PointFromLineLine
 	if numPoints == 2 {
-		return PointFromLineLine(c1, c2)
+		point, solveState = PointFromLineLine(c1, c2)
 	}
 
-	return nil, NonConvergent
+	if solveState == Solved {
+		c1.Solved = true
+		c2.Solved = true
+	}
+
+	return point, solveState
 }
 
 // SolveDistanceConstraint solves a distance constraint and returns the solution state
@@ -161,6 +168,7 @@ func MoveLineToPoint(c *constraint.Constraint) SolveState {
 	// If point and line, get distance between them, translate normal to line constraint value - distance between
 	dist := line.DistanceTo(point)
 	line.TranslateDistance(-(c.GetValue() - dist))
+	c.Solved = true
 
 	return Solved
 }
@@ -176,6 +184,7 @@ func SolveAngleConstraint(c *constraint.Constraint) SolveState {
 	angle := l1.AngleToLine(l2)
 	rotate := c.Value - angle
 	l2.Rotate(rotate)
+	c.Solved = true
 	return Solved
 }
 

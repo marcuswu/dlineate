@@ -2,7 +2,6 @@ package dlineation
 
 import (
 	"errors"
-	"fmt"
 	"math"
 
 	ic "github.com/marcuswu/dlineation/internal/constraint"
@@ -25,16 +24,13 @@ func (s *Sketch) AddAngleConstraint(p1 *Element, p2 *Element, v float64) (*Const
 		return nil, errors.New("incorrect element types for angle constraint")
 	}
 
-	radians := v/180 * math.Pi
+	radians := v / 180 * math.Pi
 
 	constraint := s.sketch.AddConstraint(ic.Angle, p1.element, p2.element, radians)
-	fmt.Printf("AddAngleConstraint: added constraint id %d\n", constraint.GetID())
 	p1.constraints = append(p1.constraints, constraint)
 	p2.constraints = append(p2.constraints, constraint)
 	c.constraints = append(c.constraints, constraint)
 	s.constraints = append(s.constraints, c)
-	fmt.Printf("for element %d adding angle constraint to element %d\n", p1.element.GetID(), p2.element.GetID())
-	fmt.Printf("for element %d adding angle constraint to element %d\n", p2.element.GetID(), p1.element.GetID())
 	s.eToC[p1.element.GetID()] = append(s.eToC[p1.element.GetID()], c)
 	s.eToC[p2.element.GetID()] = append(s.eToC[p2.element.GetID()], c)
 

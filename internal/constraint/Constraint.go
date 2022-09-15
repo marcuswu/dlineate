@@ -40,6 +40,7 @@ type Constraint struct {
 	Value    float64
 	Element1 el.SketchElement
 	Element2 el.SketchElement
+	Solved   bool
 }
 
 // GetID returns the constraint identifier
@@ -79,13 +80,14 @@ func (c *Constraint) Equals(o Constraint) bool {
 }
 
 // NewConstraint creates a new constraint
-func NewConstraint(id uint, constraintType Type, a el.SketchElement, b el.SketchElement, v float64) *Constraint {
+func NewConstraint(id uint, constraintType Type, a el.SketchElement, b el.SketchElement, v float64, solved bool) *Constraint {
 	return &Constraint{
 		id:       id,
 		Type:     constraintType,
 		Value:    v,
 		Element1: a,
 		Element2: b,
+		Solved:   false,
 	}
 }
 
@@ -97,5 +99,6 @@ func CopyConstraint(c *Constraint) *Constraint {
 		el.CopySketchElement(c.Element1),
 		el.CopySketchElement(c.Element2),
 		c.Value,
+		c.Solved,
 	)
 }

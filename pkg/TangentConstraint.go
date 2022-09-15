@@ -24,9 +24,6 @@ func (s *Sketch) AddTangentConstraint(p1 *Element, p2 *Element, p3 *Element) (*C
 	}
 
 	c := TangentConstraint(line, point, curve)
-	fmt.Printf("for element %d adding ratio constraint to elements %d and %d\n", p1.element.GetID(), p2.element.GetID(), p3.element.GetID())
-	fmt.Printf("for element %d adding ratio constraint to elements %d and %d\n", p2.element.GetID(), p1.element.GetID(), p3.element.GetID())
-	fmt.Printf("for element %d adding ratio constraint to elements %d and %d\n", p3.element.GetID(), p1.element.GetID(), p2.element.GetID())
 	s.eToC[p1.element.GetID()] = append(s.eToC[p1.element.GetID()], c)
 	s.eToC[p2.element.GetID()] = append(s.eToC[p2.element.GetID()], c)
 	s.eToC[p3.element.GetID()] = append(s.eToC[p3.element.GetID()], c)

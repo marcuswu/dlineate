@@ -95,9 +95,9 @@ func TestPointFromPointsExt(t *testing.T) {
 		t.Error("Expected newP3 to have distance of 5 to p2, got ", p2.DistanceTo(referenceP3))
 	}
 
-	c1 := constraint.NewConstraint(0, constraint.Distance, p1, p3, 1)
+	c1 := constraint.NewConstraint(0, constraint.Distance, p1, p3, 1, false)
 
-	c2 := constraint.NewConstraint(1, constraint.Distance, p2, p3, 5)
+	c2 := constraint.NewConstraint(1, constraint.Distance, p2, p3, 5, false)
 
 	newP3, state = PointFromPoints(c1, c2)
 
@@ -209,7 +209,7 @@ func TestPointFromPointsExt(t *testing.T) {
 
 func TestPointFromPointLine(t *testing.T) {
 	p1 := el.NewSketchPoint(0, 1, 1)
-	l2 := el.NewSketchLine(1, 1, 1, 2 * math.Sqrt(0.5))
+	l2 := el.NewSketchLine(1, 1, 1, 2*math.Sqrt(0.5))
 	p3 := el.NewSketchPoint(2, 0, 2)
 
 	newP3, state := pointFromPointLine(p1, l2, p3, 1, 1)
@@ -256,9 +256,9 @@ func TestPointFromPointLineExt(t *testing.T) {
 		t.Error("Expected newP3 to have distance of 2.5 to p2, got ", l2.DistanceTo(referenceP3))
 	}
 
-	c1 := constraint.NewConstraint(0, constraint.Distance, p1, p3, 1)
+	c1 := constraint.NewConstraint(0, constraint.Distance, p1, p3, 1, false)
 
-	c2 := constraint.NewConstraint(1, constraint.Distance, l2, p3, 2.5)
+	c2 := constraint.NewConstraint(1, constraint.Distance, l2, p3, 2.5, false)
 
 	newP3, state := PointFromPointLine(c1, c2)
 
@@ -424,9 +424,9 @@ func TestPointFromLineLineExt(t *testing.T) {
 		t.Error("Expected newP3 to have distance of 2 to l2, got ", l2.DistanceTo(referenceP3))
 	}
 
-	c1 := constraint.NewConstraint(0, constraint.Distance, l1, p3, 1)
+	c1 := constraint.NewConstraint(0, constraint.Distance, l1, p3, 1, false)
 
-	c2 := constraint.NewConstraint(1, constraint.Distance, l2, p3, 2)
+	c2 := constraint.NewConstraint(1, constraint.Distance, l2, p3, 2, false)
 
 	newP3, state := PointFromLineLine(c1, c2)
 
@@ -544,13 +544,13 @@ func TestSolveAngleConstraint(t *testing.T) {
 	l5 := el.NewSketchLine(3, -0.506732, -0.862104, 0)
 	angle := -(108.0 / 180.0) * math.Pi
 
-	c := constraint.NewConstraint(0, constraint.Angle, l1, l2, angle)
+	c := constraint.NewConstraint(0, constraint.Angle, l1, l2, angle, false)
 	SolveAngleConstraint(c)
-	c = constraint.NewConstraint(0, constraint.Angle, l2, l3, angle)
+	c = constraint.NewConstraint(0, constraint.Angle, l2, l3, angle, false)
 	SolveAngleConstraint(c)
-	c = constraint.NewConstraint(0, constraint.Angle, l3, l4, angle)
+	c = constraint.NewConstraint(0, constraint.Angle, l3, l4, angle, false)
 	SolveAngleConstraint(c)
-	c = constraint.NewConstraint(0, constraint.Angle, l4, l5, angle)
+	c = constraint.NewConstraint(0, constraint.Angle, l4, l5, angle, false)
 	SolveAngleConstraint(c)
 
 	t.Logf(`elements after solve: 
@@ -588,8 +588,8 @@ func TestSolveConstraints(t *testing.T) {
 	l1 := el.NewSketchLine(0, 0, 1, -1.1) // top line
 	p1 := el.NewSketchPoint(2, 0.1, 1)    // top left
 	p2 := el.NewSketchPoint(3, 1, 1.1)    // top right
-	c1 := constraint.NewConstraint(0, constraint.Distance, p1, p2, 1)
-	c2 := constraint.NewConstraint(1, constraint.Distance, p1, l1, 0)
+	c1 := constraint.NewConstraint(0, constraint.Distance, p1, p2, 1, false)
+	c2 := constraint.NewConstraint(1, constraint.Distance, p1, l1, 0, false)
 
 	solved := SolveConstraints(c1, c2)
 	p1 = c1.Element1.(*el.SketchPoint)

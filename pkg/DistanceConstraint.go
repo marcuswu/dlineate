@@ -68,10 +68,6 @@ func (s *Sketch) AddDistanceConstraint(p1 *Element, p2 *Element, v float64) *Con
 	s.eToC[p1.element.GetID()] = append(s.eToC[p1.element.GetID()], c)
 	if p2 != nil {
 		s.eToC[p2.element.GetID()] = append(s.eToC[p2.element.GetID()], c)
-		fmt.Printf("for element %d adding distance constraint to element %d\n", p1.element.GetID(), p2.element.GetID())
-		fmt.Printf("for element %d adding distance constraint to element %d\n", p2.element.GetID(), p1.element.GetID())
-	} else {
-		fmt.Printf("for element %d adding distance constraint\n", p1.element.GetID())
 	}
 	return c
 }

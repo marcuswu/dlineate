@@ -237,6 +237,7 @@ func (a bySolvability) Less(i, j int) bool { return a[i].Solvability > a[j].Solv
 func (g *GraphCluster) toSolvability(es []uint) bySolvability {
 	result := make([]elementSolvability, 0, 1)
 	for _, e := range es {
+		fmt.Println("Calculating solvability of elements ", es)
 		if g.elements[e].GetType() == el.Line {
 			continue
 		}
@@ -250,17 +251,20 @@ func (g *GraphCluster) toSolvability(es []uint) bySolvability {
 	return bySolvability(result)
 }
 
-func (g *GraphCluster) startElement() uint {
+func (g *GraphCluster) startElement() (uint, bool) {
 	unsolved := g.toSolvability(g.unsolvedElements())
+	if len(unsolved) == 0 {
+		return 0, false
+	}
 	for _, e := range unsolved {
 		fmt.Println("unsolved element", e.ID, "has solvability score", e.Solvability)
 	}
 	sort.Sort(unsolved)
-	return unsolved[0].ID
+	return unsolved[0].ID, true
 }
 
 func (g *GraphCluster) findElement() (uint, []*Constraint) {
-	best := g.startElement()
+	best, ok := g.startElement()
 	score := -len(g.constraints)
 	solved := g.solvedElements()
 	for _, e := range solved {
@@ -271,14 +275,20 @@ func (g *GraphCluster) findElement() (uint, []*Constraint) {
 		sort.Sort(points)
 		if points[0].Solvability > score {
 			best = points[0].ID
+			ok = true
 			score = points[0].Solvability
 		}
+	}
+
+	if !ok {
+		return 0, []*Constraint{}
 	}
 
 	return best, g.orderedConstraintsFor(best)
 }
 
 func (g *GraphCluster) solvableLines(eID uint) map[uint]*Constraint {
+	fmt.Println("looking for solvable lines connected to", eID)
 	lines := make(map[uint]*Constraint)
 	cList := g.unsolvedConstraintsFor(eID)
 	for _, c := range cList {
@@ -378,7 +388,7 @@ func (g *GraphCluster) localSolve() solver.SolveState {
 			}
 			g.solved.Add(c.GetID())
 		}
-		fmt.Println("Local Solve Step 4 (check for completion)")
+		fmt.Printf("Local Solve Step 4 (check for completion) %d / %d solved\n", g.solved.Count(), len(g.constraints))
 	}
 
 	fmt.Println("finished with state", state)
@@ -539,25 +549,25 @@ func (g *GraphCluster) solveMerge(c1 *GraphCluster, c2 *GraphCluster) solver.Sol
 	if e, ok := parents[0].elements[e[0]]; ok {
 		e1 = e
 		dist := c0E2.DistanceTo(e)
-		constraint1 = constraint.NewConstraint(0, constraint.Distance, c0E2, e, dist)
+		constraint1 = constraint.NewConstraint(0, constraint.Distance, c0E2, e, dist, false)
 		fmt.Printf("Creating constraint from %d to %d with distance %f\n", c0E2.GetID(), e.GetID(), dist)
 	}
 	if e, ok := parents[1].elements[e[0]]; ok {
 		e2 = e
 		dist := c1E2.DistanceTo(e)
-		constraint1 = constraint.NewConstraint(0, constraint.Distance, c1E2, e, dist)
+		constraint1 = constraint.NewConstraint(0, constraint.Distance, c1E2, e, dist, false)
 		fmt.Printf("Creating constraint from %d to %d with distance %f\n", c1E2.GetID(), e.GetID(), dist)
 	}
 	if e, ok := parents[0].elements[e[1]]; ok {
 		e1 = e
 		dist := c0E2.DistanceTo(e)
-		constraint2 = constraint.NewConstraint(0, constraint.Distance, c0E2, e, dist)
+		constraint2 = constraint.NewConstraint(0, constraint.Distance, c0E2, e, dist, false)
 		fmt.Printf("Creating constraint from %d to %d with distance %f\n", c0E2.GetID(), e.GetID(), dist)
 	}
 	if e, ok := parents[1].elements[e[1]]; ok {
 		e2 = e
 		dist := c1E2.DistanceTo(e)
-		constraint2 = constraint.NewConstraint(0, constraint.Distance, c1E2, e, dist)
+		constraint2 = constraint.NewConstraint(0, constraint.Distance, c1E2, e, dist, false)
 		fmt.Printf("Creating constraint from %d to %d with distance %f\n", c1E2.GetID(), e.GetID(), dist)
 	}
 

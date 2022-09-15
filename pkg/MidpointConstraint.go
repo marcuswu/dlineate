@@ -34,8 +34,6 @@ func (s *Sketch) AddMidpointConstraint(p1 *Element, p2 *Element) *Constraint {
 	if !p1.isLineOrArc() && !p2.isLineOrArc() {
 		return nil
 	}
-	fmt.Printf("for element %d adding midpoint constraint to element %d\n", p1.element.GetID(), p2.element.GetID())
-	fmt.Printf("for element %d adding midpoint constraint to element %d\n", p2.element.GetID(), p1.element.GetID())
 	s.eToC[p1.element.GetID()] = append(s.eToC[p1.element.GetID()], c)
 	s.eToC[p2.element.GetID()] = append(s.eToC[p2.element.GetID()], c)
 
