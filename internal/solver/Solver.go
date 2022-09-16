@@ -173,6 +173,49 @@ func MoveLineToPoint(c *constraint.Constraint) SolveState {
 	return Solved
 }
 
+func MoveLineToPoints(c []*constraint.Constraint) SolveState {
+	if len(c) < 2 || c[0].Type != constraint.Distance || c[1].Type != constraint.Distance {
+		return NonConvergent
+	}
+
+	var line1 *el.SketchLine
+	var line2 *el.SketchLine
+	var p1 *el.SketchPoint
+	var p2 *el.SketchPoint
+
+	if c[0].Element1.GetType() == el.Point && c[0].Element2.GetType() == el.Line {
+		p1 = c[0].Element1.(*el.SketchPoint)
+		line1 = c[0].Element2.(*el.SketchLine)
+	}
+	if c[0].Element2.GetType() == el.Point && c[0].Element1.GetType() == el.Line {
+		p1 = c[0].Element2.(*el.SketchPoint)
+		line1 = c[0].Element1.(*el.SketchLine)
+	}
+
+	if c[1].Element1.GetType() == el.Point && c[1].Element2.GetType() == el.Line {
+		p2 = c[0].Element1.(*el.SketchPoint)
+		line2 = c[0].Element2.(*el.SketchLine)
+	}
+	if c[1].Element2.GetType() == el.Point && c[1].Element1.GetType() == el.Line {
+		p2 = c[0].Element2.(*el.SketchPoint)
+		line2 = c[0].Element1.(*el.SketchLine)
+	}
+
+	if line1.GetID() != line2.GetID() {
+		return NonConvergent
+	}
+
+	// Calculate line that goes through the two points
+	la := p2.Y - p1.Y                // y' - y
+	lb := p1.X - p2.X                // x - x'
+	lc := (-la * p1.X) - (lb * p1.Y) // c = -ax - by from ax + by + c = 0
+	line1.SetA(la)
+	line1.SetB(lb)
+	line1.SetC(lc)
+
+	return Solved
+}
+
 // SolveAngleConstraint solve an angle constraint between two lines
 func SolveAngleConstraint(c *constraint.Constraint) SolveState {
 	if c.Type != constraint.Angle {

@@ -51,6 +51,12 @@ func (l *SketchLine) GetB() float64 { return l.b }
 // GetC returns c in the formula Ax + By + C = 0
 func (l *SketchLine) GetC() float64 { return l.c }
 
+// SetC set the a value for the line (Ax + Bx + C = 0)
+func (l *SketchLine) SetA(a float64) { l.a = a }
+
+// SetC set the b value for the line (Ax + Bx + C = 0)
+func (l *SketchLine) SetB(b float64) { l.b = b }
+
 // SetC set the c value for the line (Ax + Bx + C = 0)
 func (l *SketchLine) SetC(c float64) { l.c = c }
 

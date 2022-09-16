@@ -287,33 +287,48 @@ func (g *GraphCluster) findElement() (uint, []*Constraint) {
 	return best, g.orderedConstraintsFor(best)
 }
 
-func (g *GraphCluster) solvableLines(eID uint) map[uint]*Constraint {
-	fmt.Println("looking for solvable lines connected to", eID)
-	lines := make(map[uint]*Constraint)
-	cList := g.unsolvedConstraintsFor(eID)
-	for _, c := range cList {
-		other := c.Element1
-		if other.GetID() == eID {
-			other = c.Element2
-		}
-		if other.GetType() == el.Point {
+func (g *GraphCluster) solvableLines() map[uint][]*Constraint {
+	// Add ability to return lines with two constraints connected to solved elements
+
+	fmt.Println("looking for solvable lines")
+	lines := make(map[uint][]*Constraint)
+	unsolved := g.unsolvedElements()
+	for _, eId := range unsolved {
+		fmt.Printf("checking element %d\n", eId)
+		e := g.elements[eId]
+		if e.GetType() == el.Point {
+			fmt.Println("element is a point, skipping")
 			continue
 		}
-		lineCs := g.unsolvedConstraintsFor(other.GetID())
-		solved := g.elementSolveCount(other.GetID())
-		var canSolve *Constraint = nil
-		for _, lineC := range lineCs {
-			if lineC.Element1.GetID() == eID && lineC.Element2.GetID() == other.GetID() {
-				canSolve = lineC
-				break
-			}
-			if lineC.Element2.GetID() == eID && lineC.Element1.GetID() == other.GetID() {
-				canSolve = lineC
-				break
-			}
+		solved := g.elementSolveCount(eId)
+		if solved > 1 {
+			fmt.Printf("element has %d solved constraints, skipping", solved)
+			continue
 		}
-		if solved == 1 && canSolve != nil {
-			lines[other.GetID()] = canSolve
+
+		lineCs := g.unsolvedConstraintsFor(eId)
+		// Find constraints w/ a solved element
+		fmt.Printf("looking for constraints w/ solved elements -- have %d to check", len(lineCs))
+		for _, c := range lineCs {
+			other := c.Element1
+			if other.GetID() == eId {
+				other = c.Element2
+			}
+			if other.GetType() == el.Line {
+				continue
+			}
+
+			otherCs := g.elementSolveCount(other.GetID())
+			if otherCs < 2 {
+				fmt.Printf("skipping constraint %d -- other element (%d) is not solved\n", c.GetID(), other.GetID())
+				continue
+			}
+			fmt.Printf("adding line %d as solvable with constraint %d\n", eId, c.GetID())
+			if _, ok := lines[eId]; !ok {
+				lines[eId] = make([]*constraint.Constraint, 0, 2)
+			}
+			lines[eId] = append(lines[eId], c)
+			break
 		}
 	}
 	return lines
@@ -376,17 +391,30 @@ func (g *GraphCluster) localSolve() solver.SolveState {
 		g.solved.Add(c[1].GetID())
 
 		// Step 3
-		// Look for lines connected to e that have 1 solved constraint
+		// Look for solvable lines that have 1 solved constraint
 		fmt.Println("Local Solve Step 3")
-		lines := g.solvableLines(e)
+		lines := g.solvableLines()
 		fmt.Println("lines found", lines)
-		for _, c := range lines {
-			fmt.Println("Solving constraint", c.GetID())
-			if s := solver.MoveLineToPoint(c); state == solver.Solved {
-				fmt.Println("solve state changed to", s)
-				state = s
+		for eId, cs := range lines {
+			if len(cs) < 1 {
+				continue
 			}
-			g.solved.Add(c.GetID())
+			fmt.Print("Solving line constraint for line ", eId)
+			fmt.Println(" with constraints", cs)
+			if len(cs) > 1 {
+				if s := solver.MoveLineToPoints(cs); state == solver.Solved {
+					fmt.Println("solve state changed to", s)
+					state = s
+				}
+			} else {
+				if s := solver.MoveLineToPoint(cs[0]); state == solver.Solved {
+					fmt.Println("solve state changed to", s)
+					state = s
+				}
+			}
+			for _, c := range cs {
+				g.solved.Add(c.GetID())
+			}
 		}
 		fmt.Printf("Local Solve Step 4 (check for completion) %d / %d solved\n", g.solved.Count(), len(g.constraints))
 	}
