@@ -166,8 +166,12 @@ func MoveLineToPoint(c *constraint.Constraint) SolveState {
 
 	// If two points, get distance between them, translate constraint value - distance between
 	// If point and line, get distance between them, translate normal to line constraint value - distance between
+	fmt.Printf("moving line %d: %fx + %fy + %f = 0\n", line.GetID(), line.GetA(), line.GetB(), line.GetC())
 	dist := line.DistanceTo(point)
+	fmt.Printf("%f distance\n", dist)
+	fmt.Printf("to point %d: (%f, %f)\n", point.GetID(), point.GetX(), point.GetY())
 	line.TranslateDistance(-(c.GetValue() - dist))
+	fmt.Printf("resulting line %d: %fx + %fy + %f = 0\n", line.GetID(), line.GetA(), line.GetB(), line.GetC())
 	c.Solved = true
 
 	return Solved
@@ -193,12 +197,12 @@ func MoveLineToPoints(c []*constraint.Constraint) SolveState {
 	}
 
 	if c[1].Element1.GetType() == el.Point && c[1].Element2.GetType() == el.Line {
-		p2 = c[0].Element1.(*el.SketchPoint)
-		line2 = c[0].Element2.(*el.SketchLine)
+		p2 = c[1].Element1.(*el.SketchPoint)
+		line2 = c[1].Element2.(*el.SketchLine)
 	}
 	if c[1].Element2.GetType() == el.Point && c[1].Element1.GetType() == el.Line {
-		p2 = c[0].Element2.(*el.SketchPoint)
-		line2 = c[0].Element1.(*el.SketchLine)
+		p2 = c[1].Element2.(*el.SketchPoint)
+		line2 = c[1].Element1.(*el.SketchLine)
 	}
 
 	if line1.GetID() != line2.GetID() {
@@ -307,8 +311,12 @@ func PointFromPoints(c1 *constraint.Constraint, c2 *constraint.Constraint) (*el.
 
 func pointFromPointLine(originalP1 el.SketchElement, originalL2 el.SketchElement, originalP3 el.SketchElement, pointDist float64, lineDist float64) (*el.SketchPoint, SolveState) {
 	p1 := el.CopySketchElement(originalP1).(*el.SketchPoint)
-	l2 := el.CopySketchElement(originalL2)
+	l2 := el.CopySketchElement(originalL2).(*el.SketchLine)
 	p3 := el.CopySketchElement(originalP3).(*el.SketchPoint)
+	fmt.Printf("pointFromPointLine: solving for point distance %f from p1 and distance %f from l2\n", pointDist, lineDist)
+	fmt.Printf("\tp1: (%f, %f)\n", p1.X, p1.Y)
+	fmt.Printf("\tl2: %fx + %fy + %f = 0\n", l2.GetA(), l2.GetB(), l2.GetC())
+	fmt.Printf("\tinitial p3: (%f, %f)\n", p3.X, p3.Y)
 	distanceDifference := l2.DistanceTo(p1)
 
 	// rotate l2 to X axis
@@ -318,8 +326,8 @@ func pointFromPointLine(originalP1 el.SketchElement, originalL2 el.SketchElement
 	p3.Rotate(angle)
 
 	// translate l2 to X axis
-	yTranslate := l2.(*el.SketchLine).GetOriginDistance() - lineDist
-	if utils.StandardFloatCompare(l2.(*el.SketchLine).GetC()-yTranslate, lineDist) != 0 {
+	yTranslate := l2.GetOriginDistance() - lineDist
+	if utils.StandardFloatCompare(l2.GetC()-yTranslate, lineDist) != 0 {
 		yTranslate *= -1
 	}
 	l2.Translate(0, yTranslate)
@@ -329,6 +337,7 @@ func pointFromPointLine(originalP1 el.SketchElement, originalL2 el.SketchElement
 	p3.Translate(-xTranslate, yTranslate)
 
 	if pointDist < math.Abs(p1.GetY()) {
+		fmt.Printf("pointFromPointLine: Nonconvergent with pointDist %f < p1.y %f\n", pointDist, math.Abs(p1.Y))
 		return nil, NonConvergent
 	}
 

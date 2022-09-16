@@ -79,8 +79,8 @@ func (g *SketchGraph) CombinePoints(e1 el.SketchElement, e2 el.SketchElement) el
 			constraint.Element2 = e1
 		}
 	}
-	g.eToC[e1.GetID()] = append(g.eToC[e1.GetID()], g.eToC[e2.GetID()]...)
 	// remove e2 from freenodes, elements
+	g.eToC[e1.GetID()] = append(g.eToC[e1.GetID()], g.eToC[e2.GetID()]...)
 	g.freeNodes.Remove(e2.GetID())
 	delete(g.elements, e2.GetID())
 	return e1
@@ -258,12 +258,12 @@ func (g *SketchGraph) createCluster(first uint) *GraphCluster {
 		fmt.Printf("createCluster(%d): Failed to find first constraint %d\n", clusterNum, first)
 		return nil
 	}
-	firstConstraint := constraint.CopyConstraint(oc)
-	c.AddConstraint(firstConstraint)
-	g.freeNodes.Remove(firstConstraint.Element1.GetID())
-	g.freeNodes.Remove(firstConstraint.Element2.GetID())
-	g.usedNodes.Add(firstConstraint.Element1.GetID())
-	g.usedNodes.Add(firstConstraint.Element2.GetID())
+	// firstConstraint := constraint.CopyConstraint(oc)
+	c.AddConstraint(oc)
+	g.freeNodes.Remove(oc.Element1.GetID())
+	g.freeNodes.Remove(oc.Element2.GetID())
+	g.usedNodes.Add(oc.Element1.GetID())
+	g.usedNodes.Add(oc.Element2.GetID())
 	delete(g.constraints, first)
 	fmt.Printf("createCluster(%d): added initial 2 elements\n", clusterNum)
 	for toAdd := g.eligibleElements(c); len(toAdd) > 0; toAdd = g.eligibleElements(c) {
@@ -277,12 +277,12 @@ func (g *SketchGraph) createCluster(first uint) *GraphCluster {
 					fmt.Printf("createCluster(%d): Failed to find constraint %d for element %d\n", clusterNum, cId, eId)
 					continue
 				}
-				cc := constraint.CopyConstraint(oc)
-				c.AddConstraint(cc)
-				g.freeNodes.Remove(cc.Element1.GetID())
-				g.freeNodes.Remove(cc.Element2.GetID())
-				g.usedNodes.Add(cc.Element1.GetID())
-				g.usedNodes.Add(cc.Element2.GetID())
+				//cc := constraint.CopyConstraint(oc)
+				c.AddConstraint(oc)
+				g.freeNodes.Remove(oc.Element1.GetID())
+				g.freeNodes.Remove(oc.Element2.GetID())
+				g.usedNodes.Add(oc.Element1.GetID())
+				g.usedNodes.Add(oc.Element2.GetID())
 				delete(g.constraints, cId)
 			}
 			fmt.Printf("%d constraints to add to the cluster\n", len(cIds))
@@ -421,6 +421,12 @@ func (g *SketchGraph) logConstraintsElements() {
 	fmt.Println()
 }
 
+func (g *SketchGraph) updateElements(c *GraphCluster) {
+	for eId, e := range c.elements {
+		g.elements[eId] = e
+	}
+}
+
 // Solve builds the graph and solves the sketch
 func (g *SketchGraph) Solve() solver.SolveState {
 	g.logConstraintsElements()
@@ -440,9 +446,13 @@ func (g *SketchGraph) Solve() solver.SolveState {
 	fmt.Printf("The first cluster has %d constraints\n", len(g.clusters[0].constraints))
 	for _, c := range g.clusters {
 		clusterState := c.Solve()
-		if g.state == solver.Solved && clusterState != solver.Solved && len(g.clusters) == 1 {
+		g.updateElements(c)
+		fmt.Printf("Solved cluster with state %d\n", clusterState)
+		c.logElements()
+		if g.state == solver.None || (g.state != clusterState && !(g.state != solver.Solved && clusterState == solver.Solved)) {
 			g.state = clusterState
 		}
+		fmt.Printf("Current graph solve state %d\n", g.state)
 	}
 	g.UpdateConstraintLevels()
 	return g.state

@@ -369,9 +369,17 @@ func (s *Sketch) Solve() error {
 	if angle != 0 {
 		s.sketch.Rotate(s.Origin.element.AsPoint(), angle)
 	}*/
+	var copyElements func(e *Element, sketch *core.SketchGraph)
+	copyElements = func(e *Element, sketch *core.SketchGraph) {
+		e.element = s.sketch.GetElement(e.element.GetID())
+		for _, child := range e.children {
+			copyElements(child, sketch)
+		}
+	}
 
 	// Load solved values back into our elements
 	for _, e := range s.Elements {
+		copyElements(e, s.sketch)
 		e.valuesFromSketch(s)
 	}
 
