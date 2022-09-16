@@ -216,35 +216,26 @@ func (g *SketchGraph) findStartConstraint() uint {
 // Returns element ids which are connected to the cluster by 2 constraints
 func (g *SketchGraph) eligibleElements(c *GraphCluster) map[uint][]uint {
 	eligible := make(map[uint][]uint)
-	fmt.Printf("Looking for eligible elements for cluster:\n")
-	c.logElements()
-	fmt.Println()
 	for _, eId := range g.freeNodes.Contents() {
 		constraints := g.eToC[eId]
 		connections := make([]uint, 0, 2)
 		for _, constraint := range constraints {
 			// skip constraints already in a cluster
 			if _, ok := g.constraints[constraint.GetID()]; !ok {
-				fmt.Printf("Skipping constraint %d because it's already in a cluster\n", constraint.GetID())
 				continue
 			}
 			if !c.HasElementID(constraint.Element1.GetID()) && !c.HasElementID(constraint.Element2.GetID()) {
-				fmt.Printf("Skipping constraint %d because it doesn't have an element in the cluster\n", constraint.GetID())
 				continue
 			}
-			fmt.Printf("Adding a connection for element %d via constraint %d to the cluster\n", eId, constraint.GetID())
 			connections = append(connections, constraint.GetID())
 		}
 
 		if len(connections) < 2 {
-			fmt.Printf("Skipping element %d because it only has %d connections to the cluster\n", eId, len(connections))
 			continue
 		}
-		fmt.Printf("Adding element %d as an eligible element with %d connections\n", eId, len(connections))
 		eligible[eId] = connections
 	}
 
-	fmt.Printf("returning %d eligible elements\n", len(eligible))
 	return eligible
 }
 
@@ -255,7 +246,7 @@ func (g *SketchGraph) createCluster(first uint) *GraphCluster {
 	clusterNum := len(g.clusters)
 	oc, ok := g.GetConstraint(first)
 	if !ok {
-		fmt.Printf("createCluster(%d): Failed to find first constraint %d\n", clusterNum, first)
+		fmt.Printf("createCluster(%d): Failed to find initial constraint %d\n", clusterNum, first)
 		return nil
 	}
 	// firstConstraint := constraint.CopyConstraint(oc)
@@ -265,11 +256,14 @@ func (g *SketchGraph) createCluster(first uint) *GraphCluster {
 	g.usedNodes.Add(oc.Element1.GetID())
 	g.usedNodes.Add(oc.Element2.GetID())
 	delete(g.constraints, first)
-	fmt.Printf("createCluster(%d): added initial 2 elements\n", clusterNum)
 	for toAdd := g.eligibleElements(c); len(toAdd) > 0; toAdd = g.eligibleElements(c) {
-		fmt.Printf("createCluster(%d): adding %d elements\n", clusterNum, len(toAdd))
 		for eId, cIds := range toAdd {
 			fmt.Printf("createCluster(%d): adding element %d\n", clusterNum, eId)
+			level := el.FullyConstrained
+			if len(cIds) > 2 {
+				level = el.OverConstrained
+			}
+			g.elements[eId].SetConstraintLevel(level)
 			for _, cId := range cIds {
 				fmt.Printf("createCluster(%d): adding constraint id %d\n", clusterNum, cId)
 				oc, ok = g.GetConstraint(cId)
@@ -285,7 +279,6 @@ func (g *SketchGraph) createCluster(first uint) *GraphCluster {
 				g.usedNodes.Add(oc.Element2.GetID())
 				delete(g.constraints, cId)
 			}
-			fmt.Printf("%d constraints to add to the cluster\n", len(cIds))
 		}
 	}
 	fmt.Printf("createCluster(%d) completed building cluster with %d elements and %d constraints\n", clusterNum, len(c.elements), len(c.constraints))
@@ -344,6 +337,14 @@ func (g *SketchGraph) createClusters() {
 		// Find constraint to begin new cluster
 		g.createCluster(g.findStartConstraint())
 	}
+	for _, c := range g.constraints {
+		if !g.usedNodes.Contains(c.Element1.GetID()) {
+			g.elements[c.Element1.GetID()].SetConstraintLevel(el.UnderConstrained)
+		}
+		if !g.usedNodes.Contains(c.Element2.GetID()) {
+			g.elements[c.Element1.GetID()].SetConstraintLevel(el.UnderConstrained)
+		}
+	}
 	fmt.Printf("Created clusters -- number of unassigned constraints: %d\n", len(g.constraints))
 }
 
@@ -373,12 +374,6 @@ func (g *SketchGraph) ConstraintLevel(e el.SketchElement) el.ConstraintLevel {
 		return el.OverConstrained
 	default:
 		return el.FullyConstrained
-	}
-}
-
-func (g *SketchGraph) UpdateConstraintLevels() {
-	for _, e := range g.elements {
-		e.SetConstraintLevel(g.ConstraintLevel(e))
 	}
 }
 
@@ -454,7 +449,6 @@ func (g *SketchGraph) Solve() solver.SolveState {
 		}
 		fmt.Printf("Current graph solve state %d\n", g.state)
 	}
-	g.UpdateConstraintLevels()
 	return g.state
 }
 

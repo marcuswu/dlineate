@@ -139,7 +139,7 @@ func (e *Element) DrawToSVG(s *Sketch, img *svg.SVG, mult float64) {
 	if e.elementType == Axis {
 		color = "gray"
 	}
-	if e.elementType != Axis && s.isElementSolved(e) {
+	if e.elementType != Axis && e.ConstraintLevel() == el.FullyConstrained {
 		color = "black"
 	}
 	switch e.elementType {

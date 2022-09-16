@@ -61,12 +61,17 @@ func (e List) Less(i, j int) bool { return e[i].GetID() < e[j].GetID() }
 
 // CopySketchElement creates a deep copy of a SketchElement
 func CopySketchElement(e SketchElement) SketchElement {
+	var n SketchElement
 	if e.GetType() == Point {
 		p := e.(*SketchPoint)
-		return NewSketchPoint(e.GetID(), p.GetX(), p.GetY())
+		n = NewSketchPoint(e.GetID(), p.GetX(), p.GetY())
+		n.SetConstraintLevel(e.ConstraintLevel())
+		return n
 	}
 	l := e.(*SketchLine)
-	return NewSketchLine(l.GetID(), l.GetA(), l.GetB(), l.GetC())
+	n = NewSketchLine(l.GetID(), l.GetA(), l.GetB(), l.GetC())
+	n.SetConstraintLevel(e.ConstraintLevel())
+	return n
 }
 
 // IdentityMap is a map of id to SketchElement
