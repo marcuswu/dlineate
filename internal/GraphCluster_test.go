@@ -92,7 +92,7 @@ func TestGetElement(t *testing.T) {
 	if !ok {
 		t.Error("Should find element with id 2 got", ok)
 	}
-	if e3 != element3 {
+	if element3.GetType() != el.Line || utils.StandardFloatCompare(e3.AngleToLine(element3.AsLine()), 0) != 0 {
 		t.Error("Element with id 2 should be equal to ", e3, ", got", element3)
 	}
 
@@ -171,9 +171,12 @@ func TestTranslate(t *testing.T) {
 	g.AddConstraint(c2)
 
 	g.Translate(1, 1)
+	e1 = g.elements[0].AsPoint()
+	e2 = g.elements[1].AsPoint()
+	e3 = g.elements[2].AsLine()
 
 	if e1.GetX() != 1 && e1.GetY() != 2 {
-		t.Error("Expected the e1 to be 1, 2, got", e1)
+		t.Error("Expected the e1 to be 1, 2, got", e1.GetX(), ",", e1.GetY())
 	}
 	if e2.GetX() != 3 && e2.GetY() != 2 {
 		t.Error("Expected the e1 to be 3, 2, got", e2)
@@ -203,6 +206,9 @@ func TestRotate(t *testing.T) {
 	g.AddConstraint(c2)
 
 	g.Rotate(o, math.Pi/2.0)
+	e1 = g.elements[0].AsPoint()
+	e2 = g.elements[1].AsPoint()
+	e3 = g.elements[2].AsLine()
 
 	mag := math.Sqrt((0.4 * 0.4) + (0.8 * 0.8))
 	A := -0.4 / mag
@@ -245,6 +251,10 @@ func TestLocalSolve0(t *testing.T) {
 	g.AddConstraint(c3)
 
 	state := g.localSolve()
+
+	c1 = g.constraints[0]
+	c2 = g.constraints[1]
+	c3 = g.constraints[2]
 
 	if state != solver.Solved {
 		t.Error("Expected solved state(4), got", state)
@@ -307,6 +317,12 @@ func TestLocalSolve1(t *testing.T) {
 	// 1. Then p2 to l1 and l2
 	// 2. Finally p1 to p2 and l1
 	state := g.localSolve()
+
+	c1 = g.constraints[0]
+	c2 = g.constraints[1]
+	c3 = g.constraints[2]
+	c4 = g.constraints[3]
+	c5 = g.constraints[4]
 
 	if state != solver.Solved {
 		t.Error("Expected solved state(4), got", state)
@@ -406,6 +422,16 @@ func TestLocalSolve2(t *testing.T) {
 	g.AddConstraint(c9)
 
 	state := g.localSolve()
+
+	c1 = g.constraints[0]
+	c2 = g.constraints[1]
+	c3 = g.constraints[2]
+	c4 = g.constraints[3]
+	c5 = g.constraints[4]
+	c6 = g.constraints[5]
+	c7 = g.constraints[6]
+	c8 = g.constraints[7]
+	c9 = g.constraints[8]
 
 	if state != solver.Solved {
 		t.Error("Expected solved state(4), got", state)
@@ -565,6 +591,28 @@ func TestSolveMerge(t *testing.T) {
 	if state != solver.Solved {
 		t.Error("Expected solved state(4), got", state)
 	}
+
+	t.Logf("g0 elements length %d\n", len(g0.elements))
+	t.Logf("element %d type %v\n", 0, g0.elements[0].GetType())
+	l1 = g0.elements[0].AsLine()
+	t.Logf("element %d type %v\n", 1, g0.elements[1].GetType())
+	p1 = g0.elements[1].AsPoint()
+	t.Logf("element %d type %v\n", 2, g0.elements[2].GetType())
+	p2 = g0.elements[2].AsPoint()
+	t.Logf("element %d type %v\n", 3, g0.elements[3].GetType())
+	l2 = g0.elements[3].AsLine()
+	t.Logf("element %d type %v\n", 4, g0.elements[4].GetType())
+	l3 = g0.elements[4].AsLine()
+	t.Logf("element %d type %v\n", 5, g0.elements[5].GetType())
+	p3 = g0.elements[5].AsPoint()
+	t.Logf("element %d type %v\n", 6, g0.elements[6].GetType())
+	l4 = g0.elements[6].AsLine()
+	t.Logf("element %d type %v\n", 7, g0.elements[7].GetType())
+	l5 = g0.elements[7].AsLine()
+	t.Logf("element %d type %v\n", 8, g0.elements[8].GetType())
+	p4 = g0.elements[8].AsPoint()
+	t.Logf("element %d type %v\n", 9, g0.elements[9].GetType())
+	p5 = g0.elements[9].AsPoint()
 
 	rad2Deg := func(rad float64) float64 { return (rad / math.Pi) * 180 }
 	deg2Rad := func(deg float64) float64 { return (deg / 180) * math.Pi }

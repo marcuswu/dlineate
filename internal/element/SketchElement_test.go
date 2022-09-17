@@ -137,7 +137,7 @@ func TestGetOriginDistance(t *testing.T) {
 	var l1 = NewSketchLine(0, 1, 2, -1)
 	t.Log("before translate point nearest origin: ", l1.PointNearestOrigin())
 	result := l1.GetOriginDistance()
-	if utils.StandardFloatCompare(result, .4472135954999579) != 0 {
+	if utils.StandardFloatCompare(result, -0.4472135954999579) != 0 {
 		t.Error("Expected .4472135954999579, got ", result)
 	}
 }
@@ -177,7 +177,7 @@ func TestDistanceTo(t *testing.T) {
 
 	var l2 = NewSketchLine(0, 1, 2, -3.236067977)
 	result = l1.DistanceTo(l2)
-	if utils.StandardFloatCompare(result, -1) != 0 {
+	if utils.StandardFloatCompare(result, 1) != 0 {
 		t.Error("Expected 1, got ", result)
 	}
 

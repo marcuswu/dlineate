@@ -8,22 +8,27 @@ import (
 
 func main() {
 	sketch := dlineation.NewSketch()
+
 	// Add elements
-	l1 := sketch.AddLine(0.1, -0.2, 1.1, 0.1)
-	l2 := sketch.AddLine(1.01, 0.2, 1.1, 0.9)
-	l3 := sketch.AddLine(1.1, 1.2, 0.1, 1.1)
-	l4 := sketch.AddLine(-0.1, 1.2, 0.1, 0.1)
+	l1 := sketch.AddLine(0.0, 0.0, 3.13, 0.0)
+	l2 := sketch.AddLine(3.13, 0.0, 5.14, 2.27)
+	l3 := sketch.AddLine(5.14, 2.27, 2.28, 4.72)
+	l4 := sketch.AddLine(2.28, 4.72, -1.04, 3.56)
+	l5 := sketch.AddLine(-1.04, 3.56, 0.0, 0.0)
 
 	// Add constraints
-	sketch.AddCoincidentConstraint(l2.Start(), l1.End())
-	sketch.AddCoincidentConstraint(l3.Start(), l2.End())
-	sketch.AddCoincidentConstraint(l4.Start(), l3.End())
-	sketch.AddCoincidentConstraint(l1.Start(), l4.End())
-	sketch.AddPerpendicularConstraint(l1, l2)
-	sketch.AddParallelConstraint(l1, l3)
-	sketch.AddDistanceConstraint(l1, nil, 1.0)
-	sketch.AddDistanceConstraint(l2, nil, 1.0)
-	sketch.AddDistanceConstraint(l3, nil, 1.0)
+	sketch.AddCoincidentConstraint(l1.End(), l2.Start())
+	sketch.AddCoincidentConstraint(l2.End(), l3.Start())
+	sketch.AddCoincidentConstraint(l3.End(), l4.Start())
+	sketch.AddCoincidentConstraint(l4.End(), l5.Start())
+	sketch.AddCoincidentConstraint(l5.End(), l1.Start())
+	sketch.AddAngleConstraint(l2, l3, 72)
+	sketch.AddAngleConstraint(l3, l4, 72)
+	sketch.AddAngleConstraint(l4, l5, 72)
+	sketch.AddDistanceConstraint(l1, nil, 4.0)
+	sketch.AddDistanceConstraint(l2, nil, 4.0)
+	sketch.AddDistanceConstraint(l4, nil, 4.0)
+	sketch.AddDistanceConstraint(l5, nil, 4.0)
 
 	// Solve
 	err := sketch.Solve()
@@ -41,13 +46,16 @@ func main() {
 	fmt.Printf("l3 end constraint level %v\n", l3.End().ConstraintLevel())
 	fmt.Printf("l4 start constraint level %v\n", l4.Start().ConstraintLevel())
 	fmt.Printf("l4 end constraint level %v\n", l4.End().ConstraintLevel())
+	fmt.Printf("l5 start constraint level %v\n", l5.Start().ConstraintLevel())
+	fmt.Printf("l5 end constraint level %v\n", l5.End().ConstraintLevel())
 	fmt.Printf("l1 constraint level %v\n", l1.ConstraintLevel())
 	fmt.Printf("l2 constraint level %v\n", l2.ConstraintLevel())
 	fmt.Printf("l3 constraint level %v\n", l3.ConstraintLevel())
 	fmt.Printf("l4 constraint level %v\n", l4.ConstraintLevel())
+	fmt.Printf("l5 constraint level %v\n", l5.ConstraintLevel())
 
 	// Export Image
-	sketch.ExportImage("squareExample.svg")
+	sketch.ExportImage("pentagonExample.svg")
 
 	fmt.Println("Solved sketch: ")
 	values := l1.Values(sketch)
@@ -58,4 +66,6 @@ func main() {
 	fmt.Printf("l3: %f, %f to %f, %f\n", values[0], values[1], values[2], values[3])
 	values = l4.Values(sketch)
 	fmt.Printf("l4: %f, %f to %f, %f\n", values[0], values[1], values[2], values[3])
+	values = l5.Values(sketch)
+	fmt.Printf("l5: %f, %f to %f, %f\n", values[0], values[1], values[2], values[3])
 }

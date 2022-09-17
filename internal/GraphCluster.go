@@ -33,6 +33,10 @@ func NewGraphCluster() *GraphCluster {
 	return g
 }
 
+func (g *GraphCluster) AddElement(e el.SketchElement) {
+	g.elements[e.GetID()] = e
+}
+
 // AddConstraint adds a constraint to the cluster
 func (g *GraphCluster) AddConstraint(c *Constraint) {
 	gc := constraint.CopyConstraint(c)

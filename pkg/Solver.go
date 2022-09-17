@@ -31,13 +31,13 @@ func NewSketch() *Sketch {
 	s.sketch = core.NewSketch()
 	s.passes = 0
 	s.eToC = make(map[uint][]*Constraint)
-	/* TODO: These need to be in a special cluster that isn't counted towards solving
+	// TODO: These need to be in a special cluster that isn't counted towards solving
 	s.Origin = s.addOrigin()
 	s.XAxis = s.addAxis(0, -1, 0)
 	s.YAxis = s.addAxis(1, 0, 0)
 	s.AddAngleConstraint(s.XAxis, s.YAxis, 90)
 	s.AddCoincidentConstraint(s.Origin, s.XAxis)
-	s.AddCoincidentConstraint(s.Origin, s.YAxis)*/
+	s.AddCoincidentConstraint(s.Origin, s.YAxis)
 
 	return s
 }
@@ -81,7 +81,7 @@ func (s *Sketch) addOrigin() *Element {
 	o.values = append(o.values, 0)
 	o.values = append(o.values, 0)
 
-	o.element = s.sketch.AddPoint(0, 0) // AddLine normalizes a, b, c
+	o.element = s.sketch.AddOrigin(0, 0) // AddLine normalizes a, b, c
 	return o
 }
 
@@ -92,7 +92,7 @@ func (s *Sketch) addAxis(a float64, b float64, c float64) *Element {
 	ax.values = append(ax.values, b)
 	ax.values = append(ax.values, c)
 
-	ax.element = s.sketch.AddLine(a, b, c) // AddLine normalizes a, b, c
+	ax.element = s.sketch.AddAxis(a, b, c) // AddLine normalizes a, b, c
 	return ax
 }
 
