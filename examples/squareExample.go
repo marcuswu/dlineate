@@ -21,13 +21,9 @@ func main() {
 	sketch.AddCoincidentConstraint(l1.Start(), l4.End())
 	sketch.AddPerpendicularConstraint(l1, l2)
 	sketch.AddParallelConstraint(l1, l3)
-	// TODO: Adding constraint for a line is broken right now...
-	/*sketch.AddDistanceConstraint(l1, nil, 1.0)
+	sketch.AddDistanceConstraint(l1, nil, 1.0)
 	sketch.AddDistanceConstraint(l2, nil, 1.0)
-	sketch.AddDistanceConstraint(l3, nil, 1.0)*/
-	sketch.AddDistanceConstraint(l1.Start(), l1.End(), 1.0)
-	sketch.AddDistanceConstraint(l2.Start(), l2.End(), 1.0)
-	sketch.AddDistanceConstraint(l3.Start(), l3.End(), 1.0)
+	sketch.AddDistanceConstraint(l3, nil, 1.0)
 
 	// Solve
 	err := sketch.Solve()

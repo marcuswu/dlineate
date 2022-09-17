@@ -33,6 +33,12 @@ func (s *Sketch) addDistanceConstraint(p1 *Element, p2 *Element, v float64) *ic.
 		fallthrough
 	case Line:
 		if p2 == nil {
+			fmt.Printf(
+				"Adding distance constraint for line %d. Translating to distance constraint between points %d and %d",
+				p1.element.GetID(),
+				p1.children[0].element.GetID(),
+				p1.children[1].element.GetID(),
+			)
 			return s.sketch.AddConstraint(ic.Distance, p1.children[0].element, p1.children[1].element, v)
 		}
 		isCircle := p2.elementType == Circle

@@ -400,8 +400,28 @@ func (s *Sketch) Solve() error {
 	}
 }
 
-func (s *Sketch) calculateRectangle() (int, int, int, int) {
-	return 0, 0, 0, 0
+func (s *Sketch) calculateRectangle(scale float64) (int, int, int, int) {
+	minX := math.MaxFloat64
+	minY := math.MaxFloat64
+	maxX := math.MaxFloat64 * -1
+	maxY := math.MaxFloat64 * -1
+
+	for _, e := range s.Elements {
+		lX, lY, hX, hY := e.minMaxXY()
+		if lX < minX {
+			minX = lX
+		}
+		if lY < minY {
+			minY = lY
+		}
+		if hX > maxX {
+			maxX = hX
+		}
+		if hY > maxY {
+			maxY = hY
+		}
+	}
+	return int(minX * scale), int(minY * scale), int(maxX * scale), int(maxY * scale)
 }
 
 // ExportImage exports an image representing the current state of the sketch.
@@ -411,6 +431,7 @@ func (s *Sketch) calculateRectangle() (int, int, int, int) {
 func (s *Sketch) ExportImage(filename string, args ...int) error {
 	width := 500
 	height := 500
+	scale := 100.0
 
 	if len(args) > 0 {
 		width = args[0]
@@ -426,7 +447,7 @@ func (s *Sketch) ExportImage(filename string, args ...int) error {
 	defer f.Close()
 	img := svg.New(f)
 
-	minx, miny, maxx, maxy := s.calculateRectangle()
+	minx, miny, maxx, maxy := s.calculateRectangle(scale)
 
 	// Calculate viewbox
 	vw := float64(maxx-minx) / 0.9
@@ -436,11 +457,11 @@ func (s *Sketch) ExportImage(filename string, args ...int) error {
 	img.Startview(width, height, minx, miny, viewBoxSize, viewBoxSize)
 
 	// Draw axes
-	img.Line(minx, 0, maxx, 0, "fill:none;stroke:gray")
-	img.Line(minx, 0, maxx, 0, "fill:none;stroke:gray")
+	img.Line(minx, 0, maxx, 0, "fill:none;stroke:gray;stroke-width:0.5")
+	img.Line(0, miny, 0, maxy, "fill:none;stroke:gray;stroke-width:0.5")
 
 	for _, e := range s.Elements {
-		e.DrawToSVG(s, img, 100.0)
+		e.DrawToSVG(s, img, scale)
 	}
 
 	img.End()

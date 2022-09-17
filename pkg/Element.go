@@ -134,6 +134,106 @@ func (e *Element) ConstraintLevel() el.ConstraintLevel {
 	return level
 }
 
+func (e *Element) minMaxXY() (float64, float64, float64, float64) {
+	minX := math.MaxFloat64
+	minY := math.MaxFloat64
+	maxX := math.MaxFloat64 * -1
+	maxY := math.MaxFloat64 * -1
+
+	switch e.elementType {
+	case Point:
+		if e.values[0] < minX {
+			minX = e.values[0]
+		}
+		if e.values[0] > maxX {
+			maxX = e.values[0]
+		}
+		if e.values[1] < minX {
+			minY = e.values[1]
+		}
+		if e.values[1] > maxX {
+			maxY = e.values[1]
+		}
+	case Line:
+		if e.values[0] < minX {
+			minX = e.values[0]
+		}
+		if e.values[0] > maxX {
+			maxX = e.values[0]
+		}
+		if e.values[1] < minX {
+			minY = e.values[1]
+		}
+		if e.values[1] > maxX {
+			maxY = e.values[1]
+		}
+		if e.values[2] < minX {
+			minX = e.values[2]
+		}
+		if e.values[2] > maxX {
+			maxX = e.values[2]
+		}
+		if e.values[3] < minX {
+			minY = e.values[3]
+		}
+		if e.values[3] > maxX {
+			maxY = e.values[3]
+		}
+	case Circle:
+		size := e.values[2]
+		if e.values[0]-size < minX {
+			minX = e.values[0] - size
+		}
+		if e.values[0]+size > maxX {
+			maxX = e.values[0] + size
+		}
+		if e.values[1]-size < minX {
+			minY = e.values[1] - size
+		}
+		if e.values[1]+size > maxX {
+			maxY = e.values[1] + size
+		}
+	case Arc:
+		if e.values[0] < minX {
+			minX = e.values[0]
+		}
+		if e.values[0] > maxX {
+			maxX = e.values[0]
+		}
+		if e.values[1] < minX {
+			minY = e.values[1]
+		}
+		if e.values[1] > maxX {
+			maxY = e.values[1]
+		}
+		if e.values[2] < minX {
+			minX = e.values[2]
+		}
+		if e.values[2] > maxX {
+			maxX = e.values[2]
+		}
+		if e.values[3] < minX {
+			minY = e.values[3]
+		}
+		if e.values[3] > maxX {
+			maxY = e.values[3]
+		}
+		if e.values[4] < minX {
+			minX = e.values[4]
+		}
+		if e.values[4] > maxX {
+			maxX = e.values[4]
+		}
+		if e.values[5] < minX {
+			minY = e.values[5]
+		}
+		if e.values[5] > maxX {
+			maxY = e.values[5]
+		}
+	}
+	return minX, minY, maxX, maxY
+}
+
 func (e *Element) DrawToSVG(s *Sketch, img *svg.SVG, mult float64) {
 	color := "blue"
 	if e.elementType == Axis {
@@ -142,29 +242,26 @@ func (e *Element) DrawToSVG(s *Sketch, img *svg.SVG, mult float64) {
 	if e.elementType != Axis && e.ConstraintLevel() == el.FullyConstrained {
 		color = "black"
 	}
+	if e.elementType != Axis && e.ConstraintLevel() == el.OverConstrained {
+		color = "red"
+	}
 	switch e.elementType {
 	case Point:
 		// May want to draw a small filled circle
 	case Axis:
 		// drawing handled in Solver
 	case Line:
-		p1 := e.children[0].element.AsPoint()
-		p2 := e.children[1].element.AsPoint()
-		e.values[0] = p1.GetX()
-		e.values[1] = p1.GetY()
-		e.values[2] = p2.GetX()
-		e.values[3] = p2.GetY()
 		x1 := int(e.values[0] * mult)
 		y1 := int(e.values[1] * mult)
 		x2 := int(e.values[2] * mult)
 		y2 := int(e.values[3] * mult)
-		img.Line(x1, y1, x2, y2, fmt.Sprintf("fill:none;stroke:%s", color))
+		img.Line(x1, y1, x2, y2, fmt.Sprintf("fill:none;stroke:%s;stroke-width:0.5", color))
 	case Circle:
 		cx := int(e.values[0] * mult)
 		cy := int(e.values[1] * mult)
 		// find distance constraint on e
 		r := int(e.values[2] * mult)
-		img.Circle(cx, cy, r, fmt.Sprintf("fill: none;stroke:%s", color))
+		img.Circle(cx, cy, r, fmt.Sprintf("fill: none;stroke:%s;stroke-width:0.5", color))
 	case Arc:
 		cx := e.values[0]
 		cy := e.values[1]
@@ -195,7 +292,7 @@ func (e *Element) DrawToSVG(s *Sketch, img *svg.SVG, mult float64) {
 			true,
 			int(ex*mult),
 			int(ey*mult),
-			fmt.Sprintf("fill: none; stroke: %s", color),
+			fmt.Sprintf("fill: none; stroke: %s; stroke-width: 0.5", color),
 		)
 	}
 	e.valuePass = s.passes
