@@ -212,13 +212,13 @@ func TestPointFromPointLine(t *testing.T) {
 	l2 := el.NewSketchLine(1, 1, 1, 2*math.Sqrt(0.5))
 	p3 := el.NewSketchPoint(2, 0, 2)
 
-	newP3, state := pointFromPointLine(p1, l2, p3, 1, 1)
+	_, state := pointFromPointLine(p1, l2, p3, 1, 1)
 
 	if state != NonConvergent {
 		t.Error("Expected non-convergent state got ", state)
 	}
 
-	newP3, state = pointFromPointLine(p1, l2, p3, 1, 2)
+	newP3, state := pointFromPointLine(p1, l2, p3, 1, 2)
 
 	if state != Solved {
 		t.Error("Expected solved state got ", state)

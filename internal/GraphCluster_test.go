@@ -553,7 +553,7 @@ func TestSolveMerge(t *testing.T) {
 	g1.AddConstraint(c6)
 	c7 := constraint.NewConstraint(6, constraint.Distance, p3, l3, 0, false)
 	g1.AddConstraint(c7)
-	c8 := constraint.NewConstraint(7, constraint.Angle, l3, l2, -(108.0/180.0)*math.Pi, false)
+	c8 := constraint.NewConstraint(7, constraint.Angle, l3, l2, (108.0/180.0)*math.Pi, false)
 	g1.AddConstraint(c8)
 
 	g2 := NewGraphCluster()
@@ -578,9 +578,9 @@ func TestSolveMerge(t *testing.T) {
 	g2.AddConstraint(c14)
 	c15 := constraint.NewConstraint(14, constraint.Distance, p4, l4, 0, false)
 	g2.AddConstraint(c15)
-	c16 := constraint.NewConstraint(15, constraint.Angle, l5, l4, -(108.0/180.0)*math.Pi, false)
+	c16 := constraint.NewConstraint(15, constraint.Angle, l5, l4, (108.0/180.0)*math.Pi, false)
 	g2.AddConstraint(c16)
-	c17 := constraint.NewConstraint(16, constraint.Angle, l3, l4, -(108.0/180.0)*math.Pi, false)
+	c17 := constraint.NewConstraint(16, constraint.Angle, l3, l4, (108.0/180.0)*math.Pi, false)
 	g2.AddConstraint(c17)
 
 	g0.others = append(g0.others, g1)

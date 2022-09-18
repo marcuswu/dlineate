@@ -582,7 +582,9 @@ func (g *GraphCluster) solveMerge(c1 *GraphCluster, c2 *GraphCluster) solver.Sol
 	}
 	fmt.Printf("Solved all but final element (%d): %d, %d\n", final, e[0], e[1])
 	g.logElements()
+	fmt.Println("")
 	c1.logElements()
+	fmt.Println("")
 	c2.logElements()
 	fmt.Println("")
 
