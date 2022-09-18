@@ -318,9 +318,9 @@ func pointFromPointLine(originalP1 el.SketchElement, originalL2 el.SketchElement
 	p3.Rotate(angle)
 
 	// translate l2 to X axis
-	yTranslate := -l2.GetOriginDistance() - lineDist
-	if utils.StandardFloatCompare(l2.GetC()-yTranslate, lineDist) != 0 {
-		yTranslate *= -1
+	yTranslate := l2.GetC() - lineDist
+	if math.Abs(p1.GetY()+yTranslate) > pointDist {
+		yTranslate = l2.GetC() + lineDist
 	}
 	l2.Translate(0, yTranslate)
 	// move p1 to Y axis
