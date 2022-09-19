@@ -17,3 +17,5 @@
 # VSCode project files
 *.code-workspace
 .vscode
+
+*.svg

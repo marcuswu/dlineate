@@ -6,7 +6,7 @@
         Or something is wrong with internal that is exposed via how the interface is using it
   - [X] Add / fix distance constraint for a line
   - [X] Figure out how to handle origin and axes
-  - [ ] Fix tests
+  - [X] Fix tests
   - [ ] Build out the pentagon example
   - [ ] Build out the BellSketch from the curta II project
 - [x] Load element values from solver when solved

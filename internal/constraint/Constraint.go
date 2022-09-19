@@ -1,6 +1,8 @@
 package constraint
 
 import (
+	"fmt"
+
 	el "github.com/marcuswu/dlineation/internal/element"
 )
 
@@ -12,6 +14,17 @@ const (
 	Distance Type = iota
 	Angle
 )
+
+func (t Type) String() string {
+	switch t {
+	case Distance:
+		return "Distance"
+	case Angle:
+		return "Angle"
+	default:
+		return fmt.Sprintf("%d", int(t))
+	}
+}
 
 // Constraint interface representing a constraint
 /*type Constraint interface {

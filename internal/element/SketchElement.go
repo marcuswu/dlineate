@@ -11,6 +11,17 @@ const (
 	Line
 )
 
+func (t Type) String() string {
+	switch t {
+	case Point:
+		return "Point"
+	case Line:
+		return "Line"
+	default:
+		return fmt.Sprintf("%d", int(t))
+	}
+}
+
 type ConstraintLevel uint
 
 const (

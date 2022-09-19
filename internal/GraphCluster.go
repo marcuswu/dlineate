@@ -42,12 +42,14 @@ func (g *GraphCluster) AddConstraint(c *Constraint) {
 	gc := constraint.CopyConstraint(c)
 	g.constraints = append(g.constraints, gc)
 	if _, ok := g.elements[gc.Element1.GetID()]; !ok {
+		fmt.Printf("Cluster adding element %d\n", gc.Element1.GetID())
 		g.elements[gc.Element1.GetID()] = gc.Element1
 	} else {
 		gc.Element1 = g.elements[gc.Element1.GetID()]
 	}
 
 	if _, ok := g.elements[gc.Element2.GetID()]; !ok {
+		fmt.Printf("Cluster adding element %d\n", gc.Element2.GetID())
 		g.elements[gc.Element2.GetID()] = gc.Element2
 	} else {
 		gc.Element2 = g.elements[gc.Element2.GetID()]
