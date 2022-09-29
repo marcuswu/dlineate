@@ -1,6 +1,7 @@
 package element
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/marcuswu/dlineation/utils"
@@ -242,4 +243,8 @@ func (l *SketchLine) ConstraintLevel() ConstraintLevel {
 
 func (l *SketchLine) SetConstraintLevel(cl ConstraintLevel) {
 	l.constraintLevel = cl
+}
+
+func (l *SketchLine) String() string {
+	return fmt.Sprintf("Line(%d) %fx + %fy + %f = 0", l.id, l.a, l.b, l.c)
 }

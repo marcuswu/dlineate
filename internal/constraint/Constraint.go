@@ -77,6 +77,16 @@ func (c *Constraint) HasElementID(eID uint) bool {
 	return c.Element1.GetID() == eID || c.Element2.GetID() == eID
 }
 
+func (c *Constraint) HasElements(ids ...uint) bool {
+	for _, id := range ids {
+		if id != c.Element1.GetID() && id != c.Element2.GetID() {
+			return false
+		}
+	}
+
+	return true
+}
+
 // First returns the first element in the constraint
 func (c *Constraint) First() el.SketchElement {
 	return c.Element1
@@ -85,6 +95,24 @@ func (c *Constraint) First() el.SketchElement {
 // Second returns the second element in the constraint
 func (c *Constraint) Second() el.SketchElement {
 	return c.Element2
+}
+
+func (c *Constraint) ElementIDs() []uint {
+	return []uint{c.Element1.GetID(), c.Element2.GetID()}
+}
+
+func (c *Constraint) Element(this uint) (el.SketchElement, bool) {
+	if this == c.Element1.GetID() {
+		return c.Element1, true
+	}
+	return c.Element2, this == c.Element2.GetID()
+}
+
+func (c *Constraint) Other(this uint) (el.SketchElement, bool) {
+	if this == c.Element1.GetID() {
+		return c.Element2, true
+	}
+	return c.Element1, this == c.Element2.GetID()
 }
 
 // Equals returns whether two constraints are equal
@@ -115,3 +143,9 @@ func CopyConstraint(c *Constraint) *Constraint {
 		c.Solved,
 	)
 }
+
+type ConstraintList []*Constraint
+
+func (cl ConstraintList) Len() int           { return len(cl) }
+func (cl ConstraintList) Swap(i, j int)      { cl[i], cl[j] = cl[j], cl[i] }
+func (cl ConstraintList) Less(i, j int) bool { return cl[i].id < cl[j].id }

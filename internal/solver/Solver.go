@@ -9,51 +9,23 @@ import (
 	"github.com/marcuswu/dlineation/utils"
 )
 
-// SolveState The state of the sketch graph
-type SolveState uint
-
-// SolveState constants
-const (
-	None SolveState = iota
-	UnderConstrained
-	OverConstrained
-	NonConvergent
-	Solved
-)
-
-func (ss SolveState) String() string {
-	switch ss {
-	case UnderConstrained:
-		return "under constrained"
-	case OverConstrained:
-		return "over constrained"
-	case NonConvergent:
-		return "non-convergent"
-	case Solved:
-		return "solved"
-	default:
-		return fmt.Sprintf("%d", int(ss))
+func SolveConstraint(c *constraint.Constraint) SolveState {
+	if c.Type == constraint.Distance {
+		return SolveDistanceConstraint(c)
 	}
+	return SolveAngleConstraint(c, c.Element2.GetID())
 }
 
-func typeCounts(c1 *constraint.Constraint, c2 *constraint.Constraint) (int, int) {
-	numPoints := 0
-	numLines := 0
-	elements := []el.SketchElement{c1.Element1, c1.Element2, c2.Element1, c2.Element2}
-
-	for _, element := range elements {
-		if element.GetType() == el.Point {
-			numPoints++
-		} else {
-			numLines++
-		}
+func SolveConstraints(c1 *constraint.Constraint, c2 *constraint.Constraint, solveFor el.SketchElement) SolveState {
+	if solveFor.GetType() == el.Point {
+		return SolveForPoint(c1, c2)
 	}
 
-	return numPoints, numLines
+	return SolveForLine(c1, c2)
 }
 
 // SolveConstraints solve two constraints and return the solution state
-func SolveConstraints(c1 *constraint.Constraint, c2 *constraint.Constraint) SolveState {
+func SolveForPoint(c1 *constraint.Constraint, c2 *constraint.Constraint) SolveState {
 	newP3, state := ConstraintResult(c1, c2)
 
 	if newP3 == nil {
@@ -142,88 +114,18 @@ func SolveDistanceConstraint(c *constraint.Constraint) SolveState {
 	return Solved
 }
 
-// MoveLineToPoint solves a constraint between a line and a point where the line needs to move
-func MoveLineToPoint(c *constraint.Constraint) SolveState {
-	if c.Type != constraint.Distance {
-		return NonConvergent
-	}
-
-	var point *el.SketchPoint
-	var line *el.SketchLine
-	var e1Type = c.Element1.GetType()
-	var e2Type = c.Element2.GetType()
-	if e1Type == e2Type {
-		return NonConvergent
-	}
-	if e1Type == el.Point && e2Type == el.Line {
-		point = c.Element1.(*el.SketchPoint)
-		line = c.Element2.(*el.SketchLine)
-	}
-	if e2Type == el.Point && e1Type == el.Line {
-		point = c.Element2.(*el.SketchPoint)
-		line = c.Element1.(*el.SketchLine)
-	}
-
-	// If two points, get distance between them, translate constraint value - distance between
-	// If point and line, get distance between them, translate normal to line constraint value - distance between
-	dist := line.DistanceTo(point)
-	line.TranslateDistance(-(c.GetValue() - dist))
-	c.Solved = true
-
-	return Solved
-}
-
-func MoveLineToPoints(c []*constraint.Constraint) SolveState {
-	if len(c) < 2 || c[0].Type != constraint.Distance || c[1].Type != constraint.Distance {
-		return NonConvergent
-	}
-
-	var line1 *el.SketchLine
-	var line2 *el.SketchLine
-	var p1 *el.SketchPoint
-	var p2 *el.SketchPoint
-
-	if c[0].Element1.GetType() == el.Point && c[0].Element2.GetType() == el.Line {
-		p1 = c[0].Element1.(*el.SketchPoint)
-		line1 = c[0].Element2.(*el.SketchLine)
-	}
-	if c[0].Element2.GetType() == el.Point && c[0].Element1.GetType() == el.Line {
-		p1 = c[0].Element2.(*el.SketchPoint)
-		line1 = c[0].Element1.(*el.SketchLine)
-	}
-
-	if c[1].Element1.GetType() == el.Point && c[1].Element2.GetType() == el.Line {
-		p2 = c[1].Element1.(*el.SketchPoint)
-		line2 = c[1].Element2.(*el.SketchLine)
-	}
-	if c[1].Element2.GetType() == el.Point && c[1].Element1.GetType() == el.Line {
-		p2 = c[1].Element2.(*el.SketchPoint)
-		line2 = c[1].Element1.(*el.SketchLine)
-	}
-
-	if line1.GetID() != line2.GetID() {
-		return NonConvergent
-	}
-
-	// Calculate line that goes through the two points
-	la := p2.Y - p1.Y                // y' - y
-	lb := p1.X - p2.X                // x - x'
-	lc := (-la * p1.X) - (lb * p1.Y) // c = -ax - by from ax + by + c = 0
-	line1.SetA(la)
-	line1.SetB(lb)
-	line1.SetC(lc)
-
-	return Solved
-}
-
 // SolveAngleConstraint solve an angle constraint between two lines
-func SolveAngleConstraint(c *constraint.Constraint) SolveState {
+func SolveAngleConstraint(c *constraint.Constraint, e uint) SolveState {
 	if c.Type != constraint.Angle {
 		return NonConvergent
 	}
 
 	l1 := c.Element1.(*el.SketchLine)
 	l2 := c.Element2.(*el.SketchLine)
+	if l1.GetID() == e {
+		l1, l2 = l2, l1
+	}
+
 	angle := l1.AngleToLine(l2)
 	rotate := c.Value - angle
 	l2.Rotate(rotate)
@@ -385,9 +287,18 @@ func PointFromPointLine(c1 *constraint.Constraint, c2 *constraint.Constraint) (*
 }
 
 func pointFromLineLine(l1 *el.SketchLine, l2 *el.SketchLine, p3 *el.SketchPoint, line1Dist float64, line2Dist float64) (*el.SketchPoint, SolveState) {
-	// If l1 and l2 are parallel, there is no solution
-	if utils.StandardFloatCompare(l1.GetSlope(), l2.GetSlope()) == 0 {
+	// If l1 and l2 are parallel, and line distances aren't what is passed in, there is no solution
+	if utils.StandardFloatCompare(l1.GetSlope(), l2.GetSlope()) == 0 &&
+		utils.StandardFloatCompare(line1Dist+line2Dist, l1.DistanceTo(l2)) != 0 {
 		return nil, NonConvergent
+	}
+
+	// If l1 & l2 are parallel and it's solvable, there are infinite solutions
+	// Choose the one closest to the current point location
+	if utils.StandardFloatCompare(l1.GetSlope(), l2.GetSlope()) == 0 {
+		translate := l1.VectorTo(p3)
+		translate.Scaled(p3.DistanceTo(l1) - line1Dist)
+		return el.NewSketchPoint(p3.GetID(), p3.X+translate.X, p3.Y+translate.Y), Solved
 	}
 	// Translate l1 line1Dist
 	line1Translated := l1.TranslatedDistance(line1Dist)

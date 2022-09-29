@@ -545,13 +545,13 @@ func TestSolveAngleConstraint(t *testing.T) {
 	angle := -(108.0 / 180.0) * math.Pi
 
 	c := constraint.NewConstraint(0, constraint.Angle, l1, l2, angle, false)
-	SolveAngleConstraint(c)
+	SolveAngleConstraint(c, c.Element2.GetID())
 	c = constraint.NewConstraint(0, constraint.Angle, l2, l3, angle, false)
-	SolveAngleConstraint(c)
+	SolveAngleConstraint(c, c.Element2.GetID())
 	c = constraint.NewConstraint(0, constraint.Angle, l3, l4, angle, false)
-	SolveAngleConstraint(c)
+	SolveAngleConstraint(c, c.Element2.GetID())
 	c = constraint.NewConstraint(0, constraint.Angle, l4, l5, angle, false)
-	SolveAngleConstraint(c)
+	SolveAngleConstraint(c, c.Element2.GetID())
 
 	t.Logf(`elements after solve: 
 	l1: %fx + %fy + %f = 0

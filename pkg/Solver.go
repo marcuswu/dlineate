@@ -9,7 +9,6 @@ import (
 	svg "github.com/ajstarks/svgo"
 
 	core "github.com/marcuswu/dlineation/internal"
-	el "github.com/marcuswu/dlineation/internal/element"
 	"github.com/marcuswu/dlineation/internal/solver"
 )
 
@@ -356,7 +355,7 @@ func (s *Sketch) Solve() error {
 	}
 	s.passes += passes
 
-	// Handle if origin is translated
+	/*// Handle if origin is translated
 	s.Origin.valuesFromSketch(s)
 	if s.Origin.element.AsPoint().X != 0 || s.Origin.element.AsPoint().Y != 0 {
 		s.sketch.Translate(-s.Origin.element.AsPoint().X, -s.Origin.element.AsPoint().Y)
@@ -369,7 +368,7 @@ func (s *Sketch) Solve() error {
 	angle := s.YAxis.element.AsLine().AngleToLine(yaxis)
 	if angle != 0 {
 		s.sketch.Rotate(s.Origin.element.AsPoint(), angle)
-	}
+	}*/
 	var copyElements func(e *Element, sketch *core.SketchGraph)
 	copyElements = func(e *Element, sketch *core.SketchGraph) {
 		e.element = s.sketch.GetElement(e.element.GetID())
