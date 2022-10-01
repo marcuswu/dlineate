@@ -1,6 +1,9 @@
 package element
 
-import "math"
+import (
+	"fmt"
+	"math"
+)
 
 // SketchPoint represents a point in a 2D Sketch
 type SketchPoint struct {
@@ -149,4 +152,8 @@ func (p *SketchPoint) ConstraintLevel() ConstraintLevel {
 
 func (p *SketchPoint) SetConstraintLevel(cl ConstraintLevel) {
 	p.constraintLevel = cl
+}
+
+func (p *SketchPoint) String() string {
+	return fmt.Sprintf("Point(%d) (%f, %f)", p.GetID(), p.X, p.Y)
 }

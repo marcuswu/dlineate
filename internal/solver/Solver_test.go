@@ -541,17 +541,17 @@ func TestSolveAngleConstraint(t *testing.T) {
 	l2 := el.NewSketchLine(1, -0.951057, 0.309017, 0)
 	l3 := el.NewSketchLine(2, -0.506732, -0.862104, 0)
 	l4 := el.NewSketchLine(3, -0.506732, -0.862104, 0)
-	l5 := el.NewSketchLine(3, -0.506732, -0.862104, 0)
+	l5 := el.NewSketchLine(4, 0.0, 1.0, 0)
 	angle := -(108.0 / 180.0) * math.Pi
 
 	c := constraint.NewConstraint(0, constraint.Angle, l1, l2, angle, false)
-	SolveAngleConstraint(c, c.Element2.GetID())
+	SolveConstraint(c)
 	c = constraint.NewConstraint(0, constraint.Angle, l2, l3, angle, false)
-	SolveAngleConstraint(c, c.Element2.GetID())
+	SolveConstraint(c)
 	c = constraint.NewConstraint(0, constraint.Angle, l3, l4, angle, false)
-	SolveAngleConstraint(c, c.Element2.GetID())
+	SolveConstraint(c)
 	c = constraint.NewConstraint(0, constraint.Angle, l4, l5, angle, false)
-	SolveAngleConstraint(c, c.Element2.GetID())
+	SolveConstraint(c)
 
 	t.Logf(`elements after solve: 
 	l1: %fx + %fy + %f = 0
@@ -591,7 +591,7 @@ func TestSolveConstraints(t *testing.T) {
 	c1 := constraint.NewConstraint(0, constraint.Distance, p1, p2, 1, false)
 	c2 := constraint.NewConstraint(1, constraint.Distance, p1, l1, 0, false)
 
-	solved := SolveConstraints(c1, c2)
+	solved := SolveConstraints(c1, c2, p1)
 	p1 = c1.Element1.(*el.SketchPoint)
 	p2 = c1.Element2.(*el.SketchPoint)
 	l1 = c2.Element2.(*el.SketchLine)

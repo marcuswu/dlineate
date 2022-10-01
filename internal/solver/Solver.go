@@ -13,7 +13,14 @@ func SolveConstraint(c *constraint.Constraint) SolveState {
 	if c.Type == constraint.Distance {
 		return SolveDistanceConstraint(c)
 	}
-	return SolveAngleConstraint(c, c.Element2.GetID())
+	newLine, state := SolveAngleConstraint(c, c.Element2.GetID())
+
+	cl := c.Element2.AsLine()
+	cl.SetA(newLine.GetA())
+	cl.SetB(newLine.GetB())
+	cl.SetC(newLine.GetC())
+
+	return state
 }
 
 func SolveConstraints(c1 *constraint.Constraint, c2 *constraint.Constraint, solveFor el.SketchElement) SolveState {
@@ -24,42 +31,37 @@ func SolveConstraints(c1 *constraint.Constraint, c2 *constraint.Constraint, solv
 	return SolveForLine(c1, c2)
 }
 
+func ConstraintResult(c1 *constraint.Constraint, c2 *constraint.Constraint, solveFor el.SketchElement) (el.SketchElement, SolveState) {
+	if solveFor.GetType() == el.Point {
+		return PointResult(c1, c2)
+	}
+
+	return LineResult(c1, c2)
+}
+
 // SolveConstraints solve two constraints and return the solution state
 func SolveForPoint(c1 *constraint.Constraint, c2 *constraint.Constraint) SolveState {
-	newP3, state := ConstraintResult(c1, c2)
+	newP3, state := PointResult(c1, c2)
 
 	if newP3 == nil {
 		return state
 	}
 
-	switch {
-	case c1.Element1.Is(c2.Element1):
-		c1.Element1.AsPoint().X = newP3.X
-		c1.Element1.AsPoint().Y = newP3.Y
-		c2.Element1.AsPoint().X = newP3.X
-		c2.Element1.AsPoint().Y = newP3.Y
-	case c1.Element2.Is(c2.Element1):
-		c1.Element2.AsPoint().X = newP3.X
-		c1.Element2.AsPoint().Y = newP3.Y
-		c2.Element1.AsPoint().X = newP3.X
-		c2.Element1.AsPoint().Y = newP3.Y
-	case c1.Element1.Is(c2.Element2):
-		c1.Element1.AsPoint().X = newP3.X
-		c1.Element1.AsPoint().Y = newP3.Y
-		c2.Element2.AsPoint().X = newP3.X
-		c2.Element2.AsPoint().Y = newP3.Y
-	case c1.Element2.Is(c2.Element2):
-		c1.Element2.AsPoint().X = newP3.X
-		c1.Element2.AsPoint().Y = newP3.Y
-		c2.Element2.AsPoint().X = newP3.X
-		c2.Element2.AsPoint().Y = newP3.Y
-	}
+	c1e, _ := c1.Element(newP3.GetID())
+	c1p := c1e.AsPoint()
+	c1p.X = newP3.X
+	c1p.Y = newP3.Y
+
+	c2e, _ := c2.Element(newP3.GetID())
+	c2p := c2e.AsPoint()
+	c2p.X = newP3.X
+	c2p.Y = newP3.Y
 
 	return state
 }
 
-// ConstraintResult returns the result of solving two constraints sharing one point
-func ConstraintResult(c1 *constraint.Constraint, c2 *constraint.Constraint) (*el.SketchPoint, SolveState) {
+// PointResult returns the result of solving two constraints sharing one point
+func PointResult(c1 *constraint.Constraint, c2 *constraint.Constraint) (*el.SketchPoint, SolveState) {
 	numPoints, _ := typeCounts(c1, c2)
 	// 4 points -> PointFromPoints
 	var point *el.SketchPoint = nil
@@ -111,25 +113,6 @@ func SolveDistanceConstraint(c *constraint.Constraint) SolveState {
 	trans.Scaled(c.GetValue() - dist)
 	point.Translate(trans.GetX(), trans.GetY())
 
-	return Solved
-}
-
-// SolveAngleConstraint solve an angle constraint between two lines
-func SolveAngleConstraint(c *constraint.Constraint, e uint) SolveState {
-	if c.Type != constraint.Angle {
-		return NonConvergent
-	}
-
-	l1 := c.Element1.(*el.SketchLine)
-	l2 := c.Element2.(*el.SketchLine)
-	if l1.GetID() == e {
-		l1, l2 = l2, l1
-	}
-
-	angle := l1.AngleToLine(l2)
-	rotate := c.Value - angle
-	l2.Rotate(rotate)
-	c.Solved = true
 	return Solved
 }
 

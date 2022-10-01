@@ -17,16 +17,23 @@ func main() {
 	l5 := sketch.AddLine(-1.04, 3.56, 0.0, 0.0)
 
 	// Add constraints
+	// Bottom of pentagon starts at origin and aligns with x axis
 	sketch.AddCoincidentConstraint(sketch.Origin, l1.Start())
 	sketch.AddParallelConstraint(sketch.XAxis, l1)
+
+	// line points are coincident
 	sketch.AddCoincidentConstraint(l1.End(), l2.Start())
 	sketch.AddCoincidentConstraint(l2.End(), l3.Start())
 	sketch.AddCoincidentConstraint(l3.End(), l4.Start())
 	sketch.AddCoincidentConstraint(l4.End(), l5.Start())
 	sketch.AddCoincidentConstraint(l5.End(), l1.Start())
-	sketch.AddAngleConstraint(l2, l3, 108)
-	sketch.AddAngleConstraint(l3, l4, 108)
-	sketch.AddAngleConstraint(l4, l5, 108)
+
+	// 108 degrees between lines (skip 2 to not over constrain)
+	sketch.AddAngleConstraint(l2, l3, -108)
+	sketch.AddAngleConstraint(l3, l4, -108)
+	sketch.AddAngleConstraint(l4, l5, -108)
+
+	// 4 unit length on lines (skip 1 to not over constrain)
 	sketch.AddDistanceConstraint(l1, nil, 4.0)
 	sketch.AddDistanceConstraint(l2, nil, 4.0)
 	sketch.AddDistanceConstraint(l4, nil, 4.0)

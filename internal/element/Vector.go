@@ -1,6 +1,9 @@
 package element
 
-import "math"
+import (
+	"fmt"
+	"math"
+)
 
 // Vector represents a 2D vector
 type Vector struct {
@@ -34,6 +37,8 @@ func (v *Vector) Magnitude() float64 {
 }
 
 // AngleTo returns the angle to another vector in radians
+// https://stackoverflow.com/a/21484228
+// With this math, counter clockwise is positive
 func (v *Vector) AngleTo(u *Vector) float64 {
 	angle := math.Atan2(u.Y, u.X) - math.Atan2(v.Y, v.X)
 	if angle > math.Pi {
@@ -90,4 +95,8 @@ func (v *Vector) UnitVector() (*Vector, bool) {
 func (v *Vector) Scaled(scale float64) {
 	v.X *= scale
 	v.Y *= scale
+}
+
+func (v *Vector) String() string {
+	return fmt.Sprintf("Vector((0,0),(%f,%f))", v.X, v.Y)
 }

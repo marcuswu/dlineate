@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	el "github.com/marcuswu/dlineation/internal/element"
+	"github.com/marcuswu/dlineation/utils"
 )
 
 // Type of a Constraint(Distance or Angle)
@@ -113,6 +114,37 @@ func (c *Constraint) Other(this uint) (el.SketchElement, bool) {
 		return c.Element2, true
 	}
 	return c.Element1, this == c.Element2.GetID()
+}
+
+func (c *Constraint) Shared(o *Constraint) (el.SketchElement, bool) {
+	if o.HasElementID(c.Element1.GetID()) {
+		return c.Element1, true
+	}
+	if o.HasElementID(c.Element2.GetID()) {
+		return c.Element2, true
+	}
+
+	return nil, false
+}
+
+func (c *Constraint) IsMet() bool {
+	current := c.Element1.DistanceTo(c.Element2)
+	if c.Type == Angle {
+		current = c.Element1.AsLine().AngleToLine(c.Element2.AsLine())
+	}
+
+	if utils.StandardFloatCompare(current, c.Value) != 0 {
+		fmt.Printf("Comparing %f to %f\n", current, c.Value)
+	}
+	return utils.StandardFloatCompare(current, c.Value) == 0
+}
+
+func (c *Constraint) String() string {
+	units := ""
+	if c.Type == Angle {
+		units = " rad"
+	}
+	return fmt.Sprintf("Constraint %d: %v to %v should be %f%s", c.GetID(), c.Element1, c.Element2, c.Value, units)
 }
 
 // Equals returns whether two constraints are equal

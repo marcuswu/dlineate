@@ -23,18 +23,16 @@ func NewSketchLine(id uint, a float64, b float64, c float64) *SketchLine {
 	// A & B represent a normal vector for the line. This also determines
 	// the direction of the line. C represents a magnitude of the normal
 	// vector to reach from origin to the line.
-	magnitude := math.Sqrt((a * a) + (b * b))
-	A := a / magnitude
-	B := b / magnitude
-	C := c / magnitude
-	return &SketchLine{
+	l := &SketchLine{
 		elementType:     Line,
 		id:              id,
-		a:               A,
-		b:               B,
-		c:               C,
+		a:               a,
+		b:               b,
+		c:               c,
 		constraintLevel: FullyConstrained,
 	}
+	l.Normalize()
+	return l
 }
 
 // GetID returns the line element identifier
@@ -67,6 +65,13 @@ func (l *SketchLine) GetType() Type { return l.elementType }
 // Is returns true if the two elements are equal
 func (l *SketchLine) Is(o SketchElement) bool {
 	return l.id == o.GetID()
+}
+
+func (l *SketchLine) Normalize() {
+	magnitude := math.Sqrt((l.a * l.a) + (l.b * l.b))
+	l.a = l.a / magnitude
+	l.b = l.b / magnitude
+	l.c = l.c / magnitude
 }
 
 // IsEquivalent returns true if the two lines are equivalent
@@ -131,6 +136,7 @@ func (l *SketchLine) TranslatedDistance(dist float64) *SketchLine {
 
 // Translated returns a line translated by an x and y value
 func (l *SketchLine) Translated(tx float64, ty float64) *SketchLine {
+	l.Normalize()
 	pointOnLine := Vector{l.GetA() * -l.GetC(), l.GetB() * -l.GetC()}
 	pointOnLine.Translate(tx, ty)
 	newC := (-l.GetA() * pointOnLine.GetX()) - (l.GetB() * pointOnLine.GetY())
@@ -176,7 +182,7 @@ func (l *SketchLine) AngleTo(u *Vector) float64 {
 	return lv.AngleTo(u)
 }
 
-// AngleToLine returns the angle to another vector in radians
+// AngleToLine returns the angle the line needs to rotate to be equivalent to to another line in radians
 func (l *SketchLine) AngleToLine(o *SketchLine) float64 {
 	lv := &Vector{l.GetB(), -l.GetA()}
 	ov := &Vector{o.GetB(), -o.GetA()}
@@ -186,6 +192,7 @@ func (l *SketchLine) AngleToLine(o *SketchLine) float64 {
 // Rotated returns a line representing this line rotated around the origin by angle radians
 func (l *SketchLine) Rotated(angle float64) *SketchLine {
 	// create vectors with points from the line (x and y intercepts)
+	l.Normalize()
 	n := &Vector{l.GetA(), l.GetB()}
 	n.Rotate(angle)
 	return NewSketchLine(l.GetID(), n.GetX(), n.GetY(), l.GetC())
@@ -220,8 +227,8 @@ func (l *SketchLine) VectorTo(o SketchElement) *Vector {
 		point = o.(*SketchPoint)
 		myPoint = l.NearestPoint(point.GetX(), point.GetY())
 	} else {
-		point = o.(*SketchLine).PointNearestOrigin()
-		myPoint = l.PointNearestOrigin()
+		point = NewSketchPoint(0, o.AsLine().a*o.AsLine().c, o.AsLine().b*o.AsLine().c)
+		myPoint = NewSketchPoint(0, l.a*l.c, l.b*l.c)
 	}
 
 	return &Vector{myPoint.GetX() - point.GetX(), myPoint.GetY() - point.GetY()}

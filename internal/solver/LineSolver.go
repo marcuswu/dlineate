@@ -9,6 +9,28 @@ import (
 )
 
 func SolveForLine(c1 *constraint.Constraint, c2 *constraint.Constraint) SolveState {
+	line, solveState := LineResult(c1, c2)
+
+	if line == nil {
+		return solveState
+	}
+
+	c1e, _ := c1.Element(line.GetID())
+	c1Line := c1e.AsLine()
+	c1Line.SetA(line.GetA())
+	c1Line.SetB(line.GetB())
+	c1Line.SetC(line.GetC())
+
+	c2e, _ := c2.Element(line.GetID())
+	c2Line := c2e.AsLine()
+	c2Line.SetA(line.GetA())
+	c2Line.SetB(line.GetB())
+	c2Line.SetC(line.GetC())
+
+	return solveState
+}
+
+func LineResult(c1 *constraint.Constraint, c2 *constraint.Constraint) (*el.SketchLine, SolveState) {
 	/*
 		There are only two possibilities:
 		 * two lines and a point: The two lines must have an angle constraint between them
@@ -34,24 +56,7 @@ func SolveForLine(c1 *constraint.Constraint, c2 *constraint.Constraint) SolveSta
 		c2.Solved = true
 	}
 
-	if line == nil {
-		fmt.Printf("line is nil\n")
-		return solveState
-	}
-
-	c1e, _ := c1.Element(line.GetID())
-	c1Line := c1e.AsLine()
-	c1Line.SetA(line.GetA())
-	c1Line.SetB(line.GetB())
-	c1Line.SetC(line.GetC())
-
-	c2e, _ := c2.Element(line.GetID())
-	c2Line := c2e.AsLine()
-	c2Line.SetA(line.GetA())
-	c2Line.SetB(line.GetB())
-	c2Line.SetC(line.GetC())
-
-	return solveState
+	return line, solveState
 }
 
 // MoveLineToPoint solves a constraint between a line and a point where the line needs to move
@@ -228,11 +233,32 @@ func LineFromPointLine(c1 *constraint.Constraint, c2 *constraint.Constraint) (*e
 	}
 
 	// Solve angle
-	state := SolveAngleConstraint(angleC, targetLine.GetID())
+	newLine, state := SolveAngleConstraint(angleC, targetLine.GetID())
 
 	// Translate to distC.Value from the point
-	dist := targetLine.DistanceTo(point) - distC.Value
-	targetLine.TranslateDistance(dist)
+	dist := newLine.DistanceTo(point) - distC.Value
+	newLine.TranslateDistance(dist)
 
-	return targetLine, state
+	return newLine, state
+}
+
+// SolveAngleConstraint solve an angle constraint between two lines
+func SolveAngleConstraint(c *constraint.Constraint, e uint) (*el.SketchLine, SolveState) {
+	if c.Type != constraint.Angle {
+		return nil, NonConvergent
+	}
+
+	l1 := c.Element1.(*el.SketchLine)
+	l2 := c.Element2.(*el.SketchLine)
+	desired := c.Value
+	if l1.GetID() == e {
+		l1, l2 = l2, l1
+		desired = -desired
+	}
+
+	angle := l2.AngleToLine(l1)
+	rotate := angle + desired
+	newLine := l2.Rotated(rotate)
+	c.Solved = true
+	return newLine, Solved
 }

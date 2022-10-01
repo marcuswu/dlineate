@@ -547,8 +547,21 @@ func (g *SketchGraph) Solve() solver.SolveState {
 		fmt.Printf("Updating state to %v after cluster merge\n", mergeState)
 		g.state = mergeState
 	}
+	g.updateElements(g.clusters[1])
+	fmt.Printf("Final graph solve state %v\n", g.state)
+	g.clusters[1].logElements()
+	fmt.Println()
+
+	if !g.IsSolved() {
+		g.state = solver.NonConvergent
+	}
+	fmt.Println()
 
 	return g.state
+}
+
+func (g *SketchGraph) IsSolved() bool {
+	return g.clusters[1].IsSolved()
 }
 
 // Test is a test function

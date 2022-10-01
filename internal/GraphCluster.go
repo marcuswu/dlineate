@@ -558,7 +558,7 @@ func (g *GraphCluster) mergeOne(other *GraphCluster) solver.SolveState {
 
 	// If there's a line, first rotate the lines into the same angle, then match first element
 	if g.elements[second].GetType() == el.Line {
-		angle := g.elements[second].AsLine().AngleToLine(other.elements[second].AsLine())
+		angle := other.elements[second].AsLine().AngleToLine(g.elements[second].AsLine())
 		other.Rotate(p1.AsPoint(), angle)
 	}
 
@@ -579,11 +579,19 @@ func (g *GraphCluster) mergeOne(other *GraphCluster) solver.SolveState {
 
 // SolveMerge resolves merging two solved child clusters to this one
 func (g *GraphCluster) solveMerge(c1 *GraphCluster, c2 *GraphCluster) solver.SolveState {
+	solve := g.IsSolved()
+	fmt.Printf("Checking g solved: %v\n", solve)
+	solve = c1.IsSolved()
+	fmt.Printf("Checking c1 solved: %v\n", solve)
+	solve = c2.IsSolved()
+	fmt.Printf("Checking c2 solved: %v\n", solve)
+	fmt.Println()
 	clusters := []*GraphCluster{g, c1, c2}
 	sharedSet := g.SharedElements(c1)
 	sharedSet.AddSet(g.SharedElements(c2))
 	sharedSet.AddSet(c1.SharedElements(c2))
 	sharedElements := sharedSet.Contents()
+	fmt.Printf("Solving for shared elements %v\n", sharedElements)
 
 	clustersFor := func(e uint) []*GraphCluster {
 		matching := make([]*GraphCluster, 0, len(clusters))
@@ -650,9 +658,8 @@ func (g *GraphCluster) solveMerge(c1 *GraphCluster, c2 *GraphCluster) solver.Sol
 			final = se
 			continue
 		}
-		fmt.Printf("Solving for element %d\n", se)
-
 		eType := parents[0].elements[se].GetType()
+		fmt.Printf("Solving for element %d (%v)\n", se, eType)
 
 		// Solve element
 		// if element is a line, rotate it into place first
@@ -662,14 +669,34 @@ func (g *GraphCluster) solveMerge(c1 *GraphCluster, c2 *GraphCluster) solver.Sol
 		}
 		ec1 := other.elements[se]
 		ec2 := rootCluster.elements[se]
+		var translation *el.Vector
 		if eType == el.Line {
+			other.logElements()
+			fmt.Println()
 			angle := ec1.AsLine().AngleToLine(ec2.AsLine())
-			other.Rotate(ec2.AsLine().PointNearestOrigin(), angle)
+			fmt.Printf("Before rotate:\n")
+			fmt.Printf("Element 1: %v\n", ec1)
+			fmt.Printf("Element 2: %v\n", ec2)
+			other.logElements()
+			fmt.Printf("Calculated angle %f\n", angle)
+			other.Rotate(ec1.AsLine().PointNearestOrigin(), angle)
+			fmt.Printf("After rotate:\n")
+			fmt.Printf("Element 1: %v\n", ec1)
+			fmt.Printf("Element 2: %v\n", ec2)
+			other.logElements()
+			fmt.Println()
+			translation = ec1.VectorTo(ec2)
+		} else {
+			translation = ec2.VectorTo(ec1)
 		}
 
 		// translate element into place
-		translation := ec2.VectorTo(ec1)
 		other.Translate(translation.X, translation.Y)
+		if eType == el.Line {
+			fmt.Printf("After translate distance %f, %f:\n", translation.X, translation.Y)
+			other.logElements()
+			fmt.Println()
+		}
 
 		fmt.Printf("Solved for element %d:\n", se)
 		g.logElements()
@@ -698,6 +725,7 @@ func (g *GraphCluster) solveMerge(c1 *GraphCluster, c2 *GraphCluster) solver.Sol
 	c0E2 := parents[0].elements[final]
 	c1E2 := parents[1].elements[final]
 	e2Type := c0E2.GetType()
+	fmt.Printf("Final element type: %v\n", e2Type)
 	if e2Type == el.Line {
 		// We avoid e2 being a line, so if it is one, the other two are also lines.
 		// This means e2 should already be placed correctly since the other two are.
@@ -705,6 +733,9 @@ func (g *GraphCluster) solveMerge(c1 *GraphCluster, c2 *GraphCluster) solver.Sol
 		c0E2 := parents[0].elements[final]
 		c1E2 := parents[1].elements[final]
 		if !c0E2.AsLine().IsEquivalent(c1E2.AsLine()) {
+			fmt.Println("Lines are not equivalent: ")
+			fmt.Printf("\t(%d): %v\n", c0E2.GetID(), c0E2)
+			fmt.Printf("\t(%d): %v\n", c1E2.GetID(), c1E2)
 			state = solver.NonConvergent
 		}
 
@@ -738,7 +769,8 @@ func (g *GraphCluster) solveMerge(c1 *GraphCluster, c2 *GraphCluster) solver.Sol
 		fmt.Printf("Creating constraint from %d to %d with distance %f\n", c1E2.GetID(), e.GetID(), dist)
 	}
 
-	newP3, state := solver.ConstraintResult(constraint1, constraint2)
+	newE3, state := solver.ConstraintResult(constraint1, constraint2, c0E2)
+	newP3 := newE3.AsPoint()
 
 	if state != solver.Solved {
 		fmt.Println("Final element solve failed")
@@ -759,8 +791,12 @@ func (g *GraphCluster) solveMerge(c1 *GraphCluster, c2 *GraphCluster) solver.Sol
 		c.Rotate(pivot.AsPoint(), angle)
 	}
 
+	fmt.Printf("Pivoting c0 on %d from %v to %v\n", e1.GetID(), c0E2, newP3)
 	moveCluster(parents[0], e1, c0E2.AsPoint(), newP3)
+	fmt.Printf("c0E2 moved to %v\n", c0E2)
+	fmt.Printf("Pivoting c1 on %d from %v to %v\n", e2.GetID(), c1E2, newP3)
 	moveCluster(parents[1], e2, c1E2.AsPoint(), newP3)
+	fmt.Printf("c1E2 moved to %v\n", c1E2)
 
 	g.logElements()
 	println()
@@ -816,4 +852,18 @@ func (g *GraphCluster) Solve() solver.SolveState {
 	}
 
 	return state
+}
+
+func (c *GraphCluster) IsSolved() bool {
+	solved := true
+	for _, c := range c.constraints {
+		if c.IsMet() {
+			continue
+		}
+
+		fmt.Printf("Failed to meet %v\n", c)
+		solved = false
+	}
+
+	return solved
 }

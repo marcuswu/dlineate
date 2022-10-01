@@ -440,7 +440,7 @@ func (s *Sketch) ExportImage(filename string, args ...int) error {
 		height = args[1]
 	}
 
-	f, err := os.OpenFile(filename, os.O_CREATE|os.O_RDWR, 0644)
+	f, err := os.OpenFile(filename, os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0644)
 	if err != nil {
 		return err
 	}
@@ -456,6 +456,9 @@ func (s *Sketch) ExportImage(filename string, args ...int) error {
 
 	img.Startview(width, height, minx, miny, viewBoxSize, viewBoxSize)
 
+	img.Translate(0, int(vh))
+	img.ScaleXY(1, -1)
+
 	// Draw axes
 	img.Line(minx, 0, maxx, 0, "fill:none;stroke:gray;stroke-width:0.5")
 	img.Line(0, miny, 0, maxy, "fill:none;stroke:gray;stroke-width:0.5")
@@ -463,6 +466,9 @@ func (s *Sketch) ExportImage(filename string, args ...int) error {
 	for _, e := range s.Elements {
 		e.DrawToSVG(s, img, scale)
 	}
+
+	img.Gend()
+	img.Gend()
 
 	img.End()
 
