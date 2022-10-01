@@ -5,80 +5,76 @@ import (
 	"fmt"
 )
 
-func TangentConstraint(p1 *Element, p2 *Element, p3 *Element) *Constraint {
+func TangentConstraint(p1 *Element, p2 *Element) *Constraint {
 	constraint := emptyConstraint()
 	constraint.elements = append(constraint.elements, p1)
 	constraint.elements = append(constraint.elements, p2)
-	constraint.elements = append(constraint.elements, p3)
+	// constraint.elements = append(constraint.elements, p3)
 	constraint.constraintType = Tangent
 	constraint.state = Unresolved
 
 	return constraint
 }
 
-func (s *Sketch) AddTangentConstraint(p1 *Element, p2 *Element, p3 *Element) (*Constraint, error) {
-	var line, point, curve, err = orderParams(p1, p2, p3)
+func (s *Sketch) AddTangentConstraint(p1 *Element, p2 *Element) (*Constraint, error) {
+	var line, curve, err = orderParams(p1, p2)
 
 	if err != nil {
 		return nil, err
 	}
 
-	c := TangentConstraint(line, point, curve)
+	c := TangentConstraint(line, curve)
 	s.eToC[p1.element.GetID()] = append(s.eToC[p1.element.GetID()], c)
 	s.eToC[p2.element.GetID()] = append(s.eToC[p2.element.GetID()], c)
-	s.eToC[p3.element.GetID()] = append(s.eToC[p3.element.GetID()], c)
+	// s.eToC[p3.element.GetID()] = append(s.eToC[p3.element.GetID()], c)
 
 	s.resolveTangentConstraint(c)
 
 	return c, nil
 }
 
-func orderParams(p1 *Element, p2 *Element, p3 *Element) (*Element, *Element, *Element, error) {
-	var line, point, curve *Element
+func orderParams(p1 *Element, p2 *Element) (*Element, *Element, error) {
+	var line /*point,*/, curve *Element
 
 	switch Line {
 	case p1.elementType:
 		line = p1
-	case p2.elementType:
-		line = p2
 	default:
-		line = p3
+		line = p2
 	}
 
-	switch Point {
-	case p1.elementType:
-		point = p1
-	case p2.elementType:
-		point = p2
-	default:
-		point = p3
-	}
+	// switch Point {
+	// case p1.elementType:
+	// 	point = p1
+	// case p2.elementType:
+	// 	point = p2
+	// default:
+	// 	point = p3
+	// }
 
 	switch true {
 	case p1.elementType == Circle || p1.elementType == Arc:
 		curve = p1
-	case p2.elementType == Circle || p2.elementType == Arc:
-		curve = p2
 	default:
-		curve = p3
+		curve = p2
 	}
 
-	if line == point || line == curve || point == curve {
-		return p1, p2, p3, errors.New("incorrect element types for tangent constraint")
+	if line == curve {
+		return p1, p2, errors.New("incorrect element types for tangent constraint")
 	}
 
-	return line, point, curve, nil
+	return line, curve, nil
 }
 
 func (s *Sketch) resolveTangentConstraint(c *Constraint) bool {
-	radius, ok := s.resolveCurveRadius(c.elements[2])
+	radius, ok := s.resolveCurveRadius(c.elements[1])
 	if ok {
-		constraint := s.addDistanceConstraint(c.elements[0], c.elements[2], radius)
+		constraint := s.addDistanceConstraint(c.elements[0], c.elements[1], radius)
 		fmt.Printf("resolveTangentConstraint: added constraint id %d\n", constraint.GetID())
 		c.elements[0].constraints = append(c.elements[0].constraints, constraint)
-		c.elements[2].constraints = append(c.elements[2].constraints, constraint)
+		c.elements[1].constraints = append(c.elements[1].constraints, constraint)
 		c.constraints = append(c.constraints, constraint)
-		constraint = s.addDistanceConstraint(c.elements[1], c.elements[2], radius)
+		/*constraint = s.addDistanceConstraint(c.elements[1], c.elements[2], radius)
 		fmt.Printf("resolveTangentConstraint: added constraint id %d\n", constraint.GetID())
 		c.elements[1].constraints = append(c.elements[1].constraints, constraint)
 		c.elements[2].constraints = append(c.elements[2].constraints, constraint)
@@ -88,7 +84,7 @@ func (s *Sketch) resolveTangentConstraint(c *Constraint) bool {
 		c.elements[1].constraints = append(c.elements[1].constraints, constraint)
 		c.elements[0].constraints = append(c.elements[0].constraints, constraint)
 		c.constraints = append(c.constraints, constraint)
-		s.constraints = append(s.constraints, c)
+		s.constraints = append(s.constraints, c)*/
 		c.state = Resolved
 	}
 

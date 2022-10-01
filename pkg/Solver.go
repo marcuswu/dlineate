@@ -53,7 +53,7 @@ func (s *Sketch) findConstraints(e *Element) []*Constraint {
 
 func (s *Sketch) findConstraint(ctype ConstraintType, e *Element) (*Constraint, error) {
 	for _, c := range s.eToC[e.element.GetID()] {
-		if c.constraintType != ctype {
+		if c == nil || c.constraintType != ctype {
 			continue
 		}
 		return c, nil
@@ -136,6 +136,7 @@ func (s *Sketch) AddCircle(x float64, y float64, r float64) *Element {
 	c.values = append(c.values, y)
 	c.values = append(c.values, r)
 
+	c.element = s.sketch.AddPoint(x, y)
 	s.Elements = append(s.Elements, c)
 
 	center := s.AddPoint(c.values[0], c.values[1])
@@ -159,6 +160,7 @@ func (s *Sketch) AddArc(x1 float64, y1 float64, x2 float64, y2 float64, x3 float
 	a.values = append(a.values, x3)
 	a.values = append(a.values, y3)
 
+	a.element = s.sketch.AddPoint(x1, y1)
 	s.Elements = append(s.Elements, a)
 
 	center := s.AddPoint(a.values[0], a.values[1])

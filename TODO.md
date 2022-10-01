@@ -7,8 +7,10 @@
   - [X] Add / fix distance constraint for a line
   - [X] Figure out how to handle origin and axes
   - [X] Fix tests
-  - [ ] Build out the pentagon example
-  - [ ] Build out the BellSketch from the curta II project
+  - [X] Build out the pentagon example
+  - [X] Build out the BellSketch from the curta II project
+  - [ ] Get the BellSketch working
+  - [ ] Add horizontal, vertical constraints
 - [x] Load element values from solver when solved
 - [x] External interface should take two passes. One to solve independent constraints. One to solve dependent.
 - [x] Ratio & equality lengths are dependent constraints

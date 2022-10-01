@@ -34,7 +34,7 @@ func (s *Sketch) addDistanceConstraint(p1 *Element, p2 *Element, v float64) *ic.
 	case Line:
 		if p2 == nil {
 			fmt.Printf(
-				"Adding distance constraint for line %d. Translating to distance constraint between points %d and %d",
+				"Adding distance constraint for line %d. Translating to distance constraint between points %d and %d\n",
 				p1.element.GetID(),
 				p1.children[0].element.GetID(),
 				p1.children[1].element.GetID(),
