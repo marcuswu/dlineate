@@ -71,7 +71,7 @@ func (s *Sketch) AddPoint(x float64, y float64) *Element {
 	p.values = append(p.values, y)
 	p.element = s.sketch.AddPoint(p.values[0], p.values[1])
 	s.Elements = append(s.Elements, p)
-	s.eToC[p.element.GetID()] = make([]*Constraint, 2)
+	s.eToC[p.element.GetID()] = make([]*Constraint, 0, 2)
 	return p
 }
 
@@ -118,10 +118,10 @@ func (s *Sketch) AddLine(x1 float64, y1 float64, x2 float64, y2 float64) *Elemen
 	end := s.AddPoint(l.values[2], l.values[3])
 	end.isChild = true
 	l.children = append(l.children, start)
-	s.eToC[start.element.GetID()] = make([]*Constraint, 2)
+	s.eToC[start.element.GetID()] = make([]*Constraint, 0, 2)
 	l.children = append(l.children, end)
-	s.eToC[end.element.GetID()] = make([]*Constraint, 2)
-	s.eToC[l.element.GetID()] = make([]*Constraint, 2)
+	s.eToC[end.element.GetID()] = make([]*Constraint, 0, 2)
+	s.eToC[l.element.GetID()] = make([]*Constraint, 0, 2)
 	s.addDistanceConstraint(l, start, 0.0)
 	s.addDistanceConstraint(l, end, 0.0)
 	return l
@@ -142,8 +142,8 @@ func (s *Sketch) AddCircle(x float64, y float64, r float64) *Element {
 	center := s.AddPoint(c.values[0], c.values[1])
 	center.isChild = true
 	c.children = append(c.children, center)
-	s.eToC[center.element.GetID()] = make([]*Constraint, 2)
-	s.eToC[c.element.GetID()] = make([]*Constraint, 2)
+	s.eToC[center.element.GetID()] = make([]*Constraint, 0, 2)
+	s.eToC[c.element.GetID()] = make([]*Constraint, 0, 2)
 	return c
 }
 
@@ -166,15 +166,15 @@ func (s *Sketch) AddArc(x1 float64, y1 float64, x2 float64, y2 float64, x3 float
 	center := s.AddPoint(a.values[0], a.values[1])
 	center.isChild = true
 	a.children = append(a.children, center)
-	s.eToC[center.element.GetID()] = make([]*Constraint, 2)
+	s.eToC[center.element.GetID()] = make([]*Constraint, 0, 2)
 
 	start := s.AddPoint(a.values[2], a.values[3])
 	start.isChild = true
-	s.eToC[start.element.GetID()] = make([]*Constraint, 2)
+	s.eToC[start.element.GetID()] = make([]*Constraint, 0, 2)
 	end := s.AddPoint(a.values[4], a.values[5])
 	end.isChild = true
-	s.eToC[end.element.GetID()] = make([]*Constraint, 2)
-	s.eToC[a.element.GetID()] = make([]*Constraint, 2)
+	s.eToC[end.element.GetID()] = make([]*Constraint, 0, 2)
+	s.eToC[a.element.GetID()] = make([]*Constraint, 0, 2)
 	a.children = append(a.children, start)
 	a.children = append(a.children, end)
 	s.addDistanceConstraint(a, start, 0.0)
@@ -350,6 +350,8 @@ func (s *Sketch) Solve() error {
 		}
 		fmt.Printf("Have %d unresolved and %d unsolved constraints\n", numUnresolved, numUnsolved)
 		fmt.Printf("Running solve pass %d\n", passes+1)
+		s.sketch.BuildClusters() // TODO: this probably needs a reset between passes!
+		s.ExportGraphViz("clustered.dot")
 		solveState = s.sketch.Solve()
 		lastUnresolved = numUnresolved
 		lastUnsolved = numUnsolved
@@ -475,4 +477,16 @@ func (s *Sketch) ExportImage(filename string, args ...int) error {
 	img.End()
 
 	return nil
+}
+
+func (s *Sketch) ExportGraphViz(filename string) error {
+	f, err := os.OpenFile(filename, os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0644)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	_, err = f.WriteString(s.sketch.ToGraphViz())
+
+	return err
 }

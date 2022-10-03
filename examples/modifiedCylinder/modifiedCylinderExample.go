@@ -22,6 +22,8 @@ func main() {
 	arc2 := sketch.AddArc(6, 0, 6, 3, 8, -2)
 	arc3 := sketch.AddArc(6, -5.21, 6, -8.21, 8, -3.0)
 
+	sketch.ExportGraphViz("cylinderElementsAdded.dot")
+
 	// Add constraints
 	// Bottom of pentagon starts at origin and aligns with x axis
 	sketch.AddCoincidentConstraint(sketch.Origin, offset.Start())
@@ -79,8 +81,12 @@ func main() {
 	sketch.AddCoincidentConstraint(arc3.Start(), line4)
 	sketch.AddTangentConstraint(arc3, line4)
 
+	sketch.ExportGraphViz("cylinderConstraintsAdded.dot")
+
 	// Solve
 	err := sketch.Solve()
+
+	sketch.ExportGraphViz("cylinderSolved.dot")
 
 	// Output results
 	if err != nil {

@@ -55,6 +55,10 @@ func (g *SketchGraph) GetConstraint(id uint) (*constraint.Constraint, bool) {
 	return c, ok
 }
 
+func (g *SketchGraph) FindConstraints(elementId uint) []*constraint.Constraint {
+	return g.eToC[elementId]
+}
+
 // AddPoint adds a point to the sketch
 func (g *SketchGraph) AddPoint(x float64, y float64) el.SketchElement {
 	elementID := uint(len(g.elements))
@@ -496,8 +500,7 @@ func (g *SketchGraph) updateElements(c *GraphCluster) {
 	}
 }
 
-// Solve builds the graph and solves the sketch
-func (g *SketchGraph) Solve() solver.SolveState {
+func (g *SketchGraph) BuildClusters() {
 	for _, c := range g.clusters[0].constraints {
 		delete(g.constraints, c.GetID())
 	}
@@ -520,6 +523,10 @@ func (g *SketchGraph) Solve() solver.SolveState {
 	}
 	fmt.Printf("Merging clusters beginning with %d clusters\n", len(g.clusters))
 	g.mergeClusters()
+}
+
+// Solve builds the graph and solves the sketch
+func (g *SketchGraph) Solve() solver.SolveState {
 	if len(g.clusters) > 2 {
 		// set state, but attempt to solve as much as possible
 		g.state = solver.UnderConstrained
@@ -567,4 +574,41 @@ func (g *SketchGraph) IsSolved() bool {
 // Test is a test function
 func (g *SketchGraph) Test() string {
 	return "SketchGraph"
+}
+
+func (g *SketchGraph) ToGraphViz() string {
+	edges := ""
+
+	// Output clusters
+	for id, c := range g.clusters {
+		if id == 0 {
+			continue
+		}
+		edges = edges + c.ToGraphViz(fmt.Sprintf("%d", id))
+	}
+
+	// Output free constraints
+	for _, c := range g.constraints {
+		edges = edges + c.ToGraphViz("")
+	}
+
+	// Output free elements
+	for _, eId := range g.freeNodes.Contents() {
+		edges = edges + fmt.Sprintf("\t%d\n", g.elements[eId].GetID())
+	}
+
+	return fmt.Sprintf(`
+	graph {
+		compound=true
+		/*
+		layout=neato
+		pad="0.5"
+		node [
+			shape = circle
+			style = "filled, bold"
+			color = black
+			fontname = Inter
+		]*/
+		%s
+	}`, edges)
 }

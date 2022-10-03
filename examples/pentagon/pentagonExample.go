@@ -42,6 +42,8 @@ func main() {
 	// Solve
 	err := sketch.Solve()
 
+	sketch.ExportGraphViz("pentagon.dot")
+
 	// Output results
 	if err != nil {
 		fmt.Printf("Solve error %s\n", err)

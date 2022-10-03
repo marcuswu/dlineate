@@ -39,7 +39,7 @@ func emptyElement() *Element {
 	ec.children = make([]*Element, 0, 1)
 	ec.isChild = false
 	ec.valuePass = 0
-	return &Element{}
+	return ec
 }
 
 func (e *Element) valuesFromSketch(s *Sketch) error {

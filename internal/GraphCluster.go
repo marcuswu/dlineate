@@ -3,6 +3,7 @@ package core
 import (
 	"fmt"
 	"sort"
+	"strings"
 
 	"github.com/marcuswu/dlineation/internal/constraint"
 	el "github.com/marcuswu/dlineation/internal/element"
@@ -866,4 +867,53 @@ func (c *GraphCluster) IsSolved() bool {
 	}
 
 	return solved
+}
+
+func (c *GraphCluster) ToGraphViz(id string) string {
+	edges := ""
+	others := ""
+	elements := ""
+	sharedEdges := ""
+	betweenEdges := utils.NewStringSet()
+	for _, constraint := range c.constraints {
+		edges = edges + constraint.ToGraphViz(id)
+		elements = elements + constraint.Element1.ToGraphViz(id)
+		elements = elements + constraint.Element2.ToGraphViz(id)
+		// edges = edges + constraint.ToGraphViz("")
+	}
+	for oid, other := range c.others {
+		others = others + other.ToGraphViz(fmt.Sprintf("%s_%d", id, oid))
+		// edges = edges + other.ToGraphViz(fmt.Sprintf("%d", oid))
+		for e := range c.eToC {
+			if !other.HasElementID(e) {
+				continue
+			}
+			sharedEdges = sharedEdges + fmt.Sprintf("\t\"%s-%d\" -- \"%s_%d-%d\"\n", id, e, id, oid, e)
+		}
+
+		for ooid, oother := range c.others {
+			if ooid == oid {
+				continue
+			}
+			for e := range other.eToC {
+				if !oother.HasElementID(e) {
+					continue
+				}
+				reverseEdge := fmt.Sprintf("\t\"%s_%d-%d\" -- \"%s_%d-%d\"\n", id, ooid, e, id, oid, e)
+				edge := fmt.Sprintf("\t\"%s_%d-%d\" -- \"%s_%d-%d\"\n", id, oid, e, id, ooid, e)
+				if betweenEdges.Contains(reverseEdge) || betweenEdges.Contains(edge) {
+					continue
+				}
+				fmt.Printf("Adding edge: \n%sWith reverse edge: \n%s\n", edge, reverseEdge)
+				betweenEdges.Add(edge)
+			}
+		}
+	}
+	sharedEdges = sharedEdges + strings.Join(betweenEdges.Contents(), "")
+	return fmt.Sprintf(`subgraph cluster_%s {
+		%s
+		%s
+	}
+	%s
+	%s`, id, edges, elements, others, sharedEdges)
 }

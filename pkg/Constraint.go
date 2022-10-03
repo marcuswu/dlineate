@@ -42,7 +42,7 @@ func emptyConstraint() *Constraint {
 	ec.constraints = make([]*c.Constraint, 0, 1)
 	ec.elements = make([]*Element, 0, 1)
 	ec.state = Unresolved
-	return &Constraint{}
+	return ec
 }
 
 func (c *Constraint) checkSolved() {

@@ -255,3 +255,7 @@ func (l *SketchLine) SetConstraintLevel(cl ConstraintLevel) {
 func (l *SketchLine) String() string {
 	return fmt.Sprintf("Line(%d) %fx + %fy + %f = 0", l.id, l.a, l.b, l.c)
 }
+
+func (l *SketchLine) ToGraphViz(cId string) string {
+	return toGraphViz(l, cId)
+}
