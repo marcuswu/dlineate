@@ -191,7 +191,7 @@ func (s *Sketch) resolveConstraint(c *Constraint) bool {
 	case Coincident:
 		fallthrough
 	case Distance:
-		fallthrough
+		return s.resolveDistanceConstraint(c)
 	case Angle:
 		fallthrough
 	case Perpendicular:
@@ -224,6 +224,7 @@ func (s *Sketch) resolveConstraints() (int, int) {
 		}
 	}
 
+	fmt.Printf("Resolved constraints. Have %d unresolved and %d unsolved\n", unresolved, unsolved)
 	return unresolved, unsolved
 }
 
@@ -346,10 +347,12 @@ func (s *Sketch) Solve() error {
 	lastUnresolved := 0
 	for numUnresolved, numUnsolved := s.resolveConstraints(); numUnsolved > 0 || numUnresolved > 0; numUnresolved, numUnsolved = s.resolveConstraints() {
 		if lastUnsolved == numUnsolved && lastUnresolved == numUnresolved {
+			fmt.Printf("Exiting solve loop because lastUnsolved (%d) == numUnsolved (%d) && lastUnresolved (%d) == numUnresolved (%d)\n", lastUnsolved, numUnsolved, lastUnresolved, numUnresolved)
 			break
 		}
 		fmt.Printf("Have %d unresolved and %d unsolved constraints\n", numUnresolved, numUnsolved)
 		fmt.Printf("Running solve pass %d\n", passes+1)
+		s.sketch.ResetClusters() // TODO: this probably needs a reset between passes!
 		s.sketch.BuildClusters() // TODO: this probably needs a reset between passes!
 		s.ExportGraphViz("clustered.dot")
 		solveState = s.sketch.Solve()
@@ -375,7 +378,9 @@ func (s *Sketch) Solve() error {
 	}*/
 	var copyElements func(e *Element, sketch *core.SketchGraph)
 	copyElements = func(e *Element, sketch *core.SketchGraph) {
-		e.element = s.sketch.GetElement(e.element.GetID())
+		if el, ok := s.sketch.GetElement(e.element.GetID()); ok {
+			e.element = el
+		}
 		for _, child := range e.children {
 			copyElements(child, sketch)
 		}

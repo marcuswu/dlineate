@@ -22,6 +22,23 @@ const (
 	Arc
 )
 
+func (et ElementType) String() string {
+	switch et {
+	case Point:
+		return "Point"
+	case Axis:
+		return "Axis"
+	case Line:
+		return "Line"
+	case Circle:
+		return "Circle"
+	case Arc:
+		return "Arc"
+	default:
+		return fmt.Sprintf("%d", int(et))
+	}
+}
+
 type Element struct {
 	values      []float64
 	elementType ElementType
@@ -323,4 +340,8 @@ func (e *Element) End() *Element {
 		return nil
 	}
 	return e.children[1]
+}
+
+func (e *Element) String() string {
+	return fmt.Sprintf("Element type %v, internal element: %v", e.elementType, e.element)
 }

@@ -69,7 +69,8 @@ func orderParams(p1 *Element, p2 *Element) (*Element, *Element, error) {
 func (s *Sketch) resolveTangentConstraint(c *Constraint) bool {
 	radius, ok := s.resolveCurveRadius(c.elements[1])
 	if ok {
-		constraint := s.addDistanceConstraint(c.elements[0], c.elements[1], radius)
+		fmt.Printf("addDistanceConstraint with elements %v, %v\n", c.elements[0], c.elements[1])
+		constraint := s.addDistanceConstraint(c.elements[0], c.elements[1].children[0], radius)
 		fmt.Printf("resolveTangentConstraint: added constraint id %d\n", constraint.GetID())
 		c.elements[0].constraints = append(c.elements[0].constraints, constraint)
 		c.elements[1].constraints = append(c.elements[1].constraints, constraint)

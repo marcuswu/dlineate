@@ -9,6 +9,8 @@
   - [X] Fix tests
   - [X] Build out the pentagon example
   - [X] Build out the BellSketch from the curta II project
+  - [ ] Update unit tests
+    - [ ] SolveDistanceConstraint 0 distance translate
   - [ ] Get the BellSketch working
   - [ ] Add horizontal, vertical constraints
 - [x] Load element values from solver when solved

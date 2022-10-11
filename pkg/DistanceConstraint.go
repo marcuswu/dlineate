@@ -25,10 +25,19 @@ func (s *Sketch) addDistanceConstraint(p1 *Element, p2 *Element, v float64) *ic.
 
 		return s.sketch.AddConstraint(ic.Distance, p1.element, p2.element, v)
 	case Circle:
-		if p2 == nil {
-			return s.sketch.AddConstraint(ic.Distance, p1.children[0].element, nil, v)
-		}
-		return s.sketch.AddConstraint(ic.Distance, p1.element, p2.element, v)
+		// if p2 == nil {
+		// 	// If p2 is nil, we're setting the circle radius
+		// 	// This is more of a placeholder for being able to fulfill other constraints as there is no
+		// 	// element to constrain to a distance from the center
+		// 	//return s.sketch.AddConstraint(ic.Distance, p1.children[0].element, nil, v)
+		// 	break
+		// }
+		// r, ok := s.resolveCurveRadius(p1)
+		// if !ok {
+		// 	break nil
+		// }
+		// c = s.sketch.AddConstraint(ic.Distance, p1.element, p2.element, r+v)
+		return nil
 	case Axis:
 		fallthrough
 	case Line:
@@ -49,9 +58,16 @@ func (s *Sketch) addDistanceConstraint(p1 *Element, p2 *Element, v float64) *ic.
 		return s.sketch.AddConstraint(ic.Distance, p1.element, p2.element, v)
 	case Arc:
 		if p2 == nil {
-			return s.sketch.AddConstraint(ic.Distance, p1.element, p1.children[0].element, v)
+			// If p2 is nil, we're setting the arc radius, so distance to start or end works
+			return s.sketch.AddConstraint(ic.Distance, p1.element, p1.children[1].element, v)
 		}
-		return s.sketch.AddConstraint(ic.Distance, p1.element, p2.element, v)
+		// If p2 is not nil, we need to know the arc's radius is constrained
+		// r, ok := s.resolveCurveRadius(p1)
+		// if !ok {
+		// 	return nil
+		// }
+		// return s.sketch.AddConstraint(ic.Distance, p1.element, p2.element, r+v)
+		return nil
 	default:
 		return s.sketch.AddConstraint(ic.Distance, p1.element, p2.element, v)
 	}
@@ -69,11 +85,52 @@ func (s *Sketch) AddDistanceConstraint(p1 *Element, p2 *Element, v float64) *Con
 		}
 		c.constraints = append(c.constraints, constraint)
 		s.constraints = append(s.constraints, c)
+	} else {
+		c.state = Unresolved
 	}
 
+	// This is might be wrong unless p1.element is always in constraint c -- for a line this is not true
+	// check to see how eToC is used!
 	s.eToC[p1.element.GetID()] = append(s.eToC[p1.element.GetID()], c)
 	if p2 != nil {
 		s.eToC[p2.element.GetID()] = append(s.eToC[p2.element.GetID()], c)
 	}
+
+	s.resolveDistanceConstraint(c)
+
 	return c
+}
+
+func (s *Sketch) resolveCurveDistance(e1 *Element, e2 *Element, c *Constraint) bool {
+	if e1 == nil {
+		return false
+	}
+	eRadius, ok := s.resolveCurveRadius(e1)
+	if !ok {
+		return false
+	}
+
+	constraint := s.addDistanceConstraint(e1, e2, eRadius+c.dataValue)
+	fmt.Printf("resolveDistanceConstraint: added constraint id %d\n", constraint.GetID())
+	e1.constraints = append(e1.constraints, constraint)
+	c.constraints = append(c.constraints, constraint)
+	s.constraints = append(s.constraints, c)
+	c.state = Resolved
+
+	return c.state == Resolved
+}
+
+func (s *Sketch) resolveDistanceConstraint(c *Constraint) bool {
+	p1 := c.elements[0]
+	p2 := c.elements[1]
+
+	if s.resolveCurveDistance(p1, p2, c) {
+		return c.state == Resolved
+	}
+
+	if s.resolveCurveDistance(p2, p1, c) {
+		return c.state == Resolved
+	}
+
+	return c.state == Resolved
 }

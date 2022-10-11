@@ -53,3 +53,9 @@ func (s *StringSet) Contents() []string {
 func (s *StringSet) Count() int {
 	return len(s.m)
 }
+
+func (s *StringSet) Clear() {
+	for value := range s.m {
+		delete(s.m, value)
+	}
+}

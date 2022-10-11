@@ -106,11 +106,17 @@ func SolveDistanceConstraint(c *constraint.Constraint) SolveState {
 	// If two points, get distance between them, translate constraint value - distance between
 	// If point and line, get distance between them, translate normal to line constraint value - distance between
 	dist := point.DistanceTo(other)
-	trans, ok := point.VectorTo(other).UnitVector()
-	if !ok {
+	trans := point.VectorTo(other)
+
+	if dist == 0 && c.GetValue() > 0 {
 		return NonConvergent
 	}
-	trans.Scaled(c.GetValue() - dist)
+
+	if dist == 0 && c.GetValue() == 0 {
+		return Solved
+	}
+
+	trans.Scaled(c.GetValue() / dist)
 	point.Translate(trans.GetX(), trans.GetY())
 
 	return Solved
