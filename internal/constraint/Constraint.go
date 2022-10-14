@@ -147,11 +147,11 @@ func (c *Constraint) String() string {
 	return fmt.Sprintf("Constraint %d: %v to %v should be %f%s", c.GetID(), c.Element1, c.Element2, c.Value, units)
 }
 
-func (c *Constraint) ToGraphViz(cId string) string {
-	if cId == "" {
+func (c *Constraint) ToGraphViz(cId int) string {
+	if cId < 0 {
 		return fmt.Sprintf("\t%d -- %d [label=%v]\n", c.Element1.GetID(), c.Element2.GetID(), c.Type)
 	}
-	return fmt.Sprintf("\t\"%s-%d\" -- \"%s-%d\" [label=%v]\n", cId, c.Element1.GetID(), cId, c.Element2.GetID(), c.Type)
+	return fmt.Sprintf("\t\"%d-%d\" -- \"%d-%d\" [label=\"%v (%d)\"]\n", cId, c.Element1.GetID(), cId, c.Element2.GetID(), c.Type, c.id)
 }
 
 // Equals returns whether two constraints are equal

@@ -158,6 +158,6 @@ func (p *SketchPoint) String() string {
 	return fmt.Sprintf("Point(%d) (%f, %f)", p.GetID(), p.X, p.Y)
 }
 
-func (p *SketchPoint) ToGraphViz(cId string) string {
+func (p *SketchPoint) ToGraphViz(cId int) string {
 	return toGraphViz(p, cId)
 }

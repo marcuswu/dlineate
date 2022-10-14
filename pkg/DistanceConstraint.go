@@ -9,7 +9,9 @@ import (
 func DistanceConstraint(p1 *Element, p2 *Element) *Constraint {
 	constraint := emptyConstraint()
 	constraint.elements = append(constraint.elements, p1)
-	constraint.elements = append(constraint.elements, p2)
+	if p2 != nil {
+		constraint.elements = append(constraint.elements, p2)
+	}
 	constraint.constraintType = Distance
 	constraint.state = Resolved
 
@@ -102,6 +104,9 @@ func (s *Sketch) AddDistanceConstraint(p1 *Element, p2 *Element, v float64) *Con
 }
 
 func (s *Sketch) resolveCurveDistance(e1 *Element, e2 *Element, c *Constraint) bool {
+	if c.state == Resolved {
+		return c.state == Resolved
+	}
 	if e1 == nil {
 		return false
 	}
@@ -122,7 +127,10 @@ func (s *Sketch) resolveCurveDistance(e1 *Element, e2 *Element, c *Constraint) b
 
 func (s *Sketch) resolveDistanceConstraint(c *Constraint) bool {
 	p1 := c.elements[0]
-	p2 := c.elements[1]
+	var p2 *Element
+	if len(c.elements) > 1 {
+		p2 = c.elements[1]
+	}
 
 	if s.resolveCurveDistance(p1, p2, c) {
 		return c.state == Resolved

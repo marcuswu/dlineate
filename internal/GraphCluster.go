@@ -2,7 +2,6 @@ package core
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/marcuswu/dlineation/internal/constraint"
 	el "github.com/marcuswu/dlineation/internal/element"
@@ -15,24 +14,30 @@ type Constraint = constraint.Constraint
 
 // GraphCluster A cluster within a Graph
 type GraphCluster struct {
+	id          int
 	constraints []*Constraint
-	others      []*GraphCluster
-	elements    map[uint]el.SketchElement
-	eToC        map[uint][]*Constraint
-	solveOrder  []uint
-	solved      *utils.Set
+	// others      []*GraphCluster
+	elements   map[uint]el.SketchElement
+	eToC       map[uint][]*Constraint
+	solveOrder []uint
+	solved     *utils.Set
 }
 
 // NewGraphCluster constructs a new GraphCluster
-func NewGraphCluster() *GraphCluster {
+func NewGraphCluster(id int) *GraphCluster {
 	g := new(GraphCluster)
+	g.id = id
 	g.constraints = make([]*Constraint, 0, 2)
-	g.others = make([]*GraphCluster, 0)
+	// g.others = make([]*GraphCluster, 0)
 	g.elements = make(map[uint]el.SketchElement, 0)
 	g.eToC = make(map[uint][]*Constraint)
 	g.solved = utils.NewSet()
 	g.solveOrder = make([]uint, 0)
 	return g
+}
+
+func (g *GraphCluster) GetID() int {
+	return g.id
 }
 
 func (g *GraphCluster) AddElement(e el.SketchElement) {
@@ -72,17 +77,22 @@ func (g *GraphCluster) AddConstraint(c *Constraint) {
 	g.eToC[gc.Element2.GetID()] = append(g.eToC[gc.Element2.GetID()], gc)
 }
 
+// HasElementIDDirect returns whether this cluster directly contains an element ID
+func (g *GraphCluster) HasElementIDImmediate(eID uint) bool {
+	_, e := g.elements[eID]
+	return e
+}
+
 // HasElementID returns whether this cluster contains an element ID
 func (g *GraphCluster) HasElementID(eID uint) bool {
-	_, e := g.elements[eID]
-	if e {
+	if _, e := g.elements[eID]; e {
 		return true
 	}
-	for _, c := range g.others {
-		if c.HasElementID(eID) {
-			return true
-		}
-	}
+	// for _, c := range g.others {
+	// 	if c.HasElementID(eID) {
+	// 		return true
+	// 	}
+	// }
 	return false
 }
 
@@ -99,11 +109,11 @@ func (g *GraphCluster) GetElement(eID uint) (el.SketchElement, bool) {
 	if element, ok := g.elements[eID]; ok {
 		return element, ok
 	}
-	for _, c := range g.others {
-		if element, ok := c.elements[eID]; ok {
-			return element, ok
-		}
-	}
+	// for _, c := range g.others {
+	// 	if element, ok := c.elements[eID]; ok {
+	// 		return element, ok
+	// 	}
+	// }
 	return nil, false
 }
 
@@ -117,12 +127,15 @@ func (g *GraphCluster) SharedElements(gc *GraphCluster) *utils.Set {
 		}
 	}
 
-	// Include sub clusters
-	for _, other := range g.others {
-		for elementID := range other.elements {
-			if gc.HasElementID(elementID) {
-				shared.Add(elementID)
-			}
+	return shared
+}
+
+func (g *GraphCluster) immediateSharedElements(gc *GraphCluster) *utils.Set {
+	var shared *utils.Set = utils.NewSet()
+
+	for elementID := range g.elements {
+		if gc.HasElementIDImmediate(elementID) {
+			shared.Add(elementID)
 		}
 	}
 
@@ -257,14 +270,6 @@ func (g *GraphCluster) localSolve() solver.SolveState {
 			break
 		}
 
-		logLines := func(g *GraphCluster) {
-			for _, e := range g.elements {
-				if e.GetType() == el.Line {
-					fmt.Printf("Line element: %v\n", e)
-				}
-			}
-		}
-
 		// Step 2
 		fmt.Println("Local Solve Step 2")
 		fmt.Println("Solving constraints", c[0].GetID(), c[1].GetID())
@@ -275,7 +280,6 @@ func (g *GraphCluster) localSolve() solver.SolveState {
 			fmt.Printf("solved element in constraint 0: %v\n", element)
 			element, _ = c[1].Element(e)
 			fmt.Printf("solved element in constraint 1: %v\n", element)
-			logLines(g)
 			state = s
 			fmt.Printf("State: %v\n", state)
 		}
@@ -333,7 +337,8 @@ func (g *GraphCluster) logElement(e el.SketchElement) {
 
 // MergeOne resolves merging one solved child clusters to this one
 func (g *GraphCluster) mergeOne(other *GraphCluster) solver.SolveState {
-	sharedElements := g.SharedElements(other).Contents()
+	defer g.mergeConstraints(other, nil)
+	sharedElements := g.immediateSharedElements(other).Contents()
 
 	if len(sharedElements) != 2 {
 		return solver.NonConvergent
@@ -356,6 +361,7 @@ func (g *GraphCluster) mergeOne(other *GraphCluster) solver.SolveState {
 
 	// If both elements are lines, nonconvergent (I think)
 	if g.elements[first].GetType() == el.Line {
+		fmt.Println("In a merge one and both shared elements are line type")
 		return solver.NonConvergent
 	}
 
@@ -366,14 +372,17 @@ func (g *GraphCluster) mergeOne(other *GraphCluster) solver.SolveState {
 	if g.elements[second].GetType() == el.Line {
 		angle := other.elements[second].AsLine().AngleToLine(g.elements[second].AsLine())
 		other.Rotate(p1.AsPoint(), angle)
+		fmt.Println("Rotated to make line the same angle")
 	}
 
 	// Match up the first point
+	fmt.Println("matching up the first point")
 	direction := p1.VectorTo(p2)
 	other.Translate(direction.X, direction.Y)
 
 	// If both are points, rotate other to match the element in g
 	if g.elements[second].GetType() == el.Point {
+		fmt.Println("both elements were points, rotating to match the points together")
 		v1 := g.elements[second].VectorTo(g.elements[first])
 		v2 := other.elements[second].VectorTo(other.elements[first])
 		angle := v1.AngleTo(v2)
@@ -381,6 +390,19 @@ func (g *GraphCluster) mergeOne(other *GraphCluster) solver.SolveState {
 	}
 
 	return solver.Solved
+}
+
+func (g *GraphCluster) mergeConstraints(c1 *GraphCluster, c2 *GraphCluster) {
+	if c1 != nil {
+		for _, c := range c1.constraints {
+			g.AddConstraint(c)
+		}
+	}
+	if c2 != nil {
+		for _, c := range c2.constraints {
+			g.AddConstraint(c)
+		}
+	}
 }
 
 // SolveMerge resolves merging two solved child clusters to this one
@@ -394,6 +416,14 @@ solve lines separately and then solve for a point. Now I can solve for a line.
 5. Solve the constraint and rotate c1 and c2 to match
 */
 func (g *GraphCluster) solveMerge(c1 *GraphCluster, c2 *GraphCluster) solver.SolveState {
+	if c2 == nil {
+		fmt.Println("Beginning one cluster merge")
+		return g.mergeOne(c1)
+	}
+	// Move constraints / elements from c1, c2 to g when we're done
+	defer g.mergeConstraints(c1, c2)
+	fmt.Println()
+	fmt.Println("Beginning cluster merge")
 	solve := g.IsSolved()
 	fmt.Printf("Checking g solved: %v\n", solve)
 	solve = c1.IsSolved()
@@ -401,10 +431,17 @@ func (g *GraphCluster) solveMerge(c1 *GraphCluster, c2 *GraphCluster) solver.Sol
 	solve = c2.IsSolved()
 	fmt.Printf("Checking c2 solved: %v\n", solve)
 	fmt.Println()
+	fmt.Println("Pre-merge state:")
+	fmt.Println("g:")
+	g.logElements()
+	fmt.Println("c1:")
+	c1.logElements()
+	fmt.Println("c2:")
+	c2.logElements()
 	clusters := []*GraphCluster{g, c1, c2}
-	sharedSet := g.SharedElements(c1)
-	sharedSet.AddSet(g.SharedElements(c2))
-	sharedSet.AddSet(c1.SharedElements(c2))
+	sharedSet := g.immediateSharedElements(c1)
+	sharedSet.AddSet(g.immediateSharedElements(c2))
+	sharedSet.AddSet(c1.immediateSharedElements(c2))
 	sharedElements := sharedSet.Contents()
 	fmt.Printf("Solving for shared elements %v\n", sharedElements)
 
@@ -457,15 +494,16 @@ func (g *GraphCluster) solveMerge(c1 *GraphCluster, c2 *GraphCluster) solver.Sol
 		}
 	}
 	fmt.Printf("root cluster is g%d\n", finalIndex)
-	fmt.Printf("Initial configuration:\n")
-	g.logElements()
-	c1.logElements()
-	c2.logElements()
-	fmt.Println("")
+	// fmt.Printf("Initial configuration:\n")
+	// g.logElements()
+	// c1.logElements()
+	// c2.logElements()
+	// fmt.Println("")
 
 	for _, se := range sharedElements {
 		parents := clustersFor(se)
 		if len(parents) != 2 {
+			fmt.Printf("Shared element %d only has %d parents. Returning Non-Convergent\n", se, len(parents))
 			return solver.NonConvergent
 		}
 
@@ -489,17 +527,17 @@ func (g *GraphCluster) solveMerge(c1 *GraphCluster, c2 *GraphCluster) solver.Sol
 			other.logElements()
 			fmt.Println()
 			angle := ec1.AsLine().AngleToLine(ec2.AsLine())
-			fmt.Printf("Before rotate:\n")
-			fmt.Printf("Element 1: %v\n", ec1)
-			fmt.Printf("Element 2: %v\n", ec2)
-			other.logElements()
-			fmt.Printf("Calculated angle %f\n", angle)
+			// fmt.Printf("Before rotate:\n")
+			// fmt.Printf("Element 1: %v\n", ec1)
+			// fmt.Printf("Element 2: %v\n", ec2)
+			// other.logElements()
+			// fmt.Printf("Calculated angle %f\n", angle)
 			other.Rotate(ec1.AsLine().PointNearestOrigin(), angle)
-			fmt.Printf("After rotate:\n")
-			fmt.Printf("Element 1: %v\n", ec1)
-			fmt.Printf("Element 2: %v\n", ec2)
-			other.logElements()
-			fmt.Println()
+			// fmt.Printf("After rotate:\n")
+			// fmt.Printf("Element 1: %v\n", ec1)
+			// fmt.Printf("Element 2: %v\n", ec2)
+			// other.logElements()
+			// fmt.Println()
 			translation = ec1.VectorTo(ec2)
 		} else {
 			translation = ec2.VectorTo(ec1)
@@ -507,11 +545,11 @@ func (g *GraphCluster) solveMerge(c1 *GraphCluster, c2 *GraphCluster) solver.Sol
 
 		// translate element into place
 		other.Translate(translation.X, translation.Y)
-		if eType == el.Line {
-			fmt.Printf("After translate distance %f, %f:\n", translation.X, translation.Y)
-			other.logElements()
-			fmt.Println()
-		}
+		// if eType == el.Line {
+		// 	fmt.Printf("After translate distance %f, %f:\n", translation.X, translation.Y)
+		// 	other.logElements()
+		// 	fmt.Println()
+		// }
 
 		fmt.Printf("Solved for element %d:\n", se)
 		g.logElements()
@@ -620,55 +658,72 @@ func (g *GraphCluster) solveMerge(c1 *GraphCluster, c2 *GraphCluster) solver.Sol
 	c2.logElements()
 	println()
 
-	// Move constraints / elements from c1 to g
-	for _, c := range c1.constraints {
-		g.AddConstraint(c)
-	}
-	// Move non-shared elements from c2 to g
-	for _, c := range c2.constraints {
-		g.AddConstraint(c)
-	}
+	println("Completed parent cluster")
+	g.logElements()
+	println()
 
 	return solver.Solved
 }
 
 // Solve solves the cluster and any child clusters associated with it
 func (g *GraphCluster) Solve() solver.SolveState {
-	fmt.Printf("Solving cluster with %d other clusters\n", len(g.others))
+	// fmt.Printf("Solving cluster with %d other clusters\n", len(g.others))
+	fmt.Printf("Solving cluster %d\n", g.id)
 	state := g.localSolve()
-	if len(g.others) == 0 {
-		return state
-	}
+	// if len(g.others) == 0 {
+	// 	return state
+	// }
 
 	// If there are sub clusters, solve them
-	for i, cluster := range g.others {
-		// attempt as much of a solve as possible even if non-convergent
-		fmt.Printf("Solving other cluster %d\n", i)
-		otherState := cluster.Solve()
-		if state == solver.Solved && otherState != solver.Solved {
-			state = otherState
-		}
-	}
+	// for i, cluster := range g.others {
+	// 	// attempt as much of a solve as possible even if non-convergent
+	// 	fmt.Printf("Solving other cluster %d\n", i)
+	// 	otherState := cluster.Solve()
+	// 	if state == solver.Solved && otherState != solver.Solved {
+	// 		state = otherState
+	// 	}
+	// }
 
 	// Now use rigid body transforms to move cluster elements into place
-	for len(g.others) > 0 {
-		// We will always have pairs added to others
-		first := g.others[0]
-		second := g.others[1]
-		copy(g.others[0:], g.others[2:])
-		g.others[len(g.others)-2] = nil
-		g.others[len(g.others)-1] = nil
-		g.others = g.others[:len(g.others)-2]
+	// for len(g.others) > 0 {
+	// 	// Find clusters which can me merged
+	// 	first, second := g.findMerge()
+	// 	if first < 0 && second < 0 {
+	// 		// Need to copy elements out of any clusters remaining
+	// 		for _, other := range g.others {
+	// 			for _, c := range other.constraints {
+	// 				g.AddConstraint(c)
+	// 			}
+	// 		}
+	// 		return solver.NonConvergent
+	// 	}
+	// 	var secondC *GraphCluster = nil
+	// 	if second >= 0 {
+	// 		secondC = g.others[second]
+	// 		swapTo := len(g.others) - 2
+	// 		g.others[swapTo], g.others[second] = g.others[second], g.others[swapTo]
+	// 	}
+	// 	firstC := g.others[first]
 
-		mergeState := g.solveMerge(first, second)
-		if state == solver.Solved && mergeState != solver.Solved {
-			state = mergeState
-		}
-	}
+	// 	swapTo := len(g.others) - 1
+	// 	g.others[swapTo], g.others[first] = g.others[first], g.others[swapTo]
+
+	// 	remove := 1
+	// 	if second >= 0 {
+	// 		remove = 2
+	// 		g.others[len(g.others)-2] = nil
+	// 	}
+	// 	g.others[len(g.others)-1] = nil
+	// 	g.others = g.others[:len(g.others)-remove]
+
+	// 	mergeState := g.solveMerge(firstC, secondC)
+	// 	if state == solver.Solved && mergeState != solver.Solved {
+	// 		state = mergeState
+	// 	}
+	// }
 
 	return state
 }
-
 func (c *GraphCluster) IsSolved() bool {
 	solved := true
 	for _, c := range c.constraints {
@@ -683,38 +738,36 @@ func (c *GraphCluster) IsSolved() bool {
 	return solved
 }
 
-func (c *GraphCluster) ToGraphViz(id string) string {
+// TODO: This infinite loops!
+func (c *GraphCluster) ToGraphViz() string {
 	edges := ""
-	others := ""
 	elements := ""
-	sharedEdges := ""
-	betweenEdges := utils.NewStringSet()
 	for _, constraint := range c.constraints {
-		edges = edges + constraint.ToGraphViz(id)
-		elements = elements + constraint.Element1.ToGraphViz(id)
-		elements = elements + constraint.Element2.ToGraphViz(id)
+		edges = edges + constraint.ToGraphViz(c.id)
+		elements = elements + constraint.Element1.ToGraphViz(c.id)
+		elements = elements + constraint.Element2.ToGraphViz(c.id)
 		// edges = edges + constraint.ToGraphViz("")
 	}
-	for oid, other := range c.others {
-		others = others + other.ToGraphViz(fmt.Sprintf("%s_%d", id, oid))
+	/*for _, other := range c.others {
+		others = others + other.ToGraphViz()
 		// edges = edges + other.ToGraphViz(fmt.Sprintf("%d", oid))
 		for e := range c.eToC {
 			if !other.HasElementID(e) {
 				continue
 			}
-			sharedEdges = sharedEdges + fmt.Sprintf("\t\"%s-%d\" -- \"%s_%d-%d\"\n", id, e, id, oid, e)
+			sharedEdges = sharedEdges + fmt.Sprintf("\t\"%d-%d\" -- \"%d-%d\"\n", c.id, e, other.id, e)
 		}
 
-		for ooid, oother := range c.others {
-			if ooid == oid {
+		for _, oother := range c.others {
+			if oother.id == other.id {
 				continue
 			}
 			for e := range other.eToC {
 				if !oother.HasElementID(e) {
 					continue
 				}
-				reverseEdge := fmt.Sprintf("\t\"%s_%d-%d\" -- \"%s_%d-%d\"\n", id, ooid, e, id, oid, e)
-				edge := fmt.Sprintf("\t\"%s_%d-%d\" -- \"%s_%d-%d\"\n", id, oid, e, id, ooid, e)
+				reverseEdge := fmt.Sprintf("\t\"%d-%d\" -- \"%d-%d\"\n", oother.id, e, other.id, e)
+				edge := fmt.Sprintf("\t\"%d-%d\" -- \"%d-%d\"\n", other.id, e, oother.id, e)
 				if betweenEdges.Contains(reverseEdge) || betweenEdges.Contains(edge) {
 					continue
 				}
@@ -722,12 +775,10 @@ func (c *GraphCluster) ToGraphViz(id string) string {
 				betweenEdges.Add(edge)
 			}
 		}
-	}
-	sharedEdges = sharedEdges + strings.Join(betweenEdges.Contents(), "")
-	return fmt.Sprintf(`subgraph cluster_%s {
+	}*/
+	return fmt.Sprintf(`subgraph cluster_%d {
+		label = "Cluster %d"
 		%s
 		%s
-	}
-	%s
-	%s`, id, edges, elements, others, sharedEdges)
+	}`, c.id, c.id, edges, elements)
 }

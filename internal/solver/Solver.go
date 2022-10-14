@@ -116,7 +116,9 @@ func SolveDistanceConstraint(c *constraint.Constraint) SolveState {
 		return Solved
 	}
 
-	trans.Scaled(c.GetValue() / dist)
+	// This is incorrect -- need to (c.GetValue() - trans.Magnitude()) / dist
+	translationAmount := c.GetValue() - trans.Magnitude()
+	trans.Scaled(translationAmount / dist)
 	point.Translate(trans.GetX(), trans.GetY())
 
 	return Solved
@@ -276,15 +278,16 @@ func PointFromPointLine(c1 *constraint.Constraint, c2 *constraint.Constraint) (*
 }
 
 func pointFromLineLine(l1 *el.SketchLine, l2 *el.SketchLine, p3 *el.SketchPoint, line1Dist float64, line2Dist float64) (*el.SketchPoint, SolveState) {
+	sameSlope := utils.StandardFloatCompare(l1.GetA(), l2.GetA()) == 0 && utils.StandardFloatCompare(l1.GetB(), l2.GetB()) == 0
 	// If l1 and l2 are parallel, and line distances aren't what is passed in, there is no solution
-	if utils.StandardFloatCompare(l1.GetSlope(), l2.GetSlope()) == 0 &&
+	if sameSlope &&
 		utils.StandardFloatCompare(line1Dist+line2Dist, l1.DistanceTo(l2)) != 0 {
 		return nil, NonConvergent
 	}
 
 	// If l1 & l2 are parallel and it's solvable, there are infinite solutions
 	// Choose the one closest to the current point location
-	if utils.StandardFloatCompare(l1.GetSlope(), l2.GetSlope()) == 0 {
+	if sameSlope {
 		translate := l1.VectorTo(p3)
 		translate.Scaled(p3.DistanceTo(l1) - line1Dist)
 		return el.NewSketchPoint(p3.GetID(), p3.X+translate.X, p3.Y+translate.Y), Solved
@@ -293,6 +296,9 @@ func pointFromLineLine(l1 *el.SketchLine, l2 *el.SketchLine, p3 *el.SketchPoint,
 	line1Translated := l1.TranslatedDistance(line1Dist)
 	// Translate l2 line2Dist
 	line2Translated := l2.TranslatedDistance(line2Dist)
+
+	// If line1 and line2 are the same line,
+
 	// Return intersection point
 	intersection := line1Translated.Intersection(line2Translated)
 

@@ -13,7 +13,7 @@ type SolveState uint
 // SolveState constants
 const (
 	None SolveState = iota
-	UnderConstrained
+	// UnderConstrained
 	OverConstrained
 	NonConvergent
 	Solved
@@ -21,8 +21,8 @@ const (
 
 func (ss SolveState) String() string {
 	switch ss {
-	case UnderConstrained:
-		return "under constrained"
+	// case UnderConstrained:
+	// 	return "under constrained"
 	case OverConstrained:
 		return "over constrained"
 	case NonConvergent:

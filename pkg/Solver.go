@@ -395,9 +395,9 @@ func (s *Sketch) Solve() error {
 	switch solveState {
 	case solver.None:
 		return errors.New("unknown solver error")
-	case solver.UnderConstrained:
-		// TODO: return information about which elements are underconstrained
-		return errors.New("the sketch is under constrained")
+	// case solver.UnderConstrained:
+	// 	// TODO: return information about which elements are underconstrained
+	// 	return errors.New("the sketch is under constrained")
 	case solver.OverConstrained:
 		// TODO: return information about which constraints are overconstrained
 		return errors.New("the sketch is over constrained")
