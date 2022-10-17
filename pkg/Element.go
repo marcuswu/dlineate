@@ -90,6 +90,9 @@ func (e *Element) valuesFromSketch(s *Sketch) error {
 		// find distance constraint on e
 		constraint, err := s.findConstraint(Distance, e)
 		if err != nil {
+			constraint, err = s.findConstraint(Coincident, e)
+		}
+		if err != nil {
 			return err
 		}
 		e.values[2], err = e.getCircleRadius(constraint)

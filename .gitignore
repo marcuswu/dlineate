@@ -20,3 +20,5 @@
 
 *.svg
 *.dot
+
+**/__debug_bin

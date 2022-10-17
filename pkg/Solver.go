@@ -52,11 +52,16 @@ func (s *Sketch) findConstraints(e *Element) []*Constraint {
 }
 
 func (s *Sketch) findConstraint(ctype ConstraintType, e *Element) (*Constraint, error) {
-	for _, c := range s.eToC[e.element.GetID()] {
-		if c == nil || c.constraintType != ctype || (c.state != Resolved && c.state != Solved) {
+	for _, c := range s.constraints {
+		if c.constraintType != ctype || (c.state != Resolved && c.state != Solved) {
 			continue
 		}
-		return c, nil
+		for _, el := range c.elements {
+			if e != el {
+				continue
+			}
+			return c, nil
+		}
 	}
 
 	return nil, errors.New("no such constraint")

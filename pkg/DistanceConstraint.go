@@ -115,6 +115,9 @@ func (s *Sketch) resolveCurveDistance(e1 *Element, e2 *Element, c *Constraint) b
 		return false
 	}
 	eRadius, ok := s.resolveCurveRadius(e1)
+	if ok {
+		fmt.Printf("RESOLVED curve radius with center point (%f, %f) to %f\n", e1.values[0], e1.values[1], eRadius)
+	}
 	if !ok {
 		return false
 	}
