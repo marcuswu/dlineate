@@ -32,7 +32,7 @@ func NewSketch() *SketchGraph {
 	g.eToC = make(map[uint][]*Constraint, 0)
 	g.constraints = make(map[uint]*Constraint, 0)
 	g.elements = make(map[uint]el.SketchElement, 0)
-	g.clusters = make([]*GraphCluster, 0, 2)
+	g.clusters = make([]*GraphCluster, 0)
 	g.freeNodes = utils.NewSet()
 	g.usedNodes = utils.NewSet()
 	g.state = solver.None
@@ -104,6 +104,22 @@ func (g *SketchGraph) AddAxis(a float64, b float64, c float64) el.SketchElement 
 	return ax //g.GetElement(elementID)
 }
 
+func (g *SketchGraph) IsElementSolved(e el.SketchElement) bool {
+	constraints := g.eToC[e.GetID()]
+	if len(constraints) < 2 {
+		return false
+	}
+
+	numSolved := 0
+	for _, c := range constraints {
+		if c.Solved {
+			numSolved++
+		}
+	}
+
+	return numSolved > 1
+}
+
 func (g *SketchGraph) CombinePoints(e1 el.SketchElement, e2 el.SketchElement) el.SketchElement {
 	fmt.Printf("Combining elements %d and %d (removing %d)\n", e1.GetID(), e2.GetID(), e2.GetID())
 	newE2 := e1
@@ -153,10 +169,10 @@ func (g *SketchGraph) AddConstraint(t constraint.Type, e1 el.SketchElement, e2 e
 	}
 	g.constraints[constraintID] = constraint
 	if _, ok := g.eToC[e1.GetID()]; !ok {
-		g.eToC[e1.GetID()] = make([]*Constraint, 0, 1)
+		g.eToC[e1.GetID()] = make([]*Constraint, 0)
 	}
 	if _, ok := g.eToC[e2.GetID()]; !ok {
-		g.eToC[e2.GetID()] = make([]*Constraint, 0, 1)
+		g.eToC[e2.GetID()] = make([]*Constraint, 0)
 	}
 	g.eToC[e1.GetID()] = append(g.eToC[e1.GetID()], constraint)
 	g.eToC[e2.GetID()] = append(g.eToC[e2.GetID()], constraint)
@@ -168,7 +184,7 @@ func (g *SketchGraph) AddConstraint(t constraint.Type, e1 el.SketchElement, e2 e
 func (g *SketchGraph) findStartConstraint() uint {
 	// start with all constraints if g.clusters is empty
 	// start with constraints with an element in existing clusters if g.clusters is not empty
-	constraints := make([]uint, 0, len(g.constraints))
+	constraints := make([]uint, 0)
 	// if len(g.clusters) < 2 {
 	// 	for constraintId := range g.constraints {
 	// 		constraints = append(constraints, constraintId)
@@ -507,9 +523,15 @@ func (g *SketchGraph) ResetClusters() {
 	for _, cluster := range g.clusters {
 		g.addClusterConstraints(cluster)
 	}
-	g.clusters = g.clusters[:1]
+	g.clusters = make([]*GraphCluster, 0)
 	g.freeNodes.AddSet(g.usedNodes)
 	g.usedNodes.Clear()
+
+	// Recreate cluster 0
+	// This isn't great -- if cluster 0 changes over time, this will need to be updated
+	// Instead we should track a pristine version of cluster 0 to reset to
+	c := NewGraphCluster(0)
+	g.clusters = append(g.clusters, c)
 }
 
 func (g *SketchGraph) BuildClusters() {
@@ -558,6 +580,7 @@ func (g *SketchGraph) Solve() solver.SolveState {
 		fmt.Printf("Starting cluster %d solve\n", i)
 		clusterState := c.Solve()
 		g.updateElements(c)
+		g.addClusterConstraints(c)
 		fmt.Printf("Solved cluster %d with state %v, current state %v\n", i, clusterState, g.state)
 		c.logElements()
 		if g.state == solver.None || (g.state != clusterState && !(g.state != solver.Solved && clusterState == solver.Solved)) {
@@ -582,6 +605,8 @@ func (g *SketchGraph) Solve() solver.SolveState {
 			c3 = g.clusters[third]
 		}
 		mergeState := c1.solveMerge(c2, c3)
+		g.updateElements(c1)
+		g.addClusterConstraints(c1)
 		if g.state != mergeState && mergeState != solver.Solved {
 			fmt.Printf("Updating state to %v after cluster merge\n", mergeState)
 			g.state = mergeState
@@ -597,14 +622,15 @@ func (g *SketchGraph) Solve() solver.SolveState {
 		}
 	}
 	fmt.Println("Merging with origin and X & Y axes")
-	mergeState := g.clusters[0].mergeOne(g.clusters[1])
+	mergeState := g.clusters[0].mergeOne(g.clusters[1], false)
+	g.addClusterConstraints(g.clusters[0])
 	if g.state == solver.None || (g.state != mergeState && !(g.state != solver.Solved && mergeState == solver.Solved)) {
 		fmt.Printf("Updating state to %v after cluster merge\n", mergeState)
 		g.state = mergeState
 	}
-	g.updateElements(g.clusters[1])
+	// g.updateElements(g.clusters[1])
 	fmt.Printf("Final graph solve state %v\n", g.state)
-	g.clusters[1].logElements()
+	g.clusters[0].logElements()
 	fmt.Println()
 
 	if !g.IsSolved() {

@@ -34,8 +34,8 @@ func (s *Sketch) AddMidpointConstraint(p1 *Element, p2 *Element) *Constraint {
 	if !p1.isLineOrArc() && !p2.isLineOrArc() {
 		return nil
 	}
-	s.eToC[p1.element.GetID()] = append(s.eToC[p1.element.GetID()], c)
-	s.eToC[p2.element.GetID()] = append(s.eToC[p2.element.GetID()], c)
+	s.eToC[p1.id] = append(s.eToC[p1.id], c)
+	s.eToC[p2.id] = append(s.eToC[p2.id], c)
 
 	s.resolveMidpointConstraint(c)
 

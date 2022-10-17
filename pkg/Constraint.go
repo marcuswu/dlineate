@@ -39,13 +39,21 @@ type Constraint struct {
 
 func emptyConstraint() *Constraint {
 	ec := new(Constraint)
-	ec.constraints = make([]*c.Constraint, 0, 1)
-	ec.elements = make([]*Element, 0, 1)
+	ec.constraints = make([]*c.Constraint, 0)
+	ec.elements = make([]*Element, 0)
 	ec.state = Unresolved
 	return ec
 }
 
-func (c *Constraint) checkSolved() {
+func (c *Constraint) replaceElement(from *Element, to *Element) {
+	for i, e := range c.elements {
+		if e.id == from.id {
+			c.elements[i] = to
+		}
+	}
+}
+
+func (c *Constraint) checkSolved() bool {
 	solved := true
 	if len(c.constraints) == 0 {
 		solved = false
@@ -56,6 +64,8 @@ func (c *Constraint) checkSolved() {
 	if solved {
 		c.state = Solved
 	}
+
+	return c.state == Solved
 }
 
 /*

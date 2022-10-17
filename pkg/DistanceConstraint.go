@@ -89,17 +89,19 @@ func (s *Sketch) AddDistanceConstraint(p1 *Element, p2 *Element, v float64) *Con
 			p2.constraints = append(p2.constraints, constraint)
 		}
 		c.constraints = append(c.constraints, constraint)
-		s.constraints = append(s.constraints, c)
 	} else {
+		if p2 != nil {
+			c.state = Unresolved
+		}
 		c.dataValue = v
-		c.state = Unresolved
 	}
+	s.constraints = append(s.constraints, c)
 
 	// This is might be wrong unless p1.element is always in constraint c -- for a line this is not true
 	// check to see how eToC is used!
-	s.eToC[p1.element.GetID()] = append(s.eToC[p1.element.GetID()], c)
+	s.eToC[p1.id] = append(s.eToC[p1.id], c)
 	if p2 != nil {
-		s.eToC[p2.element.GetID()] = append(s.eToC[p2.element.GetID()], c)
+		s.eToC[p2.id] = append(s.eToC[p2.id], c)
 	}
 
 	s.resolveDistanceConstraint(c)
@@ -108,6 +110,11 @@ func (s *Sketch) AddDistanceConstraint(p1 *Element, p2 *Element, v float64) *Con
 }
 
 func (s *Sketch) resolveCurveDistance(e1 *Element, e2 *Element, c *Constraint) bool {
+	/*
+		To resolve a curve's radius, we need either:
+		1. A resolved distance constraint on the pkg/Element curve
+		2. A solved center point and a solved element constrained to a distance from the pkg/Element curve
+	*/
 	if c.state == Resolved {
 		return c.state == Resolved
 	}
@@ -115,14 +122,12 @@ func (s *Sketch) resolveCurveDistance(e1 *Element, e2 *Element, c *Constraint) b
 		return false
 	}
 	eRadius, ok := s.resolveCurveRadius(e1)
-	if ok {
-		fmt.Printf("RESOLVED curve radius with center point (%f, %f) to %f\n", e1.values[0], e1.values[1], eRadius)
-	}
 	if !ok {
 		return false
 	}
 
-	constraint := s.addDistanceConstraint(e1, e2, eRadius+c.dataValue)
+	fmt.Printf("RESOLVED curve radius with center point (%f, %f) to %f\n", e1.values[0], e1.values[1], eRadius)
+	constraint := s.sketch.AddConstraint(ic.Distance, e1.element, e2.element, eRadius+c.dataValue)
 	fmt.Printf("resolveDistanceConstraint: added constraint id %d\n", constraint.GetID())
 	e1.constraints = append(e1.constraints, constraint)
 	c.constraints = append(c.constraints, constraint)
@@ -134,16 +139,21 @@ func (s *Sketch) resolveCurveDistance(e1 *Element, e2 *Element, c *Constraint) b
 
 func (s *Sketch) resolveDistanceConstraint(c *Constraint) bool {
 	p1 := c.elements[0]
-	var p2 *Element
+	var p2 *Element = nil
 	if len(c.elements) > 1 {
 		p2 = c.elements[1]
 	}
+	if c.state == Resolved {
+		return true
+	}
 
 	if s.resolveCurveDistance(p1, p2, c) {
+		fmt.Println("CURVE DISTANCE CONSTRAINT RESOLVED")
 		return c.state == Resolved
 	}
 
 	if s.resolveCurveDistance(p2, p1, c) {
+		fmt.Println("CURVE DISTANCE CONSTRAINT RESOLVED")
 		return c.state == Resolved
 	}
 

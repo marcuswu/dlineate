@@ -40,6 +40,7 @@ func (et ElementType) String() string {
 }
 
 type Element struct {
+	id          uint
 	values      []float64
 	elementType ElementType
 	constraints []*c.Constraint
@@ -51,9 +52,9 @@ type Element struct {
 
 func emptyElement() *Element {
 	ec := new(Element)
-	ec.values = make([]float64, 0, 2)
-	ec.constraints = make([]*c.Constraint, 0, 1)
-	ec.children = make([]*Element, 0, 1)
+	ec.values = make([]float64, 0)
+	ec.constraints = make([]*c.Constraint, 0)
+	ec.children = make([]*Element, 0)
 	ec.isChild = false
 	ec.valuePass = 0
 	return ec

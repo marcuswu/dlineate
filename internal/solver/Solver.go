@@ -113,6 +113,7 @@ func SolveDistanceConstraint(c *constraint.Constraint) SolveState {
 	}
 
 	if dist == 0 && c.GetValue() == 0 {
+		c.Solved = true
 		return Solved
 	}
 
@@ -120,6 +121,7 @@ func SolveDistanceConstraint(c *constraint.Constraint) SolveState {
 	translationAmount := c.GetValue() - trans.Magnitude()
 	trans.Scaled(translationAmount / dist)
 	point.Translate(trans.GetX(), trans.GetY())
+	c.Solved = true
 
 	return Solved
 }

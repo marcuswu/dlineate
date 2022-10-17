@@ -27,7 +27,7 @@ type GraphCluster struct {
 func NewGraphCluster(id int) *GraphCluster {
 	g := new(GraphCluster)
 	g.id = id
-	g.constraints = make([]*Constraint, 0, 2)
+	g.constraints = make([]*Constraint, 0)
 	// g.others = make([]*GraphCluster, 0)
 	g.elements = make(map[uint]el.SketchElement, 0)
 	g.eToC = make(map[uint][]*Constraint)
@@ -68,10 +68,10 @@ func (g *GraphCluster) AddConstraint(c *Constraint) {
 	}
 
 	if _, ok := g.eToC[gc.Element1.GetID()]; !ok {
-		g.eToC[gc.Element1.GetID()] = make([]*Constraint, 0, 1)
+		g.eToC[gc.Element1.GetID()] = make([]*Constraint, 0)
 	}
 	if _, ok := g.eToC[gc.Element2.GetID()]; !ok {
-		g.eToC[gc.Element2.GetID()] = make([]*Constraint, 0, 1)
+		g.eToC[gc.Element2.GetID()] = make([]*Constraint, 0)
 	}
 	g.eToC[gc.Element1.GetID()] = append(g.eToC[gc.Element1.GetID()], gc)
 	g.eToC[gc.Element2.GetID()] = append(g.eToC[gc.Element2.GetID()], gc)
@@ -170,7 +170,7 @@ func (g *GraphCluster) rebuildMap() {
 
 func (g *GraphCluster) solvedConstraintsFor(eID uint) []*Constraint {
 	constraints := g.eToC[eID]
-	var solvedC = make([]*Constraint, 0, len(constraints))
+	var solvedC = make([]*Constraint, 0)
 	for _, c := range constraints {
 		if g.solved.Contains(c.GetID()) {
 			solvedC = append(solvedC, c)
@@ -181,7 +181,7 @@ func (g *GraphCluster) solvedConstraintsFor(eID uint) []*Constraint {
 
 func (g *GraphCluster) unsolvedConstraintsFor(eID uint) []*Constraint {
 	var constraints = g.eToC[eID]
-	var unsolved = make([]*Constraint, 0, len(constraints))
+	var unsolved = make([]*Constraint, 0)
 	for _, c := range constraints {
 		if g.solved.Contains(c.GetID()) {
 			continue
@@ -336,8 +336,10 @@ func (g *GraphCluster) logElement(e el.SketchElement) {
 }
 
 // MergeOne resolves merging one solved child clusters to this one
-func (g *GraphCluster) mergeOne(other *GraphCluster) solver.SolveState {
-	defer g.mergeConstraints(other, nil)
+func (g *GraphCluster) mergeOne(other *GraphCluster, mergeConstraints bool) solver.SolveState {
+	if mergeConstraints {
+		defer g.mergeConstraints(other, nil)
+	}
 	sharedElements := g.immediateSharedElements(other).Contents()
 
 	if len(sharedElements) != 2 {
@@ -418,7 +420,7 @@ solve lines separately and then solve for a point. Now I can solve for a line.
 func (g *GraphCluster) solveMerge(c1 *GraphCluster, c2 *GraphCluster) solver.SolveState {
 	if c2 == nil {
 		fmt.Println("Beginning one cluster merge")
-		return g.mergeOne(c1)
+		return g.mergeOne(c1, true)
 	}
 	// Move constraints / elements from c1, c2 to g when we're done
 	defer g.mergeConstraints(c1, c2)
@@ -446,7 +448,7 @@ func (g *GraphCluster) solveMerge(c1 *GraphCluster, c2 *GraphCluster) solver.Sol
 	fmt.Printf("Solving for shared elements %v\n", sharedElements)
 
 	clustersFor := func(e uint) []*GraphCluster {
-		matching := make([]*GraphCluster, 0, len(clusters))
+		matching := make([]*GraphCluster, 0)
 		for _, c := range clusters {
 			if _, ok := c.elements[e]; !ok {
 				continue

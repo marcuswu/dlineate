@@ -10,7 +10,7 @@ func main() {
 	sketch := dlineation.NewSketch()
 
 	// Add elements
-	offset := sketch.AddLine(0, 0, 6, 0)
+	start := sketch.AddPoint(6, 0)
 	line1 := sketch.AddLine(6, 0, 9.4, 0)
 	line2 := sketch.AddLine(9.4, 0, 9.4, -1)
 	line3 := sketch.AddLine(9.4, -1, 8, -2)
@@ -25,13 +25,12 @@ func main() {
 	sketch.ExportGraphViz("cylinderElementsAdded.dot")
 
 	// Add constraints
-	// Bottom of pentagon starts at origin and aligns with x axis
-	sketch.AddCoincidentConstraint(sketch.Origin, offset.Start())
-	sketch.AddParallelConstraint(sketch.XAxis, offset)
-	sketch.AddDistanceConstraint(offset, nil, 6)
+	// Constrain offset line to position the rest
+	sketch.AddCoincidentConstraint(sketch.XAxis, start)
+	sketch.AddDistanceConstraint(sketch.Origin, start, 6)
 
 	// line points are coincident
-	sketch.AddCoincidentConstraint(offset.End(), line1.Start())
+	sketch.AddCoincidentConstraint(start, line1.Start())
 	sketch.AddCoincidentConstraint(line1.End(), line2.Start())
 	sketch.AddCoincidentConstraint(line2.End(), line3.Start())
 	sketch.AddCoincidentConstraint(line3.End(), arc1.Start())
@@ -47,6 +46,7 @@ func main() {
 
 	// line2 constraints
 	sketch.AddParallelConstraint(sketch.YAxis, line2)
+	sketch.AddDistanceConstraint(line2, nil, 1.0)
 	sketch.AddAngleConstraint(line2, line3, 135)
 
 	// line3 constraints
@@ -74,12 +74,14 @@ func main() {
 	sketch.AddCoincidentConstraint(arc2.Start(), line7)
 	sketch.AddCoincidentConstraint(arc2.End(), line3)
 	sketch.AddTangentConstraint(arc2, line3)
+	sketch.AddDistanceConstraint(arc2, nil, 6)
 
 	// arc3 constraints
 	sketch.AddCoincidentConstraint(arc3.Center(), line7)
 	sketch.AddCoincidentConstraint(arc3.End(), line7)
 	sketch.AddCoincidentConstraint(arc3.Start(), line4)
 	sketch.AddTangentConstraint(arc3, line4)
+	sketch.AddDistanceConstraint(arc3, nil, 6)
 
 	sketch.ExportGraphViz("cylinderConstraintsAdded.dot")
 
@@ -93,8 +95,7 @@ func main() {
 		fmt.Printf("Solve error %s\n", err)
 	}
 
-	fmt.Printf("offset start constraint level %v\n", offset.Start().ConstraintLevel())
-	fmt.Printf("offset end constraint level %v\n", offset.End().ConstraintLevel())
+	fmt.Printf("offset start constraint level %v\n", start.ConstraintLevel())
 	fmt.Printf("l1 start constraint level %v\n", line1.Start().ConstraintLevel())
 	fmt.Printf("l1 end constraint level %v\n", line1.End().ConstraintLevel())
 	fmt.Printf("l2 start constraint level %v\n", line2.Start().ConstraintLevel())
