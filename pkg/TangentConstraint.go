@@ -71,6 +71,9 @@ func (s *Sketch) resolveTangentConstraint(c *Constraint) bool {
 	if ok {
 		fmt.Printf("addDistanceConstraint with elements %v, %v\n", c.elements[0], c.elements[1])
 		constraint := s.addDistanceConstraint(c.elements[0], c.elements[1].children[0], radius)
+		if constraint == nil {
+			return c.state == Resolved
+		}
 		fmt.Printf("resolveTangentConstraint: added constraint id %d\n", constraint.GetID())
 		c.elements[0].constraints = append(c.elements[0].constraints, constraint)
 		c.elements[1].constraints = append(c.elements[1].constraints, constraint)

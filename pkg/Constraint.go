@@ -47,6 +47,9 @@ func emptyConstraint() *Constraint {
 
 func (c *Constraint) checkSolved() {
 	solved := true
+	if len(c.constraints) == 0 {
+		solved = false
+	}
 	for _, constraint := range c.constraints {
 		solved = solved && constraint.Solved
 	}

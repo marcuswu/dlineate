@@ -53,7 +53,7 @@ func (s *Sketch) findConstraints(e *Element) []*Constraint {
 
 func (s *Sketch) findConstraint(ctype ConstraintType, e *Element) (*Constraint, error) {
 	for _, c := range s.eToC[e.element.GetID()] {
-		if c == nil || c.constraintType != ctype {
+		if c == nil || c.constraintType != ctype || (c.state != Resolved && c.state != Solved) {
 			continue
 		}
 		return c, nil
@@ -122,8 +122,9 @@ func (s *Sketch) AddLine(x1 float64, y1 float64, x2 float64, y2 float64) *Elemen
 	l.children = append(l.children, end)
 	s.eToC[end.element.GetID()] = make([]*Constraint, 0, 2)
 	s.eToC[l.element.GetID()] = make([]*Constraint, 0, 2)
-	s.addDistanceConstraint(l, start, 0.0)
-	s.addDistanceConstraint(l, end, 0.0)
+	s.AddDistanceConstraint(l, start, 0.0)
+	s.AddDistanceConstraint(l, end, 0.0)
+	fmt.Printf("Added Line %d with points %d and %d\n", l.element.GetID(), l.children[0].element.GetID(), l.children[1].element.GetID())
 	return l
 }
 
@@ -136,14 +137,16 @@ func (s *Sketch) AddCircle(x float64, y float64, r float64) *Element {
 	c.values = append(c.values, y)
 	c.values = append(c.values, r)
 
-	c.element = s.sketch.AddPoint(x, y)
 	s.Elements = append(s.Elements, c)
 
 	center := s.AddPoint(c.values[0], c.values[1])
 	center.isChild = true
+	c.element = center.element
+
 	c.children = append(c.children, center)
 	s.eToC[center.element.GetID()] = make([]*Constraint, 0, 2)
 	s.eToC[c.element.GetID()] = make([]*Constraint, 0, 2)
+	fmt.Printf("Added Circle with center %d\n", c.element.GetID())
 	return c
 }
 
@@ -160,11 +163,11 @@ func (s *Sketch) AddArc(x1 float64, y1 float64, x2 float64, y2 float64, x3 float
 	a.values = append(a.values, x3)
 	a.values = append(a.values, y3)
 
-	a.element = s.sketch.AddPoint(x1, y1)
 	s.Elements = append(s.Elements, a)
 
 	center := s.AddPoint(a.values[0], a.values[1])
 	center.isChild = true
+	a.element = center.element
 	a.children = append(a.children, center)
 	s.eToC[center.element.GetID()] = make([]*Constraint, 0, 2)
 
@@ -177,8 +180,9 @@ func (s *Sketch) AddArc(x1 float64, y1 float64, x2 float64, y2 float64, x3 float
 	s.eToC[a.element.GetID()] = make([]*Constraint, 0, 2)
 	a.children = append(a.children, start)
 	a.children = append(a.children, end)
-	s.addDistanceConstraint(a, start, 0.0)
-	s.addDistanceConstraint(a, end, 0.0)
+	s.AddDistanceConstraint(a, start, 0.0)
+	s.AddDistanceConstraint(a, end, 0.0)
+	fmt.Printf("Added Arc %d with points %d and %d\n", a.element.GetID(), a.children[1].element.GetID(), a.children[2].element.GetID())
 	return a
 }
 
@@ -304,10 +308,14 @@ func (s *Sketch) resolveCurveRadius(e *Element) (float64, bool) {
 		return 0, false
 	}
 
-	dc, ok := s.getDistanceConstraint(e)
-	if ok {
-		v := dc.constraints[0].Value
-		return v, ok
+	dc, _ := s.getDistanceConstraint(e)
+	// Have a distance constraint already marked as solved before solving begins!
+	if dc != nil {
+		v := dc.dataValue
+		if len(dc.constraints) > 0 {
+			v = dc.constraints[0].Value
+		}
+		return v, true
 	}
 
 	// Circles and Arcs with solved center and solved elements coincident or distance to the circle / arc

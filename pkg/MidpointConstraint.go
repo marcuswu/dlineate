@@ -58,16 +58,20 @@ func (s *Sketch) resolveMidpointConstraint(c *Constraint) bool {
 	if ok {
 		// coincident with line
 		constraint := s.addDistanceConstraint(other, point, 0)
-		fmt.Printf("resolveMidpointConstraint: added constraint id %d\n", constraint.GetID())
-		other.constraints = append(other.constraints, constraint)
-		point.constraints = append(point.constraints, constraint)
-		c.constraints = append(c.constraints, constraint)
+		if constraint != nil {
+			fmt.Printf("resolveMidpointConstraint: added constraint id %d\n", constraint.GetID())
+			other.constraints = append(other.constraints, constraint)
+			point.constraints = append(point.constraints, constraint)
+			c.constraints = append(c.constraints, constraint)
+		}
 		// distance from start
 		constraint = s.addDistanceConstraint(other.children[0], point, dist/2.0)
-		fmt.Printf("resolveMidpointConstraint: added constraint id %d\n", constraint.GetID())
-		other.children[0].constraints = append(other.children[0].constraints, constraint)
-		point.constraints = append(point.constraints, constraint)
-		c.constraints = append(c.constraints, constraint)
+		if constraint != nil {
+			fmt.Printf("resolveMidpointConstraint: added constraint id %d\n", constraint.GetID())
+			other.children[0].constraints = append(other.children[0].constraints, constraint)
+			point.constraints = append(point.constraints, constraint)
+			c.constraints = append(c.constraints, constraint)
+		}
 		s.constraints = append(s.constraints, c)
 		c.state = Resolved
 
@@ -104,15 +108,19 @@ func (s *Sketch) resolveMidpointConstraint(c *Constraint) bool {
 		midDist := math.Sqrt((a * a) + (b * b))
 		// Set coincident and distance constraints
 		constraint := s.addDistanceConstraint(other.children[1], point, midDist)
-		fmt.Printf("resolveMidpointConstraint: added constraint id %d\n", constraint.GetID())
-		other.children[1].constraints = append(other.children[1].constraints, constraint)
-		point.constraints = append(point.constraints, constraint)
-		c.constraints = append(c.constraints, constraint)
+		if constraint != nil {
+			fmt.Printf("resolveMidpointConstraint: added constraint id %d\n", constraint.GetID())
+			other.children[1].constraints = append(other.children[1].constraints, constraint)
+			point.constraints = append(point.constraints, constraint)
+			c.constraints = append(c.constraints, constraint)
+		}
 		constraint = s.addDistanceConstraint(point, other, 0)
-		fmt.Printf("resolveMidpointConstraint: added constraint id %d\n", constraint.GetID())
-		other.constraints = append(other.constraints, constraint)
-		point.constraints = append(point.constraints, constraint)
-		c.constraints = append(c.constraints, constraint)
+		if constraint != nil {
+			fmt.Printf("resolveMidpointConstraint: added constraint id %d\n", constraint.GetID())
+			other.constraints = append(other.constraints, constraint)
+			point.constraints = append(point.constraints, constraint)
+			c.constraints = append(c.constraints, constraint)
+		}
 		s.constraints = append(s.constraints, c)
 		c.state = Resolved
 

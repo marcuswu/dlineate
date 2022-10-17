@@ -38,9 +38,11 @@ func (s *Sketch) resolveRatioConstraint(c *Constraint) bool {
 	dist, ok := s.resolveLineLength(p1)
 	if ok {
 		constraint := s.addDistanceConstraint(p2, nil, dist*c.dataValue)
-		fmt.Printf("resolveRatioConstraint: added constraint id %d\n", constraint.GetID())
-		p2.constraints = append(p2.constraints, constraint)
-		c.constraints = append(c.constraints, constraint)
+		if constraint != nil {
+			fmt.Printf("resolveRatioConstraint: added constraint id %d\n", constraint.GetID())
+			p2.constraints = append(p2.constraints, constraint)
+			c.constraints = append(c.constraints, constraint)
+		}
 		s.constraints = append(s.constraints, c)
 		c.state = Resolved
 
@@ -49,9 +51,11 @@ func (s *Sketch) resolveRatioConstraint(c *Constraint) bool {
 	dist, ok = s.resolveLineLength(p2)
 	if ok {
 		constraint := s.addDistanceConstraint(p1, nil, dist/c.dataValue)
-		fmt.Printf("resolveRatioConstraint: added constraint id %d\n", constraint.GetID())
-		p1.constraints = append(p1.constraints, constraint)
-		c.constraints = append(c.constraints, constraint)
+		if constraint != nil {
+			fmt.Printf("resolveRatioConstraint: added constraint id %d\n", constraint.GetID())
+			p1.constraints = append(p1.constraints, constraint)
+			c.constraints = append(c.constraints, constraint)
+		}
 		s.constraints = append(s.constraints, c)
 		c.state = Resolved
 
@@ -62,9 +66,11 @@ func (s *Sketch) resolveRatioConstraint(c *Constraint) bool {
 	p1Radius, ok := s.resolveCurveRadius(p1)
 	if ok {
 		constraint := s.addDistanceConstraint(p1, nil, p1Radius*c.dataValue)
-		fmt.Printf("resolveRatioConstraint: added constraint id %d\n", constraint.GetID())
-		p1.constraints = append(p1.constraints, constraint)
-		c.constraints = append(c.constraints, constraint)
+		if constraint != nil {
+			fmt.Printf("resolveRatioConstraint: added constraint id %d\n", constraint.GetID())
+			p1.constraints = append(p1.constraints, constraint)
+			c.constraints = append(c.constraints, constraint)
+		}
 		s.constraints = append(s.constraints, c)
 		c.state = Resolved
 
@@ -74,9 +80,11 @@ func (s *Sketch) resolveRatioConstraint(c *Constraint) bool {
 	p2Radius, ok := s.resolveCurveRadius(p2)
 	if ok {
 		constraint := s.addDistanceConstraint(p2, nil, p2Radius/c.dataValue)
-		fmt.Printf("resolveRatioConstraint: added constraint id %d\n", constraint.GetID())
-		p1.constraints = append(p1.constraints, constraint)
-		c.constraints = append(c.constraints, constraint)
+		if constraint != nil {
+			fmt.Printf("resolveRatioConstraint: added constraint id %d\n", constraint.GetID())
+			p1.constraints = append(p1.constraints, constraint)
+			c.constraints = append(c.constraints, constraint)
+		}
 		s.constraints = append(s.constraints, c)
 		c.state = Resolved
 

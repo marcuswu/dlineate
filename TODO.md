@@ -10,6 +10,8 @@
   - [X] Build out the pentagon example
   - [X] Build out the BellSketch from the curta II project
   - [X] Add identifiers to clusters and use for logging and graphviz output
+  - [X] Fix compound elements (adding too many internal elements)
+  - [ ] Fix resolution of curve radius constraints
   - [ ] Rework cluster creation to generate a map of shared elements
   - [ ] Rework merging to utilize shared element map
   - [ ] Make cluster creation start with next available constraint instead of a shared constraint

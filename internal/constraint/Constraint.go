@@ -149,7 +149,7 @@ func (c *Constraint) String() string {
 
 func (c *Constraint) ToGraphViz(cId int) string {
 	if cId < 0 {
-		return fmt.Sprintf("\t%d -- %d [label=%v]\n", c.Element1.GetID(), c.Element2.GetID(), c.Type)
+		return fmt.Sprintf("\t%d -- %d [label=\"%v (%d)\"]\n", c.Element1.GetID(), c.Element2.GetID(), c.Type, c.id)
 	}
 	return fmt.Sprintf("\t\"%d-%d\" -- \"%d-%d\" [label=\"%v (%d)\"]\n", cId, c.Element1.GetID(), cId, c.Element2.GetID(), c.Type, c.id)
 }
