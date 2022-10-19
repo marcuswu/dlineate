@@ -223,8 +223,8 @@ func pointFromPointLine(originalP1 el.SketchElement, originalL2 el.SketchElement
 	p1.Translate(-xTranslate, yTranslate)
 	p3.Translate(-xTranslate, yTranslate)
 
-	if pointDist < math.Abs(p1.GetY()) {
-		fmt.Printf("pointFromPointLine: Nonconvergent with pointDist %f < p1.y %f\n", pointDist, math.Abs(p1.Y))
+	if utils.StandardFloatCompare(pointDist, math.Abs(p1.GetY())) < 0 {
+		fmt.Printf("pointFromPointLine: Nonconvergent with pointDist %f <= p1.y %f\n", pointDist, math.Abs(p1.GetY()))
 		return nil, NonConvergent
 	}
 

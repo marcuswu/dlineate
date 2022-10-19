@@ -13,14 +13,14 @@ func main() {
 	start := sketch.AddPoint(6, 0)
 	line1 := sketch.AddLine(6, 0, 9.4, 0)
 	line2 := sketch.AddLine(9.4, 0, 9.4, -1)
-	line3 := sketch.AddLine(9.4, -1, 8, -2)
-	arc1 := sketch.AddArc(8.5, -2.5, 8, -2, 8, -3)
-	line4 := sketch.AddLine(8, -3, 9.4, -3.8)
+	line3 := sketch.AddLine(9.4, -1, 8.1, -2)
+	arc1 := sketch.AddArc(8.5, -2.4, 8.1, -2, 8.1, -2.7)
+	line4 := sketch.AddLine(8.1, -2.7, 9.4, -3.8)
 	line5 := sketch.AddLine(9.4, -3.8, 9.4, -8)
 	line6 := sketch.AddLine(9.4, -8, 6, -8)
 	line7 := sketch.AddLine(6, -8, 6, 0)
-	arc2 := sketch.AddArc(6, 0, 6, 3, 8, -2)
-	arc3 := sketch.AddArc(6, -5.21, 6, -8.21, 8, -3.0)
+	arc2 := sketch.AddArc(6, 0, 6, 3, 8.1, -2.1)
+	arc3 := sketch.AddArc(6, -5, 6, -8.3, 8, -2.5)
 
 	sketch.ExportGraphViz("cylinderElementsAdded.dot")
 
@@ -33,8 +33,8 @@ func main() {
 	sketch.AddCoincidentConstraint(start, line1.Start())
 	sketch.AddCoincidentConstraint(line1.End(), line2.Start())
 	sketch.AddCoincidentConstraint(line2.End(), line3.Start())
-	sketch.AddCoincidentConstraint(line3.End(), arc1.Start())
-	sketch.AddCoincidentConstraint(arc1.End(), line4.Start())
+	sketch.AddCoincidentConstraint(line3.End(), arc1.End())
+	sketch.AddCoincidentConstraint(arc1.Start(), line4.Start())
 	sketch.AddCoincidentConstraint(line4.End(), line5.Start())
 	sketch.AddCoincidentConstraint(line5.End(), line6.Start())
 	sketch.AddCoincidentConstraint(line6.End(), line7.Start())
@@ -46,7 +46,6 @@ func main() {
 
 	// line2 constraints
 	sketch.AddParallelConstraint(sketch.YAxis, line2)
-	sketch.AddDistanceConstraint(line2, nil, 1.0)
 	sketch.AddAngleConstraint(line2, line3, 135)
 
 	// line3 constraints
@@ -74,14 +73,14 @@ func main() {
 	sketch.AddCoincidentConstraint(arc2.Start(), line7)
 	sketch.AddCoincidentConstraint(arc2.End(), line3)
 	sketch.AddTangentConstraint(arc2, line3)
-	sketch.AddDistanceConstraint(arc2, nil, 6)
+	sketch.AddDistanceConstraint(arc2, nil, 3)
 
 	// arc3 constraints
 	sketch.AddCoincidentConstraint(arc3.Center(), line7)
 	sketch.AddCoincidentConstraint(arc3.End(), line7)
 	sketch.AddCoincidentConstraint(arc3.Start(), line4)
 	sketch.AddTangentConstraint(arc3, line4)
-	sketch.AddDistanceConstraint(arc3, nil, 6)
+	sketch.AddDistanceConstraint(arc3, nil, 3)
 
 	sketch.ExportGraphViz("cylinderConstraintsAdded.dot")
 
