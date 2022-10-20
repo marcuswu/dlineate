@@ -12,10 +12,11 @@
   - [X] Add identifiers to clusters and use for logging and graphviz output
   - [X] Fix compound elements (adding too many internal elements)
   - [X] Fix resolution of curve radius constraints
-  - [ ] Rework cluster creation to generate a map of shared elements
-  - [ ] Rework merging to utilize shared element map
+  - [X] Rework cluster creation to generate a map of shared elements
+  - [X] Rework merging to utilize shared element map -- turns out to be slower
   - [ ] Fix merge when all of cluster 0 is in cluster 1
   - [ ] Fix solved constraints showing as unsolved in pkg/Solver
+  - [ ] Fix pentagon cluster 0, 1 merge (no elements in cluster 0!?)
   - [ ] Update unit tests
     - [ ] SolveDistanceConstraint 0 distance translate
   - [X] Get the BellSketch (modifiedCylinder) working
