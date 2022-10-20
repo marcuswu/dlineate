@@ -11,13 +11,14 @@
   - [X] Build out the BellSketch from the curta II project
   - [X] Add identifiers to clusters and use for logging and graphviz output
   - [X] Fix compound elements (adding too many internal elements)
-  - [ ] Fix resolution of curve radius constraints
+  - [X] Fix resolution of curve radius constraints
   - [ ] Rework cluster creation to generate a map of shared elements
   - [ ] Rework merging to utilize shared element map
-  - [ ] Make cluster creation start with next available constraint instead of a shared constraint
+  - [ ] Fix merge when all of cluster 0 is in cluster 1
+  - [ ] Fix solved constraints showing as unsolved in pkg/Solver
   - [ ] Update unit tests
     - [ ] SolveDistanceConstraint 0 distance translate
-  - [ ] Get the BellSketch working
+  - [X] Get the BellSketch (modifiedCylinder) working
   - [ ] Add horizontal, vertical constraints
 - [x] Load element values from solver when solved
 - [x] External interface should take two passes. One to solve independent constraints. One to solve dependent.

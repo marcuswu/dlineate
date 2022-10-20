@@ -236,10 +236,19 @@ func LineFromPointLine(c1 *constraint.Constraint, c2 *constraint.Constraint) (*e
 	newLine, state := SolveAngleConstraint(angleC, targetLine.GetID())
 
 	// Translate to distC.Value from the point
-	dist := newLine.DistanceTo(point) - distC.Value
-	newLine.TranslateDistance(dist)
+	dist1 := newLine.DistanceTo(point) - distC.Value
+	dist2 := newLine.DistanceTo(point) + distC.Value
+	line1 := newLine.TranslatedDistance(dist1)
+	line2 := newLine.TranslatedDistance(dist2)
 
-	return newLine, state
+	line1Distance := targetLine.DistanceTo(line1)
+	line2Distance := targetLine.DistanceTo(line2)
+
+	if math.Abs(line1Distance) < math.Abs(line2Distance) {
+		return line1, state
+	}
+
+	return line2, state
 }
 
 // SolveAngleConstraint solve an angle constraint between two lines

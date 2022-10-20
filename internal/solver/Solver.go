@@ -295,16 +295,34 @@ func pointFromLineLine(l1 *el.SketchLine, l2 *el.SketchLine, p3 *el.SketchPoint,
 		return el.NewSketchPoint(p3.GetID(), p3.X+translate.X, p3.Y+translate.Y), Solved
 	}
 	// Translate l1 line1Dist
-	line1Translated := l1.TranslatedDistance(line1Dist)
+	line1TranslatePos := l1.TranslatedDistance(line1Dist)
+	line1TranslateNeg := l1.TranslatedDistance(-line1Dist)
 	// Translate l2 line2Dist
-	line2Translated := l2.TranslatedDistance(line2Dist)
+	line2TranslatedPos := l2.TranslatedDistance(line2Dist)
+	line2TranslatedNeg := l2.TranslatedDistance(-line2Dist)
 
 	// If line1 and line2 are the same line,
+	intersect1 := el.SketchPointFromVector(p3.GetID(), line1TranslatePos.Intersection(line2TranslatedPos))
+	intersect2 := el.SketchPointFromVector(p3.GetID(), line1TranslatePos.Intersection(line2TranslatedNeg))
+	intersect3 := el.SketchPointFromVector(p3.GetID(), line1TranslateNeg.Intersection(line2TranslatedPos))
+	intersect4 := el.SketchPointFromVector(p3.GetID(), line1TranslateNeg.Intersection(line2TranslatedNeg))
 
-	// Return intersection point
-	intersection := line1Translated.Intersection(line2Translated)
+	// Return closest intersection point
+	closest := intersect1
+	dist := p3.DistanceTo(intersect1)
+	if next := p3.DistanceTo(intersect2); next < dist {
+		dist = next
+		closest = intersect2
+	}
+	if next := p3.DistanceTo(intersect3); next < dist {
+		dist = next
+		closest = intersect3
+	}
+	if next := p3.DistanceTo(intersect4); next < dist {
+		closest = intersect4
+	}
 
-	return el.NewSketchPoint(p3.GetID(), intersection.GetX(), intersection.GetY()), Solved
+	return closest, Solved
 }
 
 // PointFromLineLine construct a point from two lines. c2 must contain the point.

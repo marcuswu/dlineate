@@ -2,6 +2,7 @@ package constraint
 
 import (
 	"fmt"
+	"math"
 
 	el "github.com/marcuswu/dlineation/internal/element"
 	"github.com/marcuswu/dlineation/utils"
@@ -133,10 +134,10 @@ func (c *Constraint) IsMet() bool {
 		current = c.Element1.AsLine().AngleToLine(c.Element2.AsLine())
 	}
 
-	if utils.StandardFloatCompare(current, c.Value) != 0 {
-		fmt.Printf("Comparing %f to %f\n", current, c.Value)
+	if utils.StandardFloatCompare(math.Abs(current), c.Value) != 0 {
+		fmt.Printf("Comparing %f to %f\n", math.Abs(current), c.Value)
 	}
-	return utils.StandardFloatCompare(current, c.Value) == 0
+	return utils.StandardFloatCompare(math.Abs(current), c.Value) == 0
 }
 
 func (c *Constraint) String() string {

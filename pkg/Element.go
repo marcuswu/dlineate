@@ -221,10 +221,10 @@ func (e *Element) minMaxXY() (float64, float64, float64, float64) {
 		if e.values[0] > maxX {
 			maxX = e.values[0]
 		}
-		if e.values[1] < minX {
+		if e.values[1] < minY {
 			minY = e.values[1]
 		}
-		if e.values[1] > maxX {
+		if e.values[1] > maxY {
 			maxY = e.values[1]
 		}
 		if e.values[2] < minX {
@@ -233,10 +233,10 @@ func (e *Element) minMaxXY() (float64, float64, float64, float64) {
 		if e.values[2] > maxX {
 			maxX = e.values[2]
 		}
-		if e.values[3] < minX {
+		if e.values[3] < minY {
 			minY = e.values[3]
 		}
-		if e.values[3] > maxX {
+		if e.values[3] > maxY {
 			maxY = e.values[3]
 		}
 		if e.values[4] < minX {
@@ -245,10 +245,10 @@ func (e *Element) minMaxXY() (float64, float64, float64, float64) {
 		if e.values[4] > maxX {
 			maxX = e.values[4]
 		}
-		if e.values[5] < minX {
+		if e.values[5] < minY {
 			minY = e.values[5]
 		}
-		if e.values[5] > maxX {
+		if e.values[5] > maxY {
 			maxY = e.values[5]
 		}
 	}

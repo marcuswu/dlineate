@@ -485,8 +485,8 @@ func (s *Sketch) ExportImage(filename string, args ...int) error {
 		e.DrawToSVG(s, img, scale)
 	}
 
-	img.Gend()
-	img.Gend()
+	img.Gend() // end ScaleXY
+	img.Gend() // end Translate
 
 	img.End()
 

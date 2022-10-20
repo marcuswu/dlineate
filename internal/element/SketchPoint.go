@@ -124,6 +124,15 @@ func NewSketchPoint(id uint, x float64, y float64) *SketchPoint {
 	}
 }
 
+func SketchPointFromVector(id uint, v Vector) *SketchPoint {
+	return &SketchPoint{
+		Vector:          v,
+		elementType:     Point,
+		id:              id,
+		constraintLevel: FullyConstrained,
+	}
+}
+
 // VectorTo returns a Vector to SketchElement o
 func (p *SketchPoint) VectorTo(o SketchElement) *Vector {
 	var point *SketchPoint
