@@ -115,8 +115,8 @@ func (s *Sketch) resolveCurveDistance(e1 *Element, e2 *Element, c *Constraint) b
 		1. A resolved distance constraint on the pkg/Element curve
 		2. A solved center point and a solved element constrained to a distance from the pkg/Element curve
 	*/
-	if c.state == Resolved {
-		return c.state == Resolved
+	if c.state == Resolved || c.state == Solved {
+		return true
 	}
 	if e1 == nil {
 		return false
@@ -132,9 +132,11 @@ func (s *Sketch) resolveCurveDistance(e1 *Element, e2 *Element, c *Constraint) b
 	e1.constraints = append(e1.constraints, constraint)
 	c.constraints = append(c.constraints, constraint)
 	s.constraints = append(s.constraints, c)
-	c.state = Resolved
+	if c.state != Solved {
+		c.state = Resolved
+	}
 
-	return c.state == Resolved
+	return c.state == Resolved || c.state == Solved
 }
 
 func (s *Sketch) resolveDistanceConstraint(c *Constraint) bool {
@@ -143,19 +145,19 @@ func (s *Sketch) resolveDistanceConstraint(c *Constraint) bool {
 	if len(c.elements) > 1 {
 		p2 = c.elements[1]
 	}
-	if c.state == Resolved {
+	if c.state == Resolved || c.state == Solved {
 		return true
 	}
 
 	if s.resolveCurveDistance(p1, p2, c) {
 		fmt.Println("CURVE DISTANCE CONSTRAINT RESOLVED")
-		return c.state == Resolved
+		return c.state == Resolved || c.state == Solved
 	}
 
 	if s.resolveCurveDistance(p2, p1, c) {
 		fmt.Println("CURVE DISTANCE CONSTRAINT RESOLVED")
-		return c.state == Resolved
+		return c.state == Resolved || c.state == Solved
 	}
 
-	return c.state == Resolved
+	return c.state == Resolved || c.state == Solved
 }

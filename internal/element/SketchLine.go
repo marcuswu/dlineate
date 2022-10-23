@@ -140,6 +140,11 @@ func (l *SketchLine) Translated(tx float64, ty float64) *SketchLine {
 	pointOnLine := Vector{l.GetA() * -l.GetC(), l.GetB() * -l.GetC()}
 	pointOnLine.Translate(tx, ty)
 	newC := (-l.GetA() * pointOnLine.GetX()) - (l.GetB() * pointOnLine.GetY())
+	// If (A, B) is a unit vector normal to the line,
+	// C is the magnitude of the vector to the line,
+	// and (tx, ty) is a vector to translate the line,
+	// then the dot product of the vectors is the change to C to move the line by tx, ty
+	// newC := l.GetC() + (l.GetA() * tx) + (l.GetB() * ty)
 	return &SketchLine{Line, l.GetID(), l.GetA(), l.GetB(), newC, l.constraintLevel}
 }
 

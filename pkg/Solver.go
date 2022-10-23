@@ -231,6 +231,13 @@ func (s *Sketch) resolveConstraints() (int, int) {
 		if c.state == Unresolved && !s.resolveConstraint(c) {
 			unresolved++
 		}
+		for _, constraint := range c.constraints {
+			current, ok := s.sketch.GetConstraint(constraint.GetID())
+			if !ok {
+				continue
+			}
+			constraint.Solved = current.Solved
+		}
 		c.checkSolved()
 
 		if c.state != Solved {
@@ -371,20 +378,6 @@ func (s *Sketch) Solve() error {
 	}
 	s.passes += passes
 
-	/*// Handle if origin is translated
-	s.Origin.valuesFromSketch(s)
-	if s.Origin.element.AsPoint().X != 0 || s.Origin.element.AsPoint().Y != 0 {
-		s.sketch.Translate(-s.Origin.element.AsPoint().X, -s.Origin.element.AsPoint().Y)
-	}
-
-	// Andle if x/y axes are rotated
-	s.XAxis.valuesFromSketch(s)
-	s.YAxis.valuesFromSketch(s)
-	yaxis := el.NewSketchLine(0, 1, 0, 0)
-	angle := s.YAxis.element.AsLine().AngleToLine(yaxis)
-	if angle != 0 {
-		s.sketch.Rotate(s.Origin.element.AsPoint(), angle)
-	}*/
 	var copyElements func(e *Element, sketch *core.SketchGraph)
 	copyElements = func(e *Element, sketch *core.SketchGraph) {
 		if el, ok := s.sketch.GetElement(e.element.GetID()); ok {

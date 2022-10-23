@@ -14,13 +14,14 @@
   - [X] Fix resolution of curve radius constraints
   - [X] Rework cluster creation to generate a map of shared elements
   - [X] Rework merging to utilize shared element map -- turns out to be slower
-  - [ ] Fix merge when all of cluster 0 is in cluster 1
-  - [ ] Fix solved constraints showing as unsolved in pkg/Solver
-  - [ ] Fix pentagon cluster 0, 1 merge (no elements in cluster 0!?)
+  - [X] Fix merge when all of cluster 0 is in cluster 1
+  - [X] Fix solved constraints showing as unsolved in pkg/Solver
+  - [X] Fix pentagon cluster 0, 1 merge (no elements in cluster 0!?)
+  - [ ] Fix svg output
   - [ ] Update unit tests
     - [ ] SolveDistanceConstraint 0 distance translate
   - [X] Get the BellSketch (modifiedCylinder) working
   - [ ] Add horizontal, vertical constraints
-- [x] Load element values from solver when solved
-- [x] External interface should take two passes. One to solve independent constraints. One to solve dependent.
-- [x] Ratio & equality lengths are dependent constraints
+- [X] Load element values from solver when solved
+- [X] External interface should take two passes. One to solve independent constraints. One to solve dependent.
+- [X] Ratio & equality lengths are dependent constraints

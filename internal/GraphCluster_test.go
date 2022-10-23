@@ -15,7 +15,7 @@ func TestAddConstraint(t *testing.T) {
 	e2 := el.NewSketchPoint(1, 2, 1)
 	e3 := el.NewSketchLine(2, 2, 1, -1)
 	c1 := constraint.NewConstraint(0, constraint.Distance, e1, e2, 5, false)
-	c2 := constraint.NewConstraint(0, constraint.Distance, e2, e3, 7, false)
+	c2 := constraint.NewConstraint(1, constraint.Distance, e2, e3, 7, false)
 
 	g := NewGraphCluster(0)
 	g.AddConstraint(c1)
@@ -43,8 +43,8 @@ func TestHasElementID(t *testing.T) {
 	e3 := el.NewSketchLine(2, 2, 1, -1)
 	e4 := el.NewSketchLine(3, 2, 2, -0)
 	c1 := constraint.NewConstraint(0, constraint.Distance, e1, e2, 5, false)
-	c2 := constraint.NewConstraint(0, constraint.Distance, e2, e3, 7, false)
-	c3 := constraint.NewConstraint(0, constraint.Distance, e3, e4, 2, false)
+	c2 := constraint.NewConstraint(1, constraint.Distance, e2, e3, 7, false)
+	c3 := constraint.NewConstraint(2, constraint.Distance, e3, e4, 2, false)
 
 	g := NewGraphCluster(0)
 	g.AddConstraint(c1)
@@ -76,8 +76,8 @@ func TestGetElement(t *testing.T) {
 	e3 := el.NewSketchLine(2, 2, 1, -1)
 	e4 := el.NewSketchLine(3, 2, 2, -0)
 	c1 := constraint.NewConstraint(0, constraint.Distance, e1, e2, 5, false)
-	c2 := constraint.NewConstraint(0, constraint.Distance, e2, e3, 7, false)
-	c3 := constraint.NewConstraint(0, constraint.Distance, e3, e4, 2, false)
+	c2 := constraint.NewConstraint(1, constraint.Distance, e2, e3, 7, false)
+	c3 := constraint.NewConstraint(2, constraint.Distance, e3, e4, 2, false)
 
 	g := NewGraphCluster(0)
 	g.AddConstraint(c1)
@@ -161,7 +161,7 @@ func TestTranslate(t *testing.T) {
 	e3 := el.NewSketchLine(2, 2, 1, -1)
 	originalPointNearest := e3.PointNearestOrigin()
 	c1 := constraint.NewConstraint(0, constraint.Distance, e1, e2, 5, false)
-	c2 := constraint.NewConstraint(0, constraint.Distance, e2, e3, 7, false)
+	c2 := constraint.NewConstraint(1, constraint.Distance, e2, e3, 7, false)
 
 	g := NewGraphCluster(0)
 	g.AddConstraint(c1)
@@ -196,7 +196,7 @@ func TestRotate(t *testing.T) {
 	e3 := el.NewSketchLine(2, 2, 1, -1)
 	o := el.NewSketchPoint(3, 0, 0)
 	c1 := constraint.NewConstraint(0, constraint.Distance, e1, e2, 5, false)
-	c2 := constraint.NewConstraint(0, constraint.Distance, e2, e3, 7, false)
+	c2 := constraint.NewConstraint(1, constraint.Distance, e2, e3, 7, false)
 
 	g := NewGraphCluster(0)
 	g.AddConstraint(c1)

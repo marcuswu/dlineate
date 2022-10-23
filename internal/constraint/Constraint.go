@@ -134,10 +134,14 @@ func (c *Constraint) IsMet() bool {
 		current = c.Element1.AsLine().AngleToLine(c.Element2.AsLine())
 	}
 
-	if utils.StandardFloatCompare(math.Abs(current), math.Abs(c.Value)) != 0 {
+	comparison := utils.StandardFloatCompare(math.Abs(current), math.Abs(c.Value))
+	if comparison != 0 {
 		fmt.Printf("Comparing %f to %f\n", math.Abs(current), math.Abs(c.Value))
+	} else {
+		c.Solved = true
 	}
-	return utils.StandardFloatCompare(math.Abs(current), math.Abs(c.Value)) == 0
+
+	return comparison == 0
 }
 
 func (c *Constraint) String() string {

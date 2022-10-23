@@ -80,8 +80,11 @@ func PointResult(c1 *constraint.Constraint, c2 *constraint.Constraint) (*el.Sket
 	}
 
 	if solveState == Solved {
+		fmt.Printf("PointResult solved constraints %d %d\n", c1.GetID(), c2.GetID())
 		c1.Solved = true
 		c2.Solved = true
+	} else {
+		fmt.Printf("PointResult did not solve constraints %d %d\n", c1.GetID(), c2.GetID())
 	}
 
 	return point, solveState
@@ -105,8 +108,8 @@ func SolveDistanceConstraint(c *constraint.Constraint) SolveState {
 
 	// If two points, get distance between them, translate constraint value - distance between
 	// If point and line, get distance between them, translate normal to line constraint value - distance between
-	dist := point.DistanceTo(other)
 	trans := point.VectorTo(other)
+	dist := trans.Magnitude()
 
 	if dist == 0 && c.GetValue() > 0 {
 		return NonConvergent
@@ -116,11 +119,15 @@ func SolveDistanceConstraint(c *constraint.Constraint) SolveState {
 		c.Solved = true
 		return Solved
 	}
+	otherP := other.AsPoint()
+	if otherP == nil {
+		otherP = other.AsLine().NearestPoint(point.GetX(), point.GetY())
+	}
 
-	// This is incorrect -- need to (c.GetValue() - trans.Magnitude()) / dist
-	translationAmount := c.GetValue() - trans.Magnitude()
-	trans.Scaled(translationAmount / dist)
-	point.Translate(trans.GetX(), trans.GetY())
+	trans.Scaled(c.GetValue() / dist)
+	newPoint := otherP.Translated(trans.GetX(), trans.GetY())
+	point.X = newPoint.X
+	point.Y = newPoint.Y
 	c.Solved = true
 
 	return Solved
@@ -140,8 +147,7 @@ func GetPointFromPoints(p1 el.SketchElement, originalP2 el.SketchElement, origin
 	}
 
 	if utils.StandardFloatCompare(pointDistance, constraintDist) == 0 {
-		// TODO: Wrong! Fix this!
-		return el.NewSketchPoint(p3.GetID(), 0, 0), Solved
+		return originalP3.AsPoint(), Solved
 	}
 
 	// Solve for p3
