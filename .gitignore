@@ -20,3 +20,6 @@
 
 *.svg
 *.dot
+
+**/__debug_bin
+.DS_Store

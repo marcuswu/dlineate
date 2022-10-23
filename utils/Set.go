@@ -55,3 +55,9 @@ func (s *Set) Contents() []uint {
 func (s *Set) Count() int {
 	return len(s.m)
 }
+
+func (s *Set) Clear() {
+	for value := range s.m {
+		delete(s.m, value)
+	}
+}

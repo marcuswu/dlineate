@@ -52,8 +52,11 @@ func LineResult(c1 *constraint.Constraint, c2 *constraint.Constraint) (*el.Sketc
 	}
 
 	if solveState == Solved {
+		fmt.Printf("LineFromPoints solved constraints %d %d\n", c1.GetID(), c2.GetID())
 		c1.Solved = true
 		c2.Solved = true
+	} else {
+		fmt.Printf("LineFromPoints did not solve constraints %d %d\n", c1.GetID(), c2.GetID())
 	}
 
 	return line, solveState
@@ -84,7 +87,15 @@ func MoveLineToPoint(c *constraint.Constraint) SolveState {
 	// If two points, get distance between them, translate constraint value - distance between
 	// If point and line, get distance between them, translate normal to line constraint value - distance between
 	dist := line.DistanceTo(point)
-	line.TranslateDistance(-(c.GetValue() - dist))
+	translate1 := dist + c.GetValue()
+	translate2 := dist - c.GetValue()
+
+	if math.Abs(translate1) < math.Abs(translate2) {
+		line.TranslateDistance(translate1)
+	} else {
+		line.TranslateDistance(translate2)
+	}
+
 	c.Solved = true
 
 	return Solved
@@ -156,12 +167,23 @@ func LineFromPoints(c1 *constraint.Constraint, c2 *constraint.Constraint) (*el.S
 
 	// Special case where distances are both 0
 	if p1Dist == 0 && p2Dist == 0 {
-		la := p2.Y - p1.Y                // y' - y
-		lb := p1.X - p2.X                // x - x'
-		lc := (-la * p1.X) - (lb * p1.Y) // c = -ax - by from ax + by + c = 0
-		line.SetA(la)
-		line.SetB(lb)
-		line.SetC(lc)
+		la1 := p2.Y - p1.Y                  // y' - y
+		lb1 := p1.X - p2.X                  // x - x'
+		lc1 := (-la1 * p1.X) - (lb1 * p1.Y) // c = -ax - by from ax + by + c = 0
+		la2 := p1.Y - p2.Y                  // y' - y
+		lb2 := p2.X - p1.X                  // x - x'
+		lc2 := (-la2 * p1.X) - (lb2 * p1.Y) // c = -ax - by from ax + by + c = 0
+		lineV := &el.Vector{X: line.GetA(), Y: line.GetB()}
+		angleTo1 := lineV.AngleTo(&el.Vector{X: la1, Y: lb1})
+		angleTo2 := lineV.AngleTo(&el.Vector{X: la2, Y: lb2})
+		line.SetA(la1)
+		line.SetB(lb1)
+		line.SetC(lc1)
+		if math.Abs(angleTo2) < math.Abs(angleTo1) {
+			line.SetA(la2)
+			line.SetB(lb2)
+			line.SetC(lc2)
+		}
 		return line, Solved
 	}
 
@@ -236,10 +258,19 @@ func LineFromPointLine(c1 *constraint.Constraint, c2 *constraint.Constraint) (*e
 	newLine, state := SolveAngleConstraint(angleC, targetLine.GetID())
 
 	// Translate to distC.Value from the point
-	dist := newLine.DistanceTo(point) - distC.Value
-	newLine.TranslateDistance(dist)
+	dist1 := newLine.DistanceTo(point) - distC.Value
+	dist2 := newLine.DistanceTo(point) + distC.Value
+	line1 := newLine.TranslatedDistance(dist1)
+	line2 := newLine.TranslatedDistance(dist2)
 
-	return newLine, state
+	line1Distance := targetLine.DistanceTo(line1)
+	line2Distance := targetLine.DistanceTo(line2)
+
+	if math.Abs(line1Distance) < math.Abs(line2Distance) {
+		return line1, state
+	}
+
+	return line2, state
 }
 
 // SolveAngleConstraint solve an angle constraint between two lines

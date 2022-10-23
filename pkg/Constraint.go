@@ -1,6 +1,8 @@
 package dlineation
 
 import (
+	"fmt"
+
 	c "github.com/marcuswu/dlineation/internal/constraint"
 )
 
@@ -21,6 +23,29 @@ const (
 	Midpoint
 )
 
+func (t ConstraintType) String() string {
+	switch t {
+	case Coincident:
+		return "Coincident"
+	case Distance:
+		return "Distance"
+	case Angle:
+		return "Angle"
+	case Perpendicular:
+		return "Perpendicular"
+	case Parallel:
+		return "Parallel"
+	case Tangent:
+		return "Tangent"
+	case Ratio:
+		return "Ratio"
+	case Midpoint:
+		return "Midpoint"
+	default:
+		return fmt.Sprintf("%d", int(t))
+	}
+}
+
 type ConstraintState uint
 
 const (
@@ -28,6 +53,19 @@ const (
 	Resolved
 	Solved
 )
+
+func (t ConstraintState) String() string {
+	switch t {
+	case Unresolved:
+		return "Unresolved"
+	case Resolved:
+		return "Resolved"
+	case Solved:
+		return "Solved"
+	default:
+		return fmt.Sprintf("%d", int(t))
+	}
+}
 
 type Constraint struct {
 	constraints    []*c.Constraint
@@ -39,20 +77,35 @@ type Constraint struct {
 
 func emptyConstraint() *Constraint {
 	ec := new(Constraint)
-	ec.constraints = make([]*c.Constraint, 0, 1)
-	ec.elements = make([]*Element, 0, 1)
+	ec.constraints = make([]*c.Constraint, 0)
+	ec.elements = make([]*Element, 0)
 	ec.state = Unresolved
 	return ec
 }
 
-func (c *Constraint) checkSolved() {
+func (c *Constraint) replaceElement(from *Element, to *Element) {
+	for i, e := range c.elements {
+		if e.id == from.id {
+			c.elements[i] = to
+		}
+	}
+}
+
+func (c *Constraint) checkSolved() bool {
 	solved := true
+	if len(c.constraints) == 0 {
+		solved = true
+	}
 	for _, constraint := range c.constraints {
+		fmt.Printf("Constraint %d has solved %v\n", constraint.GetID(), constraint.Solved)
 		solved = solved && constraint.Solved
 	}
 	if solved {
 		c.state = Solved
 	}
+	fmt.Printf("Constraint type %v has state %v\n", c.constraintType, c.state)
+
+	return c.state == Solved
 }
 
 /*

@@ -18,6 +18,7 @@ type SketchGraph struct {
 	elements    map[uint]el.SketchElement
 	eToC        map[uint][]*constraint.Constraint
 	clusters    []*GraphCluster
+	baseCluster *GraphCluster
 	freeNodes   *utils.Set
 	usedNodes   *utils.Set
 
@@ -32,21 +33,22 @@ func NewSketch() *SketchGraph {
 	g.eToC = make(map[uint][]*Constraint, 0)
 	g.constraints = make(map[uint]*Constraint, 0)
 	g.elements = make(map[uint]el.SketchElement, 0)
-	g.clusters = make([]*GraphCluster, 0, 2)
+	g.clusters = make([]*GraphCluster, 0)
 	g.freeNodes = utils.NewSet()
 	g.usedNodes = utils.NewSet()
 	g.state = solver.None
 	g.degreesOfFreedom = 6
 
-	c := NewGraphCluster()
+	g.baseCluster = NewGraphCluster(0)
+	c := NewGraphCluster(0)
 	g.clusters = append(g.clusters, c)
-
 	return g
 }
 
 // GetElement gets an element from the graph
-func (g *SketchGraph) GetElement(id uint) el.SketchElement {
-	return g.elements[id]
+func (g *SketchGraph) GetElement(id uint) (el.SketchElement, bool) {
+	e, ok := g.elements[id]
+	return e, ok
 }
 
 // GetConstraint gets a constraint from the graph
@@ -66,7 +68,7 @@ func (g *SketchGraph) AddPoint(x float64, y float64) el.SketchElement {
 	p := el.NewSketchPoint(elementID, x, y)
 	g.freeNodes.Add(elementID)
 	g.elements[elementID] = p
-	return g.GetElement(elementID)
+	return p //g.GetElement(elementID)
 }
 
 // AddLine adds a line to the sketch
@@ -76,7 +78,7 @@ func (g *SketchGraph) AddLine(a float64, b float64, c float64) el.SketchElement 
 	l := el.NewSketchLine(elementID, a, b, c)
 	g.freeNodes.Add(elementID)
 	g.elements[elementID] = l
-	return g.GetElement(elementID)
+	return l //g.GetElement(elementID)
 }
 
 func (g *SketchGraph) AddOrigin(x float64, y float64) el.SketchElement {
@@ -87,8 +89,9 @@ func (g *SketchGraph) AddOrigin(x float64, y float64) el.SketchElement {
 	g.elements[elementID] = ax
 
 	g.addElementToCluster(g.clusters[0], ax)
+	g.addElementToCluster(g.baseCluster, ax)
 
-	return g.GetElement(elementID)
+	return ax //g.GetElement(elementID)
 }
 
 func (g *SketchGraph) AddAxis(a float64, b float64, c float64) el.SketchElement {
@@ -99,8 +102,25 @@ func (g *SketchGraph) AddAxis(a float64, b float64, c float64) el.SketchElement 
 	g.elements[elementID] = ax
 
 	g.addElementToCluster(g.clusters[0], ax)
+	g.addElementToCluster(g.baseCluster, ax)
 
-	return g.GetElement(elementID)
+	return ax
+}
+
+func (g *SketchGraph) IsElementSolved(e el.SketchElement) bool {
+	constraints := g.eToC[e.GetID()]
+	if len(constraints) < 2 {
+		return false
+	}
+
+	numSolved := 0
+	for _, c := range constraints {
+		if c.Solved {
+			numSolved++
+		}
+	}
+
+	return numSolved > 1
 }
 
 func (g *SketchGraph) CombinePoints(e1 el.SketchElement, e2 el.SketchElement) el.SketchElement {
@@ -152,10 +172,10 @@ func (g *SketchGraph) AddConstraint(t constraint.Type, e1 el.SketchElement, e2 e
 	}
 	g.constraints[constraintID] = constraint
 	if _, ok := g.eToC[e1.GetID()]; !ok {
-		g.eToC[e1.GetID()] = make([]*Constraint, 0, 1)
+		g.eToC[e1.GetID()] = make([]*Constraint, 0)
 	}
 	if _, ok := g.eToC[e2.GetID()]; !ok {
-		g.eToC[e2.GetID()] = make([]*Constraint, 0, 1)
+		g.eToC[e2.GetID()] = make([]*Constraint, 0)
 	}
 	g.eToC[e1.GetID()] = append(g.eToC[e1.GetID()], constraint)
 	g.eToC[e2.GetID()] = append(g.eToC[e2.GetID()], constraint)
@@ -165,21 +185,18 @@ func (g *SketchGraph) AddConstraint(t constraint.Type, e1 el.SketchElement, e2 e
 }
 
 func (g *SketchGraph) findStartConstraint() uint {
-	// start with all constraints if g.clusters is empty
-	// start with constraints with an element in existing clusters if g.clusters is not empty
-	constraints := make([]uint, 0, len(g.constraints))
-	// if len(g.clusters) < 2 {
-	// 	for constraintId := range g.constraints {
-	// 		constraints = append(constraints, constraintId)
-	// 	}
-	// } else {
+	constraints := make([]uint, 0)
 	for constraintId, constraint := range g.constraints {
+		// If we have a constraint where both elements are used, that's our constraint
+		if g.usedNodes.Contains(constraint.Element1.GetID()) &&
+			g.usedNodes.Contains(constraint.Element2.GetID()) {
+			return constraintId
+		}
 		if g.usedNodes.Contains(constraint.Element1.GetID()) ||
 			g.usedNodes.Contains(constraint.Element2.GetID()) {
 			constraints = append(constraints, constraintId)
 		}
 	}
-	// }
 
 	// Check unused elements in constraints for highest constraint count
 	var retVal uint
@@ -191,9 +208,6 @@ func (g *SketchGraph) findStartConstraint() uint {
 			eId = g.constraints[constraintId].Element2.GetID()
 		}
 		if len(g.eToC[eId]) < ccount {
-			continue
-		}
-		if g.constraints[constraintId].Type == constraint.Angle {
 			continue
 		}
 
@@ -210,13 +224,17 @@ func (g *SketchGraph) findConstraints(c *GraphCluster) ([]uint, uint, bool) {
 	// First, find free constraints connected to the cluster, grouped by the element not in the cluster
 	constraints := make(map[uint]*utils.Set)
 	for _, constraint := range g.constraints {
-		eligible := c.HasElementID(constraint.First().GetID()) || c.HasElementID(constraint.Second().GetID())
+		// Skip constraints with no connection to the cluster
+		if !c.HasElementID(constraint.First().GetID()) && !c.HasElementID(constraint.Second().GetID()) {
+			continue
+		}
+		// Skip constraints completely contained in the cluster
+		if c.HasElementID(constraint.First().GetID()) && c.HasElementID(constraint.Second().GetID()) {
+			continue
+		}
 		other := constraint.First().GetID()
 		if c.HasElementID(other) {
 			other = constraint.Second().GetID()
-		}
-		if c.HasElementID(other) || !eligible {
-			continue
 		}
 
 		if _, ok := constraints[other]; !ok {
@@ -231,49 +249,21 @@ func (g *SketchGraph) findConstraints(c *GraphCluster) ([]uint, uint, bool) {
 	var targetConstraints []uint
 	for eId, cs := range constraints {
 		if cs.Count() < 2 {
-			// fmt.Printf("findConstraints: skipping element %d with %d constraints\n", eId, len(cs))
 			continue
 		}
 		if cs.Count() == 2 {
 			return cs.Contents(), eId, true
 		}
 		if !first && cs.Count() < len(targetConstraints) {
-			// fmt.Printf("findConstraints: target element has more constraints than %d\n", len(cs))
 			continue
 		}
 
 		element = eId
 		targetConstraints = cs.Contents()
 		first = false
-		// fmt.Printf("findConstraints: setting target element to %d with %d constraints\n", eId, len(cs))
 	}
 
-	// fmt.Printf("findConstraints: returning target element %d with %d constraints\n", element, len(targetConstraints))
 	return targetConstraints, element, len(targetConstraints) > 1
-}
-
-// Returns the constraints an element is connected to the given cluster by
-func (g *SketchGraph) availableConstraints(c *GraphCluster, eId uint) ([]uint, bool) {
-	constraints := g.eToC[eId]
-	connections := utils.NewSet()
-	for _, constraint := range constraints {
-		// skip constraints already in a cluster
-		if _, ok := g.constraints[constraint.GetID()]; !ok {
-			continue
-		}
-		// skip constraints not connected to the cluster we're building
-		if !c.HasElementID(constraint.Element1.GetID()) && !c.HasElementID(constraint.Element2.GetID()) {
-			continue
-		}
-		connections.Add(constraint.GetID())
-	}
-
-	if connections.Count() < 2 {
-		return connections.Contents(), false
-	}
-	orderedConnections := connections.Contents()
-	sort.Sort(iutils.IdList(orderedConnections))
-	return orderedConnections, true
 }
 
 func (g *SketchGraph) addElementToCluster(c *GraphCluster, e el.SketchElement) {
@@ -289,8 +279,8 @@ func (g *SketchGraph) addConstraintToCluster(c *GraphCluster, constraint *constr
 	delete(g.constraints, constraint.GetID())
 }
 
-func (g *SketchGraph) createCluster(first uint) *GraphCluster {
-	c := NewGraphCluster()
+func (g *SketchGraph) createCluster(first uint, id int) *GraphCluster {
+	c := NewGraphCluster(id)
 
 	// Add elements connected to other elements in the cluster by two constraints
 	clusterNum := len(g.clusters)
@@ -299,8 +289,7 @@ func (g *SketchGraph) createCluster(first uint) *GraphCluster {
 		fmt.Printf("createCluster(%d): Failed to find initial constraint from first constraint %d\n", clusterNum, first)
 		return nil
 	}
-	// firstConstraint := constraint.CopyConstraint(oc)
-	g.addConstraintToCluster(c, constraint.CopyConstraint(oc))
+	g.addConstraintToCluster(c, oc)
 
 	// find a pair of free constraints which is connected to an element (might be in another cluster)
 	// and each constraint shares an element with the cluster we're creating
@@ -311,11 +300,7 @@ func (g *SketchGraph) createCluster(first uint) *GraphCluster {
 			level = el.OverConstrained
 		}
 		g.elements[eId].SetConstraintLevel(level)
-		element := el.CopySketchElement(g.elements[eId])
-		// if g.clusters[0].HasElementID(eId) {
-		// 	element = el.CopySketchElement(element)
-		// }
-		c.AddElement(element)
+		c.AddElement(g.elements[eId])
 		for _, cId := range cIds[:2] {
 			fmt.Printf("createCluster(%d): adding constraint id %d\n", clusterNum, cId)
 			oc, ok = g.GetConstraint(cId)
@@ -328,90 +313,20 @@ func (g *SketchGraph) createCluster(first uint) *GraphCluster {
 		}
 	}
 
-	/*for toAdd := g.freeNodes.Contents(); len(toAdd) > 0; toAdd = g.freeNodes.Contents() {
-		sort.Sort(iutils.IdList(toAdd))
-		for _, eId := range toAdd {
-			cIds, ok := g.availableConstraints(c, eId)
-			if !ok {
-				continue
-			}
-			fmt.Printf("createCluster(%d): adding element %d\n", clusterNum, eId)
-			level := el.FullyConstrained
-			if len(cIds) > 2 {
-				level = el.OverConstrained
-			}
-			g.elements[eId].SetConstraintLevel(level)
-			c.AddElement(g.elements[eId])
-			for _, cId := range cIds {
-				fmt.Printf("createCluster(%d): adding constraint id %d\n", clusterNum, cId)
-				oc, ok = g.GetConstraint(cId)
-				if !ok {
-					fmt.Printf("createCluster(%d): Failed to find constraint %d for element %d\n", clusterNum, cId, eId)
-					continue
-				}
-				//cc := constraint.CopyConstraint(oc)
-				g.addConstraintToCluster(c, oc)
-			}
-		}
-	}*/
 	fmt.Printf("createCluster(%d) completed building cluster with %d elements and %d constraints\n", clusterNum, len(c.elements), len(c.constraints))
 	g.clusters = append(g.clusters, c)
 
 	return c
 }
 
-func (g *SketchGraph) mergeCluster(index int) bool {
-	// Look for 3 clusters sharing one element with each of the others
-	// A mention at the end of https://www.cs.purdue.edu/homes/cmh/electrobook/our_solver1.html
-	// indicates that, "If other clusters have two elements in common with the new cluster,
-	// they can be merged into it as well."
-	cluster := g.clusters[index]
-	connected := make([]uint, 2)
-	found := 0
-
-	for i := range g.clusters {
-		if i == 0 {
-			continue
-		}
-		if found >= 2 {
-			break
-		}
-
-		if i == index {
-			continue
-		}
-
-		if cluster.SharedElements(g.clusters[i]).Count() == 1 {
-			connected[found] = uint(i)
-			found++
-		}
-	}
-
-	if found != 2 {
-		return false
-	}
-
-	cluster.others = append(cluster.others, g.clusters[connected[0]])
-	cluster.others = append(cluster.others, g.clusters[connected[1]])
-
-	// remove connected[0] and connected[1] from g.clusters
-	copy(g.clusters[connected[0]:], g.clusters[connected[0]+1:])
-	g.clusters[len(g.clusters)-1] = nil
-	g.clusters = g.clusters[:len(g.clusters)-1]
-	if connected[1] < uint(len(g.clusters)-1) {
-		copy(g.clusters[connected[1]:], g.clusters[connected[1]+1:])
-	}
-	g.clusters[len(g.clusters)-1] = nil
-	g.clusters = g.clusters[:len(g.clusters)-1]
-	return true
-}
-
 func (g *SketchGraph) createClusters() {
+	id := 1
 	fmt.Printf("Creating clusters -- number of unassigned constraints: %d\n", len(g.constraints))
 	for lastLen := len(g.constraints) + 1; len(g.constraints) > 0 && lastLen != len(g.constraints); {
 		lastLen = len(g.constraints)
 		// Find constraint to begin new cluster
-		g.createCluster(g.findStartConstraint())
+		g.createCluster(g.findStartConstraint(), id)
+		id++
 		fmt.Printf("%d unassigned constraints left\n", len(g.constraints))
 	}
 	for _, c := range g.constraints {
@@ -423,15 +338,6 @@ func (g *SketchGraph) createClusters() {
 		}
 	}
 	fmt.Printf("Created clusters -- number of unassigned constraints: %d\n", len(g.constraints))
-}
-
-func (g *SketchGraph) mergeClusters() {
-	for i := 1; i < len(g.clusters); i++ {
-		if g.mergeCluster(i) {
-			i = 1
-		}
-	}
-	g.mergeCluster(0)
 }
 
 func (g *SketchGraph) buildConstraintMap() {
@@ -475,7 +381,7 @@ func (g *SketchGraph) Rotate(origin *el.SketchPoint, angle float64) error {
 	return nil
 }
 
-func (g *SketchGraph) logConstraintsElements() {
+func (g *SketchGraph) logElements() {
 	fmt.Printf("Elements: \n")
 	for _, e := range g.elements {
 		if e.GetType() == el.Point {
@@ -485,12 +391,19 @@ func (g *SketchGraph) logConstraintsElements() {
 		}
 	}
 	fmt.Println()
+}
 
+func (g *SketchGraph) logConstraints() {
 	fmt.Printf("Constraints: \n")
 	for _, c := range g.constraints {
 		fmt.Printf("\tConstraint(%d) type: %v, e1: %d, e2: %d, v: %f\n", c.GetID(), c.Type, c.Element1.GetID(), c.Element2.GetID(), c.Value)
 	}
 	fmt.Println()
+}
+
+func (g *SketchGraph) logConstraintsElements() {
+	g.logElements()
+	g.logConstraints()
 	fmt.Println()
 }
 
@@ -500,20 +413,53 @@ func (g *SketchGraph) updateElements(c *GraphCluster) {
 	}
 }
 
+func (g *SketchGraph) addClusterConstraints(c *GraphCluster) {
+	for _, constraint := range c.constraints {
+		g.constraints[constraint.GetID()] = constraint
+	}
+}
+
+// Restore constraints and elements in the graph
+func (g *SketchGraph) ResetClusters() {
+	for _, cluster := range g.clusters {
+		g.addClusterConstraints(cluster)
+	}
+	g.clusters = make([]*GraphCluster, 0)
+	g.freeNodes.AddSet(g.usedNodes)
+	g.usedNodes.Clear()
+	g.state = solver.None
+
+	// Recreate cluster 0
+	// This isn't great -- if cluster 0 changes over time, this will need to be updated
+	// Instead we should track a pristine version of cluster 0 to reset to
+	c := NewGraphCluster(0)
+	for _, element := range g.baseCluster.elements {
+		c.AddElement(element)
+	}
+	for _, constraint := range g.baseCluster.constraints {
+		c.AddConstraint(constraint)
+	}
+	g.clusters = append(g.clusters, c)
+}
+
 func (g *SketchGraph) BuildClusters() {
 	for _, c := range g.clusters[0].constraints {
+		g.addElementToCluster(g.clusters[0], c.First())
+		g.addElementToCluster(g.clusters[0], c.Second())
 		delete(g.constraints, c.GetID())
 	}
 	elements := utils.NewSet()
 	for _, c := range g.constraints {
 		elements.AddList(c.ElementIDs())
 	}
-	// TODO: Add back in constraints from cluster where both elements
+	// Add back in constraints from cluster where both elements
 	// are referenced in constraints not in the cluster
-	for _, c := range g.clusters[0].constraints {
-		if elements.Contains(c.Element1.GetID()) && elements.Contains(c.Element2.GetID()) {
-			fmt.Printf("Adding back in constraint %d with elements %d and %d\n", c.GetID(), c.First().GetID(), c.Second().GetID())
-			g.constraints[c.GetID()] = c
+	if len(g.clusters) == 1 {
+		for _, c := range g.clusters[0].constraints {
+			if elements.Contains(c.Element1.GetID()) && elements.Contains(c.Element2.GetID()) {
+				fmt.Printf("Adding back in constraint %d with elements %d and %d\n", c.GetID(), c.First().GetID(), c.Second().GetID())
+				g.constraints[c.GetID()] = c
+			}
 		}
 	}
 	g.logConstraintsElements()
@@ -521,26 +467,21 @@ func (g *SketchGraph) BuildClusters() {
 	if len(g.clusters) == 1 {
 		g.createClusters()
 	}
-	fmt.Printf("Merging clusters beginning with %d clusters\n", len(g.clusters))
-	g.mergeClusters()
 }
 
 // Solve builds the graph and solves the sketch
 func (g *SketchGraph) Solve() solver.SolveState {
-	if len(g.clusters) > 2 {
-		// set state, but attempt to solve as much as possible
-		g.state = solver.UnderConstrained
-		fmt.Printf("More than two clusters (%d) (under constrained in mergeClusters)\n", len(g.clusters))
-	}
+	defer g.logElements()
 
 	fmt.Printf("Beginning cluster solves with %d clusters and %d unclustered constraints\n", len(g.clusters), len(g.constraints))
 	for i, c := range g.clusters {
 		if i == 0 {
 			continue
 		}
-		fmt.Printf("Starting cluster %d solve with %d other clusters\n", i, len(c.others))
+		fmt.Printf("Starting cluster %d solve\n", i)
 		clusterState := c.Solve()
 		g.updateElements(c)
+		g.addClusterConstraints(c)
 		fmt.Printf("Solved cluster %d with state %v, current state %v\n", i, clusterState, g.state)
 		c.logElements()
 		if g.state == solver.None || (g.state != clusterState && !(g.state != solver.Solved && clusterState == solver.Solved)) {
@@ -549,14 +490,57 @@ func (g *SketchGraph) Solve() solver.SolveState {
 		}
 		fmt.Printf("Current graph solve state %v\n", g.state)
 	}
-	mergeState := g.clusters[0].mergeOne(g.clusters[1])
+	// Merge clusters
+	fmt.Println("Starting Cluster Merges")
+	removeCluster := func(g *SketchGraph, cIndex int) {
+		last := len(g.clusters) - 1
+		g.clusters[cIndex], g.clusters[last] = g.clusters[last], g.clusters[cIndex]
+		g.clusters = g.clusters[:last]
+	}
+	for first, second, third := g.findMerge(); first > 0 && second > 0; first, second, third = g.findMerge() {
+		fmt.Printf("Found merge for clusters %d, %d, %d\n", first, second, third)
+		c1 := g.clusters[first]
+		c2 := g.clusters[second]
+		var c3 *GraphCluster = nil
+		if third > 0 {
+			c3 = g.clusters[third]
+		}
+		mergeState := c1.solveMerge(c2, c3)
+		fmt.Println("Completed merge")
+		for _, c := range g.clusters {
+			c.IsSolved()
+		}
+		g.updateElements(c1)
+		g.addClusterConstraints(c1)
+		for _, c := range g.clusters {
+			c.IsSolved()
+		}
+		if g.state != mergeState && mergeState != solver.Solved {
+			fmt.Printf("Updating state to %v after cluster merge\n", mergeState)
+			g.state = mergeState
+		}
+		// Remove second and third clusters
+		ordered := []int{second, third}
+		if second < third {
+			ordered[0], ordered[1] = ordered[1], ordered[0]
+		}
+		removeCluster(g, ordered[0])
+		if third > 0 {
+			removeCluster(g, ordered[1])
+		}
+	}
+	fmt.Println("Merging with origin and X & Y axes")
+	mergeState := g.clusters[0].mergeOne(g.clusters[1], false)
+	g.updateElements(g.clusters[0])
+	g.updateElements(g.clusters[1])
+	g.addClusterConstraints(g.clusters[0])
+	g.addClusterConstraints(g.clusters[1])
 	if g.state == solver.None || (g.state != mergeState && !(g.state != solver.Solved && mergeState == solver.Solved)) {
 		fmt.Printf("Updating state to %v after cluster merge\n", mergeState)
 		g.state = mergeState
 	}
-	g.updateElements(g.clusters[1])
 	fmt.Printf("Final graph solve state %v\n", g.state)
-	g.clusters[1].logElements()
+	g.logElements()
 	fmt.Println()
 
 	if !g.IsSolved() {
@@ -567,8 +551,89 @@ func (g *SketchGraph) Solve() solver.SolveState {
 	return g.state
 }
 
+func (g *SketchGraph) findMergeForCluster(c *GraphCluster, first int) (int, int) {
+	connectedClusters := func(g *SketchGraph, c *GraphCluster) map[int][]uint {
+		connected := make(map[int][]uint)
+		for i, other := range g.clusters {
+			if other.id == c.id {
+				continue
+			}
+			shared := c.SharedElements(other).Contents()
+			if len(shared) < 1 {
+				continue
+			}
+			connected[i] = shared
+		}
+		return connected
+	}
+
+	// These are the clusters connected to c
+	// We want to find either one connected to c by two elements
+	// or two within this list connected to each other by one
+	connected := connectedClusters(g, c)
+	for ci, shared := range connected {
+		if ci == 0 {
+			continue
+		}
+		fmt.Printf("Looking for merge containing clusters %d, %d\n", c.id, g.clusters[ci].id)
+		if len(shared) == 2 {
+			fmt.Printf("Found connected cluster for merge: %d\n", g.clusters[ci].id)
+			return ci, -1
+		}
+
+		if len(shared) == 1 {
+			// Find another cluster in connected that is connected to g.clusters[ci]
+			for oi, oshared := range connected {
+				if oi == 0 || ci == oi || len(oshared) != 1 || oshared[0] == shared[0] {
+					continue
+				}
+				fmt.Printf("Testing for valid merge for clusters %d, %d, %d\n", c.id, g.clusters[ci].id, g.clusters[oi].id)
+				ciOiShared := g.clusters[ci].SharedElements(g.clusters[oi])
+				if ciOiShared.Count() == 1 && !ciOiShared.Contains(shared[0]) && !ciOiShared.Contains(oshared[0]) {
+					fmt.Printf("Found connected clusters for merge: %d, %d, %d\n", c.id, g.clusters[ci].id, g.clusters[oi].id)
+					return ci, oi
+				}
+			}
+		}
+	}
+
+	return -1, -1
+}
+
+// Find and return clusters which can be merged.
+// This can either be:
+//   * Two clusters each sharing an element with g and sharing an element with each other
+//   * One cluster sharing two elements with g
+// Returns the index(es) of the mergable clusters
+func (g *SketchGraph) findMerge() (int, int, int) {
+	for i, c := range g.clusters {
+		// Merge cluster 0 last manually
+		if i == 0 {
+			continue
+		}
+		fmt.Printf("Looking for merge starting with cluster %d\n", c.id)
+		c1, c2 := g.findMergeForCluster(c, i)
+		if c1 >= 0 {
+			return i, c1, c2
+		}
+	}
+
+	fmt.Printf("No merge found\n")
+	return -1, -1, -1
+}
+
 func (g *SketchGraph) IsSolved() bool {
-	return g.clusters[1].IsSolved()
+	solved := true
+	for _, c := range g.constraints {
+		if c.IsMet() {
+			continue
+		}
+
+		fmt.Printf("Failed to meet %v\n", c)
+		solved = false
+	}
+
+	return solved
 }
 
 // Test is a test function
@@ -578,18 +643,39 @@ func (g *SketchGraph) Test() string {
 
 func (g *SketchGraph) ToGraphViz() string {
 	edges := ""
+	uniqueSharedElements := make(map[string]interface{})
+	sharedElements := ""
 
 	// Output clusters
-	for id, c := range g.clusters {
-		if id == 0 {
-			continue
+	for _, c := range g.clusters {
+		edges = edges + c.ToGraphViz()
+		for _, other := range g.clusters {
+			if c.id == other.id {
+				continue
+			}
+			shared := c.SharedElements(other)
+			if shared.Count() == 0 {
+				continue
+			}
+			first := c.id
+			second := other.id
+			if second < first {
+				first, second = second, first
+			}
+			for _, e := range shared.Contents() {
+				key := fmt.Sprintf("\t\"%d-%d\" -- \"%d-%d\"\n", first, e, second, e)
+				if _, ok := uniqueSharedElements[key]; ok {
+					continue
+				}
+				sharedElements = sharedElements + key
+				uniqueSharedElements[key] = 0
+			}
 		}
-		edges = edges + c.ToGraphViz(fmt.Sprintf("%d", id))
 	}
 
 	// Output free constraints
 	for _, c := range g.constraints {
-		edges = edges + c.ToGraphViz("")
+		edges = edges + c.ToGraphViz(-1)
 	}
 
 	// Output free elements
@@ -600,15 +686,7 @@ func (g *SketchGraph) ToGraphViz() string {
 	return fmt.Sprintf(`
 	graph {
 		compound=true
-		/*
-		layout=neato
-		pad="0.5"
-		node [
-			shape = circle
-			style = "filled, bold"
-			color = black
-			fontname = Inter
-		]*/
 		%s
-	}`, edges)
+		%s
+	}`, edges, sharedElements)
 }

@@ -80,8 +80,11 @@ func PointResult(c1 *constraint.Constraint, c2 *constraint.Constraint) (*el.Sket
 	}
 
 	if solveState == Solved {
+		fmt.Printf("PointResult solved constraints %d %d\n", c1.GetID(), c2.GetID())
 		c1.Solved = true
 		c2.Solved = true
+	} else {
+		fmt.Printf("PointResult did not solve constraints %d %d\n", c1.GetID(), c2.GetID())
 	}
 
 	return point, solveState
@@ -105,13 +108,27 @@ func SolveDistanceConstraint(c *constraint.Constraint) SolveState {
 
 	// If two points, get distance between them, translate constraint value - distance between
 	// If point and line, get distance between them, translate normal to line constraint value - distance between
-	dist := point.DistanceTo(other)
-	trans, ok := point.VectorTo(other).UnitVector()
-	if !ok {
+	trans := point.VectorTo(other)
+	dist := trans.Magnitude()
+
+	if dist == 0 && c.GetValue() > 0 {
 		return NonConvergent
 	}
-	trans.Scaled(c.GetValue() - dist)
-	point.Translate(trans.GetX(), trans.GetY())
+
+	if dist == 0 && c.GetValue() == 0 {
+		c.Solved = true
+		return Solved
+	}
+	otherP := other.AsPoint()
+	if otherP == nil {
+		otherP = other.AsLine().NearestPoint(point.GetX(), point.GetY())
+	}
+
+	trans.Scaled(c.GetValue() / dist)
+	newPoint := otherP.Translated(trans.GetX(), trans.GetY())
+	point.X = newPoint.X
+	point.Y = newPoint.Y
+	c.Solved = true
 
 	return Solved
 }
@@ -130,8 +147,7 @@ func GetPointFromPoints(p1 el.SketchElement, originalP2 el.SketchElement, origin
 	}
 
 	if utils.StandardFloatCompare(pointDistance, constraintDist) == 0 {
-		// TODO: Wrong! Fix this!
-		return el.NewSketchPoint(p3.GetID(), 0, 0), Solved
+		return originalP3.AsPoint(), Solved
 	}
 
 	// Solve for p3
@@ -213,8 +229,8 @@ func pointFromPointLine(originalP1 el.SketchElement, originalL2 el.SketchElement
 	p1.Translate(-xTranslate, yTranslate)
 	p3.Translate(-xTranslate, yTranslate)
 
-	if pointDist < math.Abs(p1.GetY()) {
-		fmt.Printf("pointFromPointLine: Nonconvergent with pointDist %f < p1.y %f\n", pointDist, math.Abs(p1.Y))
+	if utils.StandardFloatCompare(pointDist, math.Abs(p1.GetY())) < 0 {
+		fmt.Printf("pointFromPointLine: Nonconvergent with pointDist %f <= p1.y %f\n", pointDist, math.Abs(p1.GetY()))
 		return nil, NonConvergent
 	}
 
@@ -270,27 +286,49 @@ func PointFromPointLine(c1 *constraint.Constraint, c2 *constraint.Constraint) (*
 }
 
 func pointFromLineLine(l1 *el.SketchLine, l2 *el.SketchLine, p3 *el.SketchPoint, line1Dist float64, line2Dist float64) (*el.SketchPoint, SolveState) {
+	sameSlope := utils.StandardFloatCompare(l1.GetA(), l2.GetA()) == 0 && utils.StandardFloatCompare(l1.GetB(), l2.GetB()) == 0
 	// If l1 and l2 are parallel, and line distances aren't what is passed in, there is no solution
-	if utils.StandardFloatCompare(l1.GetSlope(), l2.GetSlope()) == 0 &&
+	if sameSlope &&
 		utils.StandardFloatCompare(line1Dist+line2Dist, l1.DistanceTo(l2)) != 0 {
 		return nil, NonConvergent
 	}
 
 	// If l1 & l2 are parallel and it's solvable, there are infinite solutions
 	// Choose the one closest to the current point location
-	if utils.StandardFloatCompare(l1.GetSlope(), l2.GetSlope()) == 0 {
+	if sameSlope {
 		translate := l1.VectorTo(p3)
 		translate.Scaled(p3.DistanceTo(l1) - line1Dist)
 		return el.NewSketchPoint(p3.GetID(), p3.X+translate.X, p3.Y+translate.Y), Solved
 	}
 	// Translate l1 line1Dist
-	line1Translated := l1.TranslatedDistance(line1Dist)
+	line1TranslatePos := l1.TranslatedDistance(line1Dist)
+	line1TranslateNeg := l1.TranslatedDistance(-line1Dist)
 	// Translate l2 line2Dist
-	line2Translated := l2.TranslatedDistance(line2Dist)
-	// Return intersection point
-	intersection := line1Translated.Intersection(line2Translated)
+	line2TranslatedPos := l2.TranslatedDistance(line2Dist)
+	line2TranslatedNeg := l2.TranslatedDistance(-line2Dist)
 
-	return el.NewSketchPoint(p3.GetID(), intersection.GetX(), intersection.GetY()), Solved
+	// If line1 and line2 are the same line,
+	intersect1 := el.SketchPointFromVector(p3.GetID(), line1TranslatePos.Intersection(line2TranslatedPos))
+	intersect2 := el.SketchPointFromVector(p3.GetID(), line1TranslatePos.Intersection(line2TranslatedNeg))
+	intersect3 := el.SketchPointFromVector(p3.GetID(), line1TranslateNeg.Intersection(line2TranslatedPos))
+	intersect4 := el.SketchPointFromVector(p3.GetID(), line1TranslateNeg.Intersection(line2TranslatedNeg))
+
+	// Return closest intersection point
+	closest := intersect1
+	dist := p3.DistanceTo(intersect1)
+	if next := p3.DistanceTo(intersect2); next < dist {
+		dist = next
+		closest = intersect2
+	}
+	if next := p3.DistanceTo(intersect3); next < dist {
+		dist = next
+		closest = intersect3
+	}
+	if next := p3.DistanceTo(intersect4); next < dist {
+		closest = intersect4
+	}
+
+	return closest, Solved
 }
 
 // PointFromLineLine construct a point from two lines. c2 must contain the point.

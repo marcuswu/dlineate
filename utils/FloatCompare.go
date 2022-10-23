@@ -10,7 +10,7 @@ func FloatCompare(a float64, b float64, tol float64) int {
 	if math.Abs(a-b) < tol {
 		return 0
 	}
-	if a-b < tol {
+	if a-b < 0-tol {
 		return -1
 	}
 	return 1

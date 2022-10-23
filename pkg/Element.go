@@ -22,7 +22,25 @@ const (
 	Arc
 )
 
+func (et ElementType) String() string {
+	switch et {
+	case Point:
+		return "Point"
+	case Axis:
+		return "Axis"
+	case Line:
+		return "Line"
+	case Circle:
+		return "Circle"
+	case Arc:
+		return "Arc"
+	default:
+		return fmt.Sprintf("%d", int(et))
+	}
+}
+
 type Element struct {
+	id          uint
 	values      []float64
 	elementType ElementType
 	constraints []*c.Constraint
@@ -34,9 +52,9 @@ type Element struct {
 
 func emptyElement() *Element {
 	ec := new(Element)
-	ec.values = make([]float64, 0, 2)
-	ec.constraints = make([]*c.Constraint, 0, 1)
-	ec.children = make([]*Element, 0, 1)
+	ec.values = make([]float64, 0)
+	ec.constraints = make([]*c.Constraint, 0)
+	ec.children = make([]*Element, 0)
 	ec.isChild = false
 	ec.valuePass = 0
 	return ec
@@ -72,6 +90,9 @@ func (e *Element) valuesFromSketch(s *Sketch) error {
 		e.values[1] = c.GetY()
 		// find distance constraint on e
 		constraint, err := s.findConstraint(Distance, e)
+		if err != nil {
+			constraint, err = s.findConstraint(Coincident, e)
+		}
 		if err != nil {
 			return err
 		}
@@ -200,10 +221,10 @@ func (e *Element) minMaxXY() (float64, float64, float64, float64) {
 		if e.values[0] > maxX {
 			maxX = e.values[0]
 		}
-		if e.values[1] < minX {
+		if e.values[1] < minY {
 			minY = e.values[1]
 		}
-		if e.values[1] > maxX {
+		if e.values[1] > maxY {
 			maxY = e.values[1]
 		}
 		if e.values[2] < minX {
@@ -212,10 +233,10 @@ func (e *Element) minMaxXY() (float64, float64, float64, float64) {
 		if e.values[2] > maxX {
 			maxX = e.values[2]
 		}
-		if e.values[3] < minX {
+		if e.values[3] < minY {
 			minY = e.values[3]
 		}
-		if e.values[3] > maxX {
+		if e.values[3] > maxY {
 			maxY = e.values[3]
 		}
 		if e.values[4] < minX {
@@ -224,10 +245,10 @@ func (e *Element) minMaxXY() (float64, float64, float64, float64) {
 		if e.values[4] > maxX {
 			maxX = e.values[4]
 		}
-		if e.values[5] < minX {
+		if e.values[5] < minY {
 			minY = e.values[5]
 		}
-		if e.values[5] > maxX {
+		if e.values[5] > maxY {
 			maxY = e.values[5]
 		}
 	}
@@ -323,4 +344,8 @@ func (e *Element) End() *Element {
 		return nil
 	}
 	return e.children[1]
+}
+
+func (e *Element) String() string {
+	return fmt.Sprintf("Element type %v, internal element: %v", e.elementType, e.element)
 }

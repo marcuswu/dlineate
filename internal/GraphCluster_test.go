@@ -15,9 +15,9 @@ func TestAddConstraint(t *testing.T) {
 	e2 := el.NewSketchPoint(1, 2, 1)
 	e3 := el.NewSketchLine(2, 2, 1, -1)
 	c1 := constraint.NewConstraint(0, constraint.Distance, e1, e2, 5, false)
-	c2 := constraint.NewConstraint(0, constraint.Distance, e2, e3, 7, false)
+	c2 := constraint.NewConstraint(1, constraint.Distance, e2, e3, 7, false)
 
-	g := NewGraphCluster()
+	g := NewGraphCluster(0)
 	g.AddConstraint(c1)
 
 	if len(g.constraints) != 1 {
@@ -43,16 +43,15 @@ func TestHasElementID(t *testing.T) {
 	e3 := el.NewSketchLine(2, 2, 1, -1)
 	e4 := el.NewSketchLine(3, 2, 2, -0)
 	c1 := constraint.NewConstraint(0, constraint.Distance, e1, e2, 5, false)
-	c2 := constraint.NewConstraint(0, constraint.Distance, e2, e3, 7, false)
-	c3 := constraint.NewConstraint(0, constraint.Distance, e3, e4, 2, false)
+	c2 := constraint.NewConstraint(1, constraint.Distance, e2, e3, 7, false)
+	c3 := constraint.NewConstraint(2, constraint.Distance, e3, e4, 2, false)
 
-	g := NewGraphCluster()
+	g := NewGraphCluster(0)
 	g.AddConstraint(c1)
 	g.AddConstraint(c2)
 
-	o := NewGraphCluster()
+	o := NewGraphCluster(1)
 	o.AddConstraint(c3)
-	g.others = append(g.others, o)
 
 	if !g.HasElementID(0) {
 		t.Error("expected graph cluster to have element 0, but element was not found")
@@ -63,7 +62,7 @@ func TestHasElementID(t *testing.T) {
 	if !g.HasElementID(2) {
 		t.Error("expected graph cluster to have element 2, but element was not found")
 	}
-	if !g.HasElementID(3) {
+	if g.HasElementID(3) {
 		t.Error("expected graph cluster to have element 3, but element was not found")
 	}
 	if g.HasElementID(4) {
@@ -77,16 +76,15 @@ func TestGetElement(t *testing.T) {
 	e3 := el.NewSketchLine(2, 2, 1, -1)
 	e4 := el.NewSketchLine(3, 2, 2, -0)
 	c1 := constraint.NewConstraint(0, constraint.Distance, e1, e2, 5, false)
-	c2 := constraint.NewConstraint(0, constraint.Distance, e2, e3, 7, false)
-	c3 := constraint.NewConstraint(0, constraint.Distance, e3, e4, 2, false)
+	c2 := constraint.NewConstraint(1, constraint.Distance, e2, e3, 7, false)
+	c3 := constraint.NewConstraint(2, constraint.Distance, e3, e4, 2, false)
 
-	g := NewGraphCluster()
+	g := NewGraphCluster(0)
 	g.AddConstraint(c1)
 	g.AddConstraint(c2)
 
-	o := NewGraphCluster()
+	o := NewGraphCluster(1)
 	o.AddConstraint(c3)
-	g.others = append(g.others, o)
 
 	element3, ok := g.GetElement(2)
 	if !ok {
@@ -114,16 +112,15 @@ func TestSharedElements(t *testing.T) {
 	c2 := constraint.NewConstraint(1, constraint.Distance, e2, e3, 7, false)
 	c3 := constraint.NewConstraint(2, constraint.Distance, e3, e4, 2, false)
 
-	g := NewGraphCluster() // 0, 1, 2
+	g := NewGraphCluster(0) // 0, 1, 2
 	g.AddConstraint(c1)
 	g.AddConstraint(c2)
 
-	o := NewGraphCluster() // 2, 3
+	o := NewGraphCluster(1) // 2, 3
 	o.AddConstraint(c3)
-	g.others = append(g.others, o)
 
-	g2 := NewGraphCluster()
-	g3 := NewGraphCluster()
+	g2 := NewGraphCluster(2)
+	g3 := NewGraphCluster(3)
 	e5 := el.NewSketchPoint(4, 0, 1)
 	e6 := el.NewSketchPoint(5, 1, 2)
 	c4 := constraint.NewConstraint(3, constraint.Distance, e4, e5, 12, false)
@@ -164,9 +161,9 @@ func TestTranslate(t *testing.T) {
 	e3 := el.NewSketchLine(2, 2, 1, -1)
 	originalPointNearest := e3.PointNearestOrigin()
 	c1 := constraint.NewConstraint(0, constraint.Distance, e1, e2, 5, false)
-	c2 := constraint.NewConstraint(0, constraint.Distance, e2, e3, 7, false)
+	c2 := constraint.NewConstraint(1, constraint.Distance, e2, e3, 7, false)
 
-	g := NewGraphCluster()
+	g := NewGraphCluster(0)
 	g.AddConstraint(c1)
 	g.AddConstraint(c2)
 
@@ -199,9 +196,9 @@ func TestRotate(t *testing.T) {
 	e3 := el.NewSketchLine(2, 2, 1, -1)
 	o := el.NewSketchPoint(3, 0, 0)
 	c1 := constraint.NewConstraint(0, constraint.Distance, e1, e2, 5, false)
-	c2 := constraint.NewConstraint(0, constraint.Distance, e2, e3, 7, false)
+	c2 := constraint.NewConstraint(1, constraint.Distance, e2, e3, 7, false)
 
-	g := NewGraphCluster()
+	g := NewGraphCluster(0)
 	g.AddConstraint(c1)
 	g.AddConstraint(c2)
 
@@ -232,7 +229,7 @@ func TestRotate(t *testing.T) {
 }
 
 func TestLocalSolve0(t *testing.T) {
-	g := NewGraphCluster()
+	g := NewGraphCluster(0)
 	/*
 		GraphCluster 0 (from test)
 			l1: 0.000000x + 1.000000y + 0.000000 = 0
@@ -290,7 +287,7 @@ func TestLocalSolve0(t *testing.T) {
 }
 
 func TestLocalSolve1(t *testing.T) {
-	g := NewGraphCluster()
+	g := NewGraphCluster(0)
 
 	/*
 		GraphCluster 1 (from test)
@@ -374,7 +371,7 @@ func TestLocalSolve1(t *testing.T) {
 }
 
 func TestLocalSolve2(t *testing.T) {
-	g := NewGraphCluster()
+	g := NewGraphCluster(0)
 
 	/*
 		A more complicated cluster to solve. The below is a diagram of the desired result
@@ -540,7 +537,7 @@ func TestSolveMerge(t *testing.T) {
 
 		solveMerge should merge the three clusters into a single solved graph
 	*/
-	g0 := NewGraphCluster()
+	g0 := NewGraphCluster(0)
 
 	l1 := el.NewSketchLine(0, 0, 1, 0)
 	p1 := el.NewSketchPoint(1, 0.0, 0.0)
@@ -552,7 +549,7 @@ func TestSolveMerge(t *testing.T) {
 	c3 := constraint.NewConstraint(2, constraint.Distance, p2, l1, 0, false)
 	g0.AddConstraint(c3)
 
-	g1 := NewGraphCluster()
+	g1 := NewGraphCluster(1)
 
 	l2 := el.NewSketchLine(3, -0.748682, 0.662930, 2.341692)
 	l3 := el.NewSketchLine(4, 0.861839, 0.507182, -5.071811)
@@ -569,7 +566,7 @@ func TestSolveMerge(t *testing.T) {
 	c8 := constraint.NewConstraint(7, constraint.Angle, l3, l2, (108.0/180.0)*math.Pi, false)
 	g1.AddConstraint(c8)
 
-	g2 := NewGraphCluster()
+	g2 := NewGraphCluster(2)
 
 	l3 = el.NewSketchLine(4, 0.650573, 0.759444, -5.071811)
 	l4 := el.NewSketchLine(6, 0.521236, -0.853412, 3.696525)
@@ -595,9 +592,6 @@ func TestSolveMerge(t *testing.T) {
 	g2.AddConstraint(c16)
 	c17 := constraint.NewConstraint(16, constraint.Angle, l3, l4, (108.0/180.0)*math.Pi, false)
 	g2.AddConstraint(c17)
-
-	g0.others = append(g0.others, g1)
-	g0.others = append(g0.others, g2)
 
 	state := g0.solveMerge(g1, g2)
 

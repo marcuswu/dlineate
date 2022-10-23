@@ -2,6 +2,7 @@ package constraint
 
 import (
 	"fmt"
+	"math"
 
 	el "github.com/marcuswu/dlineation/internal/element"
 	"github.com/marcuswu/dlineation/utils"
@@ -133,10 +134,14 @@ func (c *Constraint) IsMet() bool {
 		current = c.Element1.AsLine().AngleToLine(c.Element2.AsLine())
 	}
 
-	if utils.StandardFloatCompare(current, c.Value) != 0 {
-		fmt.Printf("Comparing %f to %f\n", current, c.Value)
+	comparison := utils.StandardFloatCompare(math.Abs(current), math.Abs(c.Value))
+	if comparison != 0 {
+		fmt.Printf("Comparing %f to %f\n", math.Abs(current), math.Abs(c.Value))
+	} else {
+		c.Solved = true
 	}
-	return utils.StandardFloatCompare(current, c.Value) == 0
+
+	return comparison == 0
 }
 
 func (c *Constraint) String() string {
@@ -147,11 +152,11 @@ func (c *Constraint) String() string {
 	return fmt.Sprintf("Constraint %d: %v to %v should be %f%s", c.GetID(), c.Element1, c.Element2, c.Value, units)
 }
 
-func (c *Constraint) ToGraphViz(cId string) string {
-	if cId == "" {
-		return fmt.Sprintf("\t%d -- %d [label=%v]\n", c.Element1.GetID(), c.Element2.GetID(), c.Type)
+func (c *Constraint) ToGraphViz(cId int) string {
+	if cId < 0 {
+		return fmt.Sprintf("\t%d -- %d [label=\"%v (%d)\"]\n", c.Element1.GetID(), c.Element2.GetID(), c.Type, c.id)
 	}
-	return fmt.Sprintf("\t\"%s-%d\" -- \"%s-%d\" [label=%v]\n", cId, c.Element1.GetID(), cId, c.Element2.GetID(), c.Type)
+	return fmt.Sprintf("\t\"%d-%d\" -- \"%d-%d\" [label=\"%v (%d)\"]\n", cId, c.Element1.GetID(), cId, c.Element2.GetID(), c.Type, c.id)
 }
 
 // Equals returns whether two constraints are equal

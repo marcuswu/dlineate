@@ -61,7 +61,7 @@ type SketchElement interface {
 	AsLine() *SketchLine
 	ConstraintLevel() ConstraintLevel
 	SetConstraintLevel(ConstraintLevel)
-	ToGraphViz(cId string) string
+	ToGraphViz(cId int) string
 }
 
 // List is a list of SketchElements
@@ -86,8 +86,8 @@ func CopySketchElement(e SketchElement) SketchElement {
 	return n
 }
 
-func toGraphViz(e SketchElement, cId string) string {
-	return fmt.Sprintf("\"%s-%d\" [label=%d]\n", cId, e.GetID(), e.GetID())
+func toGraphViz(e SketchElement, cId int) string {
+	return fmt.Sprintf("\"%d-%d\" [label=%d]\n", cId, e.GetID(), e.GetID())
 }
 
 // IdentityMap is a map of id to SketchElement

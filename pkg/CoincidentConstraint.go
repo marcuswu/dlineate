@@ -8,10 +8,14 @@ func (s *Sketch) AddCoincidentConstraint(p1 *Element, p2 *Element) *Constraint {
 		}
 
 		p1.element = s.sketch.CombinePoints(p1.element, p2.element)
-		// search for references to element id, replace with new element id
-		s.eToC[p1.element.GetID()] = append(s.eToC[p1.element.GetID()], s.eToC[p2.element.GetID()]...)
-		delete(s.eToC, p2.element.GetID())
 		p2.element = p1.element
+		// These elements must now reference the same constraints
+		for _, c := range s.eToC[p2.id] {
+			c.replaceElement(p2, p1)
+		}
+		s.eToC[p1.id] = append(s.eToC[p1.id], s.eToC[p2.id]...)
+		delete(s.eToC, p2.id)
+		p2.id = p1.id
 		return nil
 	}
 	c := s.AddDistanceConstraint(p1, p2, 0)

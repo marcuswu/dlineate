@@ -124,6 +124,15 @@ func NewSketchPoint(id uint, x float64, y float64) *SketchPoint {
 	}
 }
 
+func SketchPointFromVector(id uint, v Vector) *SketchPoint {
+	return &SketchPoint{
+		Vector:          v,
+		elementType:     Point,
+		id:              id,
+		constraintLevel: FullyConstrained,
+	}
+}
+
 // VectorTo returns a Vector to SketchElement o
 func (p *SketchPoint) VectorTo(o SketchElement) *Vector {
 	var point *SketchPoint
@@ -158,6 +167,6 @@ func (p *SketchPoint) String() string {
 	return fmt.Sprintf("Point(%d) (%f, %f)", p.GetID(), p.X, p.Y)
 }
 
-func (p *SketchPoint) ToGraphViz(cId string) string {
+func (p *SketchPoint) ToGraphViz(cId int) string {
 	return toGraphViz(p, cId)
 }
