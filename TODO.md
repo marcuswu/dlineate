@@ -18,6 +18,8 @@
   - [X] Fix solved constraints showing as unsolved in pkg/Solver
   - [X] Fix pentagon cluster 0, 1 merge (no elements in cluster 0!?)
   - [X] Fix svg output for the modified cylinder example
+  - [ ] Solve animation
+  - [ ] Improve logging
   - [ ] Update unit tests
     - [ ] SolveDistanceConstraint 0 distance translate
   - [X] Get the BellSketch (modifiedCylinder) working

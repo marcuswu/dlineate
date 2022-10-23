@@ -472,10 +472,12 @@ func (s *Sketch) ExportImage(filename string, args ...float64) error {
 
 	ctx.SetStrokeColor(canvas.Gray)
 	ctx.SetStrokeWidth(0.5)
-	ctx.MoveTo(minx*scale, 0)
-	ctx.LineTo(maxx*scale, 0)
-	ctx.MoveTo(0, miny*scale)
-	ctx.LineTo(0, maxy*scale)
+	ctx.MoveTo(0, 0)
+	ctx.LineTo((maxx * scale), 0)
+	ctx.Close()
+	ctx.Stroke()
+	ctx.MoveTo(0, (miny * scale))
+	ctx.LineTo(0, (maxy * scale))
 	ctx.Close()
 	ctx.Stroke()
 
