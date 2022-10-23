@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"math"
 
-	svg "github.com/ajstarks/svgo"
 	c "github.com/marcuswu/dlineation/internal/constraint"
 	el "github.com/marcuswu/dlineation/internal/element"
+	"github.com/tdewolff/canvas"
 )
 
 // Type of a Constraint(Distance or Angle)
@@ -255,46 +255,53 @@ func (e *Element) minMaxXY() (float64, float64, float64, float64) {
 	return minX, minY, maxX, maxY
 }
 
-func (e *Element) DrawToSVG(s *Sketch, img *svg.SVG, mult float64) {
-	color := "blue"
+func (e *Element) DrawToSVG(s *Sketch, ctx *canvas.Context, mult float64) {
+	ctx.StrokeColor = canvas.Blue
 	if e.elementType == Axis {
-		color = "gray"
+		ctx.StrokeColor = canvas.Gray
 	}
 	if e.elementType != Axis && e.ConstraintLevel() == el.FullyConstrained {
-		color = "black"
+		ctx.StrokeColor = canvas.Black
 	}
 	if e.elementType != Axis && e.ConstraintLevel() == el.OverConstrained {
-		color = "red"
+		ctx.StrokeColor = canvas.Red
 	}
+	ctx.StrokeWidth = 0.5
 	switch e.elementType {
 	case Point:
 		// May want to draw a small filled circle
+		ctx.MoveTo(e.values[0]*mult+0.5, e.values[1]*mult)
+		ctx.Arc(0.5, 0.5, 0, 0, 360)
 	case Axis:
 		// drawing handled in Solver
 	case Line:
-		x1 := int(e.values[0] * mult)
-		y1 := int(e.values[1] * mult)
-		x2 := int(e.values[2] * mult)
-		y2 := int(e.values[3] * mult)
-		img.Line(x1, y1, x2, y2, fmt.Sprintf("fill:none;stroke:%s;stroke-width:0.5", color))
+		x1 := e.values[0] * mult
+		y1 := e.values[1] * mult
+		ctx.MoveTo(x1, y1)
+		x2 := e.values[2] * mult
+		y2 := e.values[3] * mult
+		ctx.LineTo(x2, y2)
 	case Circle:
-		cx := int(e.values[0] * mult)
-		cy := int(e.values[1] * mult)
+		cx := e.values[0] * mult
+		cy := e.values[1] * mult
 		// find distance constraint on e
-		r := int(e.values[2] * mult)
-		img.Circle(cx, cy, r, fmt.Sprintf("fill: none;stroke:%s;stroke-width:0.5", color))
+		r := e.values[2] * mult
+		ctx.MoveTo(cx, cy)
+		ctx.Arc(r, r, 0, 0, 360)
 	case Arc:
-		cx := e.values[0]
-		cy := e.values[1]
-		sx := e.values[2]
-		sy := e.values[3]
-		ex := e.values[4]
-		ey := e.values[5]
+		cx := e.values[0] * mult
+		cy := e.values[1] * mult
+		sx := e.values[2] * mult
+		sy := e.values[3] * mult
+		ex := e.values[4] * mult
+		ey := e.values[5] * mult
 		r := math.Sqrt(math.Pow(sx-cx, 2) + math.Pow(sy-cy, 2))
 		svx := sx - cx
 		svy := sy - cy
 		evx := ex - cx
 		evy := ey - cy
+		theta0 := math.Atan2(svx, svy)
+		theta1 := math.Atan2(evx, evy)
 		dot := evx*svx + evy*svy
 		det := evx*svy - evy*svx
 		angle := math.Atan2(det, dot)
@@ -303,19 +310,11 @@ func (e *Element) DrawToSVG(s *Sketch, img *svg.SVG, mult float64) {
 			large = true
 		}
 
-		img.Arc(
-			int(sx*mult),
-			int(sy*mult),
-			int(r*mult),
-			int(r*mult),
-			0,
-			large,
-			true,
-			int(ex*mult),
-			int(ey*mult),
-			fmt.Sprintf("fill: none; stroke: %s; stroke-width: 0.5", color),
-		)
+		sweep := theta1 < theta0
+		ctx.MoveTo(sx, sy)
+		ctx.ArcTo(r, r, angle, large, sweep, ex, ey)
 	}
+	ctx.Stroke()
 	e.valuePass = s.passes
 }
 

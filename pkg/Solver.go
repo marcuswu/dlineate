@@ -6,7 +6,8 @@ import (
 	"math"
 	"os"
 
-	svg "github.com/ajstarks/svgo"
+	"github.com/tdewolff/canvas"
+	"github.com/tdewolff/canvas/renderers/svg"
 
 	core "github.com/marcuswu/dlineation/internal"
 	"github.com/marcuswu/dlineation/internal/solver"
@@ -411,7 +412,7 @@ func (s *Sketch) Solve() error {
 	}
 }
 
-func (s *Sketch) calculateRectangle(scale float64) (int, int, int, int) {
+func (s *Sketch) calculateRectangle(scale float64) (float64, float64, float64, float64) {
 	minX := math.MaxFloat64
 	minY := math.MaxFloat64
 	maxX := math.MaxFloat64 * -1
@@ -432,17 +433,17 @@ func (s *Sketch) calculateRectangle(scale float64) (int, int, int, int) {
 			maxY = hY
 		}
 	}
-	return int(minX * scale), int(minY * scale), int(maxX * scale), int(maxY * scale)
+	return minX * scale, minY * scale, maxX * scale, maxY * scale
 }
 
 // ExportImage exports an image representing the current state of the sketch.
 // The origin and axes will be colored gray. Fully constrained solved elements will be colored black.
 // Other elements will be colored blue.
 // It returns an error if unable to open the output file.
-func (s *Sketch) ExportImage(filename string, args ...int) error {
-	width := 500
-	height := 500
-	scale := 100.0
+func (s *Sketch) ExportImage(filename string, args ...float64) error {
+	width := 150.0
+	height := 150.0
+	scale := 1.0
 
 	if len(args) > 0 {
 		width = args[0]
@@ -451,39 +452,51 @@ func (s *Sketch) ExportImage(filename string, args ...int) error {
 		height = args[1]
 	}
 
+	minx, miny, maxx, maxy := s.calculateRectangle(scale)
+
+	// Calculate viewbox
+	vw := float64(maxx - minx)
+	vh := float64(maxy - miny)
+
+	scaleX := width / vw
+	scaleY := height / vh
+	scale = scaleX
+	if scaleY < scaleX {
+		scale = scaleY
+	}
+
+	c := canvas.New(width, height)
+	ctx := canvas.NewContext(c)
+	ctx.SetCoordSystem(canvas.CartesianI)
+	ctx.SetCoordRect(canvas.Rect{X: minx, Y: miny, W: vw, H: vh}, width, height)
+
+	ctx.SetStrokeColor(canvas.Gray)
+	ctx.SetStrokeWidth(0.5)
+	ctx.MoveTo(minx*scale, 0)
+	ctx.LineTo(maxx*scale, 0)
+	ctx.MoveTo(0, miny*scale)
+	ctx.LineTo(0, maxy*scale)
+	ctx.Close()
+	ctx.Stroke()
+
+	for _, e := range s.Elements {
+		e.DrawToSVG(s, ctx, scale)
+	}
+
+	c.Fit(5.0)
+
 	f, err := os.OpenFile(filename, os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0644)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
-	img := svg.New(f)
 
-	minx, miny, maxx, maxy := s.calculateRectangle(scale)
+	svg := svg.New(f, c.W, c.H, &svg.Options{})
+	defer svg.Close()
 
-	// Calculate viewbox
-	vw := float64(maxx-minx) / 0.9
-	vh := float64(maxy-miny) / 0.9
-	viewBoxSize := int(math.Max(vw, vh))
+	c.Render(svg)
 
-	img.Startview(width, height, minx, miny, viewBoxSize, viewBoxSize)
-
-	img.Translate(0, int(vh))
-	img.ScaleXY(1, -1)
-
-	// Draw axes
-	img.Line(minx, 0, maxx, 0, "fill:none;stroke:gray;stroke-width:0.5")
-	img.Line(0, miny, 0, maxy, "fill:none;stroke:gray;stroke-width:0.5")
-
-	for _, e := range s.Elements {
-		e.DrawToSVG(s, img, scale)
-	}
-
-	img.Gend() // end ScaleXY
-	img.Gend() // end Translate
-
-	img.End()
-
-	return nil
+	return err
 }
 
 func (s *Sketch) ExportGraphViz(filename string) error {
