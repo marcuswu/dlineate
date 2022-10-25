@@ -1,9 +1,8 @@
 package dlineation
 
 import (
-	"fmt"
-
 	ic "github.com/marcuswu/dlineation/internal/constraint"
+	"github.com/marcuswu/dlineation/utils"
 )
 
 func DistanceConstraint(p1 *Element, p2 *Element) *Constraint {
@@ -45,8 +44,8 @@ func (s *Sketch) addDistanceConstraint(p1 *Element, p2 *Element, v float64) *ic.
 		fallthrough
 	case Line:
 		if p2 == nil {
-			fmt.Printf(
-				"Adding distance constraint for line %d. Translating to distance constraint between points %d and %d\n",
+			utils.Logger.Debug().Msgf(
+				"Adding distance constraint for line %d. Translating to distance constraint between points %d and %d",
 				p1.element.GetID(),
 				p1.children[0].element.GetID(),
 				p1.children[1].element.GetID(),
@@ -83,7 +82,7 @@ func (s *Sketch) AddDistanceConstraint(p1 *Element, p2 *Element, v float64) *Con
 
 	constraint := s.addDistanceConstraint(p1, p2, v)
 	if constraint != nil {
-		fmt.Printf("AddDistanceConstraint: added constraint id %d\n", constraint.GetID())
+		utils.Logger.Debug().Msgf("AddDistanceConstraint: added constraint id %d", constraint.GetID())
 		p1.constraints = append(p1.constraints, constraint)
 		if p2 != nil {
 			p2.constraints = append(p2.constraints, constraint)
@@ -126,9 +125,9 @@ func (s *Sketch) resolveCurveDistance(e1 *Element, e2 *Element, c *Constraint) b
 		return false
 	}
 
-	fmt.Printf("RESOLVED curve radius with center point (%f, %f) to %f\n", e1.values[0], e1.values[1], eRadius)
+	utils.Logger.Debug().Msgf("Resolved curve radius with center point (%f, %f) to %f", e1.values[0], e1.values[1], eRadius)
 	constraint := s.sketch.AddConstraint(ic.Distance, e1.element, e2.element, eRadius+c.dataValue)
-	fmt.Printf("resolveDistanceConstraint: added constraint id %d\n", constraint.GetID())
+	utils.Logger.Debug().Msgf("resolveDistanceConstraint: added constraint id %d", constraint.GetID())
 	e1.constraints = append(e1.constraints, constraint)
 	c.constraints = append(c.constraints, constraint)
 	s.constraints = append(s.constraints, c)
@@ -150,12 +149,10 @@ func (s *Sketch) resolveDistanceConstraint(c *Constraint) bool {
 	}
 
 	if s.resolveCurveDistance(p1, p2, c) {
-		fmt.Println("CURVE DISTANCE CONSTRAINT RESOLVED")
 		return c.state == Resolved || c.state == Solved
 	}
 
 	if s.resolveCurveDistance(p2, p1, c) {
-		fmt.Println("CURVE DISTANCE CONSTRAINT RESOLVED")
 		return c.state == Resolved || c.state == Solved
 	}
 

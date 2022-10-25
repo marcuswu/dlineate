@@ -45,7 +45,10 @@ func (g *GraphCluster) AddElement(e el.SketchElement) {
 	if _, ok := g.elements[e.GetID()]; ok {
 		return
 	}
-	utils.Logger.Debug().Msgf("Cluster %d adding element %d", g.id, e.GetID())
+	utils.Logger.Debug().
+		Int("cluster", g.id).
+		Uint("element id", e.GetID()).
+		Msgf("Cluster adding element")
 	g.elements[e.GetID()] = el.CopySketchElement(e)
 	g.solveOrder = append(g.solveOrder, e.GetID())
 }
@@ -175,7 +178,7 @@ func (g *GraphCluster) solvedConstraintsFor(eID uint) []*Constraint {
 	return solvedC
 }
 
-func (g *GraphCluster) unsolvedConstraintsFor(eID uint) []*Constraint {
+func (g *GraphCluster) unsolvedConstraintsFor(eID uint) constraint.ConstraintList {
 	var constraints = g.eToC[eID]
 	var unsolved = make([]*Constraint, 0)
 	for _, c := range constraints {
@@ -208,9 +211,15 @@ func (g *GraphCluster) localSolve() solver.SolveState {
 		if !c.HasElements(e1, e2) {
 			continue
 		}
-		utils.Logger.Info().Msgf("Solving constraint %d betw first two elements: %d, %d", c.GetID(), e1, e2)
+		utils.Logger.Info().
+			Uint("constraint", c.GetID()).
+			Uint("element 1", e1).
+			Uint("element 2", e2).
+			Msgf("Solving constraint betw first two elements")
 		state = solver.SolveConstraint(c)
-		utils.Logger.Trace().Msgf("State: %v", state)
+		utils.Logger.Trace().
+			Str("state", state.String()).
+			Msgf("State")
 		g.solved.Add(c.GetID())
 		break
 	}
@@ -236,48 +245,72 @@ func (g *GraphCluster) localSolve() solver.SolveState {
 	for len(g.solveOrder) > 0 {
 		// Step 1
 		utils.Logger.Debug().Msg("Local Solve Step 1")
-		utils.Logger.Trace().Msgf("Solve Order: %v", g.solveOrder)
+		utils.Logger.Trace().
+			Str("elements", fmt.Sprintf("%v", g.solveOrder)).
+			Msgf("Solve Order")
 		e := g.solveOrder[0]
 		g.solveOrder = g.solveOrder[1:]
 		c := g.unsolvedConstraintsFor(e)
 
 		if len(g.solvedConstraintsFor(e)) >= 2 {
-			utils.Logger.Trace().Msgf("Element %d already solved. Continuing.", e)
+			utils.Logger.Trace().
+				Uint("element", e).
+				Msgf("Element already solved. Continuing.")
 			continue
 		}
 
-		utils.Logger.Debug().Msgf("Solving for element %d", e)
-		utils.Logger.Trace().Msgf("Element %d's eligible constraints: {", e)
-		for _, constraint := range c {
-			utils.Logger.Trace().Msgf("%d, ", constraint.GetID())
-		}
-		utils.Logger.Trace().Msg("}")
+		utils.Logger.Debug().
+			Uint("element", e).
+			Msgf("Solving for element")
+		utils.Logger.Trace().
+			Uint("element", e).
+			Array("constraints", c).
+			Msgf("Element's eligible constraints")
 		if len(c) < 2 {
-			utils.Logger.Error().Msgf("Could not find a constraint to solve with %d constraints left to solve", len(g.constraints)-g.solved.Count())
+			utils.Logger.Error().
+				Int("unsolved constraints", len(g.constraints)-g.solved.Count()).
+				Msgf("Could not find a constraint to solve")
 			state = solver.NonConvergent
 			break
 		}
 
 		// Step 2
 		utils.Logger.Debug().Msg("Local Solve Step 2")
-		utils.Logger.Debug().Msgf("Solving constraints %d %d", c[0].GetID(), c[1].GetID())
+		utils.Logger.Debug().
+			Uint("constraint 1", c[0].GetID()).
+			Uint("constraint 2", c[1].GetID()).
+			Msgf("Solving constraints")
 		if s := solver.SolveConstraints(c[0], c[1], g.elements[e]); state == solver.Solved {
-			utils.Logger.Trace().Msgf("solve state changed to %v", s)
-			utils.Logger.Debug().Msgf("solved element %v", g.elements[e])
+			utils.Logger.Trace().
+				Str("state", s.String()).
+				Msgf("solve state changed")
+			utils.Logger.Debug().
+				Str("element", g.elements[e].String()).
+				Msgf("solved element")
 			element, _ := c[0].Element(e)
-			utils.Logger.Trace().Msgf("solved element in constraint 0: %v", element)
+			utils.Logger.Trace().
+				Str("element", element.String()).
+				Msgf("solved element in constraint 1")
 			element, _ = c[1].Element(e)
-			utils.Logger.Trace().Msgf("solved element in constraint 1: %v", element)
+			utils.Logger.Trace().
+				Str("element", element.String()).
+				Msgf("solved element in constraint 2")
 			state = s
-			utils.Logger.Trace().Msgf("State: %v", state)
+			utils.Logger.Trace().
+				Str("state", state.String()).
+				Msgf("State")
 		}
 		g.solved.Add(c[0].GetID())
 		g.solved.Add(c[1].GetID())
 
-		utils.Logger.Info().Msgf("Local Solve Step 3 (check for completion) %d / %d solved", g.solved.Count(), len(g.constraints))
+		utils.Logger.Info().
+			Str("solve ratio", fmt.Sprintf("%d / %d", g.solved.Count(), len(g.constraints))).
+			Msgf("Local Solve Step 3 (check for completion)")
 	}
 
-	utils.Logger.Info().Msgf("finished with state %v", state)
+	utils.Logger.Info().
+		Str("state", state.String()).
+		Msg("finished")
 	g.logElements(zerolog.InfoLevel)
 	return state
 }
@@ -289,13 +322,7 @@ func (g *GraphCluster) logElements(level zerolog.Level) {
 }
 
 func (g *GraphCluster) logElement(e el.SketchElement, level zerolog.Level) {
-	point := e.AsPoint()
-	line := e.AsLine()
-	if point == nil {
-		utils.Logger.WithLevel(level).Msgf("element %d: %fx + %fy + %f = 0", line.GetID(), line.GetA(), line.GetB(), line.GetC())
-		return
-	}
-	utils.Logger.WithLevel(level).Msgf("element %d: (%f, %f)", point.GetID(), point.GetX(), point.GetY())
+	utils.Logger.WithLevel(level).Msg(e.String())
 }
 
 // MergeOne resolves merging one solved child clusters to this one
@@ -315,7 +342,9 @@ func (g *GraphCluster) mergeOne(other *GraphCluster, mergeConstraints bool) solv
 
 	// Solve two shared elements
 	utils.Logger.Debug().Msg("Initial configuration:")
-	utils.Logger.Debug().Msgf("Shared elements %v", sharedElements)
+	utils.Logger.Debug().
+		Str("elements", fmt.Sprintf("%v", sharedElements)).
+		Msg("Shared elements")
 	g.logElements(zerolog.DebugLevel)
 	utils.Logger.Debug().Msg("")
 	other.logElements(zerolog.DebugLevel)
@@ -412,7 +441,9 @@ func (g *GraphCluster) solveMerge(c1 *GraphCluster, c2 *GraphCluster) solver.Sol
 	sharedSet.AddSet(g.immediateSharedElements(c2))
 	sharedSet.AddSet(c1.immediateSharedElements(c2))
 	sharedElements := sharedSet.Contents()
-	utils.Logger.Trace().Msgf("Solving for shared elements %v", sharedElements)
+	utils.Logger.Trace().
+		Str("elements", fmt.Sprintf("%v", sharedElements)).
+		Msg("Solving for shared elements")
 
 	orderClustersFor := func(e uint) []*GraphCluster {
 		matching := make([]*GraphCluster, 0)
@@ -462,12 +493,17 @@ func (g *GraphCluster) solveMerge(c1 *GraphCluster, c2 *GraphCluster) solver.Sol
 			break
 		}
 	}
-	utils.Logger.Trace().Msgf("root cluster is c%d", finalIndex)
+	utils.Logger.Trace().
+		Int("cluster", finalIndex).
+		Msg("root cluster")
 
 	for _, se := range sharedElements {
 		parents := orderClustersFor(se)
 		if len(parents) != 2 {
-			utils.Logger.Error().Msgf("Shared element %d has %d parents. Returning Non-Convergent", se, len(parents))
+			utils.Logger.Error().
+				Uint("element", se).
+				Int("number of parents", len(parents)).
+				Msg("Shared element has too many parents. Returning Non-Convergent")
 			return solver.NonConvergent
 		}
 
@@ -476,7 +512,10 @@ func (g *GraphCluster) solveMerge(c1 *GraphCluster, c2 *GraphCluster) solver.Sol
 			continue
 		}
 		eType := parents[0].elements[se].GetType()
-		utils.Logger.Trace().Msgf("Solving for element %d (%v)", se, eType)
+		utils.Logger.Trace().
+			Uint("element", se).
+			Str("type", eType.String()).
+			Msg("Solving for element")
 
 		// Solve element
 		// if element is a line, rotate it into place first
@@ -500,7 +539,9 @@ func (g *GraphCluster) solveMerge(c1 *GraphCluster, c2 *GraphCluster) solver.Sol
 		// translate element into place
 		other.Translate(translation.X, translation.Y)
 
-		utils.Logger.Trace().Msgf("Solved for element %d:", se)
+		utils.Logger.Trace().
+			Uint("element", se).
+			Msg("Solved for element")
 		utils.Logger.Trace().Msg("g:")
 		g.logElements(zerolog.TraceLevel)
 		utils.Logger.Trace().Msg("c1:")

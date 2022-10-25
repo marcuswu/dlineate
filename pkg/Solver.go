@@ -2,7 +2,6 @@ package dlineation
 
 import (
 	"errors"
-	"fmt"
 	"math"
 	"os"
 
@@ -139,7 +138,7 @@ func (s *Sketch) AddLine(x1 float64, y1 float64, x2 float64, y2 float64) *Elemen
 	s.eToC[l.id] = make([]*Constraint, 0)
 	s.AddDistanceConstraint(l, start, 0.0)
 	s.AddDistanceConstraint(l, end, 0.0)
-	fmt.Printf("Added Line %d with points %d and %d\n", l.element.GetID(), l.children[0].element.GetID(), l.children[1].element.GetID())
+	utils.Logger.Info().Msgf("Added Line %d with points %d and %d", l.element.GetID(), l.children[0].element.GetID(), l.children[1].element.GetID())
 	return l
 }
 
@@ -162,7 +161,7 @@ func (s *Sketch) AddCircle(x float64, y float64, r float64) *Element {
 	c.children = append(c.children, center)
 	s.eToC[center.id] = make([]*Constraint, 0)
 	s.eToC[c.id] = make([]*Constraint, 0)
-	fmt.Printf("Added Circle with center %d\n", c.element.GetID())
+	utils.Logger.Info().Msgf("Added Circle with center %d", c.element.GetID())
 	return c
 }
 
@@ -199,7 +198,7 @@ func (s *Sketch) AddArc(x1 float64, y1 float64, x2 float64, y2 float64, x3 float
 	a.children = append(a.children, end)
 	s.AddDistanceConstraint(a, start, 0.0)
 	s.AddDistanceConstraint(a, end, 0.0)
-	fmt.Printf("Added Arc %d with points %d and %d\n", a.element.GetID(), a.children[1].element.GetID(), a.children[2].element.GetID())
+	utils.Logger.Info().Msgf("Added Arc %d with points %d and %d", a.element.GetID(), a.children[1].element.GetID(), a.children[2].element.GetID())
 	return a
 }
 
@@ -212,7 +211,6 @@ func (s *Sketch) resolveConstraint(c *Constraint) bool {
 	case Coincident:
 		fallthrough
 	case Distance:
-		fmt.Println("Attempting to resolve Distance constraint")
 		return s.resolveDistanceConstraint(c)
 	case Angle:
 		fallthrough
@@ -254,7 +252,6 @@ func (s *Sketch) resolveConstraints() (int, int) {
 		}
 	}
 
-	fmt.Printf("Resolved constraints. Have %d unresolved and %d unsolved\n", unresolved, unsolved)
 	return unresolved, unsolved
 }
 
@@ -364,22 +361,36 @@ func (s *Sketch) Solve() error {
 			unsolved++
 		}
 	}
-	fmt.Printf("Initial constraint state. Have %d total, %d unresolved and %d unsolved\n", len(s.constraints), unresolved, unsolved)
+	utils.Logger.Info().
+		Int("total", len(s.constraints)).
+		Int("unresolved", unresolved).
+		Int("unsolved", unsolved).
+		Msgf("Initial constraint state.", len(s.constraints), unresolved, unsolved)
 
 	// This isn't correct -- should run until everything is solved
 	lastUnsolved := 0
 	lastUnresolved := 0
 	for numUnresolved, numUnsolved := s.resolveConstraints(); numUnsolved > 0 || numUnresolved > 0; numUnresolved, numUnsolved = s.resolveConstraints() {
 		if lastUnsolved == numUnsolved && lastUnresolved == numUnresolved {
-			fmt.Printf("Exiting solve loop because lastUnsolved (%d) == numUnsolved (%d) && lastUnresolved (%d) == numUnresolved (%d)\n", lastUnsolved, numUnsolved, lastUnresolved, numUnresolved)
+			utils.Logger.Debug().
+				Int("last unsolved", lastUnsolved).
+				Int("current unsolved", numUnsolved).
+				Int("last unresolved", lastUnresolved).
+				Int("current unresolved", numUnresolved).
+				Msgf("Exiting solve loop early", lastUnsolved, numUnsolved, lastUnresolved, numUnresolved)
 			break
 		}
-		fmt.Printf("Have %d unresolved and %d unsolved constraints\n", numUnresolved, numUnsolved)
-		fmt.Printf("Running solve pass %d\n", passes+1)
+		utils.Logger.Info().
+			Int("unresolved", numUnresolved).
+			Int("unsolved", numUnsolved).
+			Msgf("State prior to pass %d", passes+1)
+		utils.Logger.Info().Msgf("Running solve pass %d", passes+1)
 		s.sketch.ResetClusters() // TODO: this probably needs a reset between passes!
 		// Rebuild cluster 0
 		s.sketch.BuildClusters() // TODO: this probably needs a reset between passes!
-		s.ExportGraphViz("clustered.dot")
+		if utils.LogLevel() <= zerolog.DebugLevel {
+			s.ExportGraphViz("clustered.dot")
+		}
 		solveState = s.sketch.Solve()
 		lastUnresolved = numUnresolved
 		lastUnsolved = numUnsolved

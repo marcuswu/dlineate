@@ -1,11 +1,11 @@
 package dlineation
 
-import "fmt"
+import "github.com/marcuswu/dlineation/utils"
 
 func (s *Sketch) AddPerpendicularConstraint(p1 *Element, p2 *Element) (*Constraint, error) {
 	c, err := s.AddAngleConstraint(p1, p2, 90)
 	if err != nil {
-		fmt.Printf("error: %s\n", err)
+		utils.Logger.Error().Msgf("error: %s", err)
 	}
 	if c != nil {
 		c.constraintType = Perpendicular

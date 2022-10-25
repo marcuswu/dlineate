@@ -2,11 +2,15 @@ package main
 
 import (
 	"fmt"
+	"os"
 
 	dlineation "github.com/marcuswu/dlineation/pkg"
+	"github.com/marcuswu/dlineation/utils"
+	"github.com/rs/zerolog"
 )
 
 func main() {
+	utils.Logger = utils.Logger.Output(zerolog.ConsoleWriter{Out: os.Stderr})
 	sketch := dlineation.NewSketch()
 
 	// Add elements

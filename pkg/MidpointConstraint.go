@@ -1,10 +1,10 @@
 package dlineation
 
 import (
-	"fmt"
 	"math"
 
 	el "github.com/marcuswu/dlineation/internal/element"
+	"github.com/marcuswu/dlineation/utils"
 )
 
 func (e *Element) isLineOrArc() bool {
@@ -59,7 +59,7 @@ func (s *Sketch) resolveMidpointConstraint(c *Constraint) bool {
 		// coincident with line
 		constraint := s.addDistanceConstraint(other, point, 0)
 		if constraint != nil {
-			fmt.Printf("resolveMidpointConstraint: added constraint id %d\n", constraint.GetID())
+			utils.Logger.Debug().Msgf("resolveMidpointConstraint: added constraint id %d", constraint.GetID())
 			other.constraints = append(other.constraints, constraint)
 			point.constraints = append(point.constraints, constraint)
 			c.constraints = append(c.constraints, constraint)
@@ -67,7 +67,7 @@ func (s *Sketch) resolveMidpointConstraint(c *Constraint) bool {
 		// distance from start
 		constraint = s.addDistanceConstraint(other.children[0], point, dist/2.0)
 		if constraint != nil {
-			fmt.Printf("resolveMidpointConstraint: added constraint id %d\n", constraint.GetID())
+			utils.Logger.Debug().Msgf("resolveMidpointConstraint: added constraint id %d", constraint.GetID())
 			other.children[0].constraints = append(other.children[0].constraints, constraint)
 			point.constraints = append(point.constraints, constraint)
 			c.constraints = append(c.constraints, constraint)
@@ -109,14 +109,14 @@ func (s *Sketch) resolveMidpointConstraint(c *Constraint) bool {
 		// Set coincident and distance constraints
 		constraint := s.addDistanceConstraint(other.children[1], point, midDist)
 		if constraint != nil {
-			fmt.Printf("resolveMidpointConstraint: added constraint id %d\n", constraint.GetID())
+			utils.Logger.Debug().Msgf("resolveMidpointConstraint: added constraint id %d", constraint.GetID())
 			other.children[1].constraints = append(other.children[1].constraints, constraint)
 			point.constraints = append(point.constraints, constraint)
 			c.constraints = append(c.constraints, constraint)
 		}
 		constraint = s.addDistanceConstraint(point, other, 0)
 		if constraint != nil {
-			fmt.Printf("resolveMidpointConstraint: added constraint id %d\n", constraint.GetID())
+			utils.Logger.Debug().Msgf("resolveMidpointConstraint: added constraint id %d", constraint.GetID())
 			other.constraints = append(other.constraints, constraint)
 			point.constraints = append(point.constraints, constraint)
 			c.constraints = append(c.constraints, constraint)

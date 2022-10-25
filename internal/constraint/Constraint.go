@@ -6,6 +6,7 @@ import (
 
 	el "github.com/marcuswu/dlineation/internal/element"
 	"github.com/marcuswu/dlineation/utils"
+	"github.com/rs/zerolog"
 )
 
 // Type of a Constraint(Distance or Angle)
@@ -149,7 +150,7 @@ func (c *Constraint) String() string {
 	if c.Type == Angle {
 		units = " rad"
 	}
-	return fmt.Sprintf("Constraint %d: %v to %v should be %f%s", c.GetID(), c.Element1, c.Element2, c.Value, units)
+	return fmt.Sprintf("Constraint(%d) type: %v, e1: %v, e2: %v, v: %f%s", c.GetID(), c.Type, c.Element1, c.Element2, c.Value, units)
 }
 
 func (c *Constraint) ToGraphViz(cId int) string {
@@ -193,3 +194,9 @@ type ConstraintList []*Constraint
 func (cl ConstraintList) Len() int           { return len(cl) }
 func (cl ConstraintList) Swap(i, j int)      { cl[i], cl[j] = cl[j], cl[i] }
 func (cl ConstraintList) Less(i, j int) bool { return cl[i].id < cl[j].id }
+
+func (l ConstraintList) MarshalZerologArray(a *zerolog.Array) {
+	for _, c := range l {
+		a.Uint(c.GetID())
+	}
+}
