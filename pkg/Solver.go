@@ -6,11 +6,13 @@ import (
 	"math"
 	"os"
 
+	"github.com/rs/zerolog"
 	"github.com/tdewolff/canvas"
 	"github.com/tdewolff/canvas/renderers/svg"
 
 	core "github.com/marcuswu/dlineation/internal"
 	"github.com/marcuswu/dlineation/internal/solver"
+	"github.com/marcuswu/dlineation/utils"
 )
 
 type Sketch struct {
@@ -23,6 +25,10 @@ type Sketch struct {
 	Origin      *Element
 	XAxis       *Element
 	YAxis       *Element
+}
+
+func UseLogger(logger zerolog.Logger) {
+	utils.Logger = logger
 }
 
 // NewSketch creates a new sketch at [0, 0] with standard axis orientation and elements with constraints for origin and X/Y axes
@@ -40,6 +46,8 @@ func NewSketch() *Sketch {
 	s.AddCoincidentConstraint(s.Origin, s.XAxis)
 	s.AddCoincidentConstraint(s.Origin, s.YAxis)
 
+	// Init logging
+	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 	return s
 }
 
