@@ -10,7 +10,7 @@ import (
 )
 
 func main() {
-	utils.Logger = utils.Logger.Output(zerolog.ConsoleWriter{Out: os.Stderr})
+	utils.Logger = utils.Logger.Level(zerolog.InfoLevel).Output(zerolog.ConsoleWriter{Out: os.Stderr})
 	sketch := dlineation.NewSketch()
 
 	// Add elements

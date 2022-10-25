@@ -125,9 +125,15 @@ func (s *Sketch) resolveCurveDistance(e1 *Element, e2 *Element, c *Constraint) b
 		return false
 	}
 
-	utils.Logger.Debug().Msgf("Resolved curve radius with center point (%f, %f) to %f", e1.values[0], e1.values[1], eRadius)
+	utils.Logger.Debug().
+		Float64("center x", e1.values[0]).
+		Float64("center y", e1.values[1]).
+		Float64("radius", eRadius).
+		Msg("Resolved curve radius")
 	constraint := s.sketch.AddConstraint(ic.Distance, e1.element, e2.element, eRadius+c.dataValue)
-	utils.Logger.Debug().Msgf("resolveDistanceConstraint: added constraint id %d", constraint.GetID())
+	utils.Logger.Debug().
+		Uint("constraint", constraint.GetID()).
+		Msgf("resolveDistanceConstraint: added constraint")
 	e1.constraints = append(e1.constraints, constraint)
 	c.constraints = append(c.constraints, constraint)
 	s.constraints = append(s.constraints, c)

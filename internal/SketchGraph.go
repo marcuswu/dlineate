@@ -65,7 +65,11 @@ func (g *SketchGraph) FindConstraints(elementId uint) []*constraint.Constraint {
 // AddPoint adds a point to the sketch
 func (g *SketchGraph) AddPoint(x float64, y float64) el.SketchElement {
 	elementID := uint(len(g.elements))
-	utils.Logger.Debug().Msgf("Adding point %f, %f as element %d", x, y, elementID)
+	utils.Logger.Debug().
+		Float64("X", x).
+		Float64("Y", y).
+		Uint("id", elementID).
+		Msg("Adding point")
 	p := el.NewSketchPoint(elementID, x, y)
 	g.freeNodes.Add(elementID)
 	g.elements[elementID] = p
@@ -75,7 +79,12 @@ func (g *SketchGraph) AddPoint(x float64, y float64) el.SketchElement {
 // AddLine adds a line to the sketch
 func (g *SketchGraph) AddLine(a float64, b float64, c float64) el.SketchElement {
 	elementID := uint(len(g.elements))
-	utils.Logger.Debug().Msgf("Adding line %f, %f, %f as element %d", a, b, c, elementID)
+	utils.Logger.Debug().
+		Float64("A", a).
+		Float64("B", b).
+		Float64("C", c).
+		Uint("id", elementID).
+		Msg("Adding line")
 	l := el.NewSketchLine(elementID, a, b, c)
 	g.freeNodes.Add(elementID)
 	g.elements[elementID] = l
@@ -84,7 +93,11 @@ func (g *SketchGraph) AddLine(a float64, b float64, c float64) el.SketchElement 
 
 func (g *SketchGraph) AddOrigin(x float64, y float64) el.SketchElement {
 	elementID := uint(len(g.elements))
-	utils.Logger.Debug().Msgf("Adding origin %f, %f as element %d", x, y, elementID)
+	utils.Logger.Debug().
+		Float64("X", x).
+		Float64("Y", y).
+		Uint("id", elementID).
+		Msgf("Adding origin")
 	ax := el.NewSketchPoint(elementID, x, y)
 	g.freeNodes.Add(elementID)
 	g.elements[elementID] = ax
@@ -97,7 +110,12 @@ func (g *SketchGraph) AddOrigin(x float64, y float64) el.SketchElement {
 
 func (g *SketchGraph) AddAxis(a float64, b float64, c float64) el.SketchElement {
 	elementID := uint(len(g.elements))
-	utils.Logger.Debug().Msgf("Adding axis %f, %f, %f as element %d", a, b, c, elementID)
+	utils.Logger.Debug().
+		Float64("A", a).
+		Float64("B", b).
+		Float64("C", c).
+		Uint("id", elementID).
+		Msg("Adding axis")
 	ax := el.NewSketchLine(elementID, a, b, c)
 	g.freeNodes.Add(elementID)
 	g.elements[elementID] = ax
@@ -125,7 +143,10 @@ func (g *SketchGraph) IsElementSolved(e el.SketchElement) bool {
 }
 
 func (g *SketchGraph) CombinePoints(e1 el.SketchElement, e2 el.SketchElement) el.SketchElement {
-	utils.Logger.Debug().Msgf("Combining elements %d and %d (removing %d)", e1.GetID(), e2.GetID(), e2.GetID())
+	utils.Logger.Debug().
+		Uint("element 1", e1.GetID()).
+		Uint("removing element 2", e2.GetID()).
+		Msg("Combining elements")
 	newE2 := e1
 	newE1 := e1
 	if g.clusters[0].HasElement(e1) {
@@ -164,7 +185,11 @@ func (g *SketchGraph) AddConstraint(t constraint.Type, e1 el.SketchElement, e2 e
 	if t != constraint.Distance {
 		cType = "Angle"
 	}
-	utils.Logger.Debug().Msgf("Adding %s constraint with value %f with id %d", cType, value, constraintID)
+	utils.Logger.Debug().
+		Str("type", cType).
+		Float64("value", value).
+		Uint("constraint id", constraintID).
+		Msg("Adding constraint")
 	constraint := constraint.NewConstraint(constraintID, t, e1, e2, value, false)
 	if g.clusters[0].HasElement(e1) && g.clusters[0].HasElement(e2) {
 		g.clusters[0].AddConstraint(constraint)
@@ -287,7 +312,10 @@ func (g *SketchGraph) createCluster(first uint, id int) *GraphCluster {
 	clusterNum := len(g.clusters)
 	oc, ok := g.GetConstraint(first)
 	if !ok {
-		utils.Logger.Error().Msgf("createCluster(%d): Failed to find initial constraint from first constraint %d", clusterNum, first)
+		utils.Logger.Error().
+			Int("cluster", clusterNum).
+			Uint("constraint", first).
+			Msgf("createCluster(%d): Failed to find initial constraint", clusterNum)
 		return nil
 	}
 	g.addConstraintToCluster(c, oc)

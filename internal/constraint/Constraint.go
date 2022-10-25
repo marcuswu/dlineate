@@ -137,7 +137,10 @@ func (c *Constraint) IsMet() bool {
 
 	comparison := utils.StandardFloatCompare(math.Abs(current), math.Abs(c.Value))
 	if comparison != 0 {
-		utils.Logger.Trace().Msgf("Comparing %f to %f", math.Abs(current), math.Abs(c.Value))
+		utils.Logger.Trace().
+			Float64("value 1", math.Abs(current)).
+			Float64("value 2", math.Abs(c.Value)).
+			Msgf("Comparing values")
 	} else {
 		c.Solved = true
 	}
@@ -150,7 +153,7 @@ func (c *Constraint) String() string {
 	if c.Type == Angle {
 		units = " rad"
 	}
-	return fmt.Sprintf("Constraint(%d) type: %v, e1: %v, e2: %v, v: %f%s", c.GetID(), c.Type, c.Element1, c.Element2, c.Value, units)
+	return fmt.Sprintf("Constraint(%d) type: %v, e1: %d, e2: %d, v: %f%s", c.GetID(), c.Type, c.Element1.GetID(), c.Element2.GetID(), c.Value, units)
 }
 
 func (c *Constraint) ToGraphViz(cId int) string {

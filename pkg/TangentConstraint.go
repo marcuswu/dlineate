@@ -72,26 +72,20 @@ func orderParams(p1 *Element, p2 *Element) (*Element, *Element, error) {
 func (s *Sketch) resolveTangentConstraint(c *Constraint) bool {
 	radius, ok := s.resolveCurveRadius(c.elements[1])
 	if ok {
-		utils.Logger.Debug().Msgf("addDistanceConstraint with elements %v, %v", c.elements[0], c.elements[1].children[0])
+		utils.Logger.Debug().
+			Str("element 1", c.elements[0].String()).
+			Str("element 2", c.elements[1].children[0].String()).
+			Msg("addDistanceConstraint")
 		constraint := s.addDistanceConstraint(c.elements[0], c.elements[1].children[0], radius)
 		if constraint == nil {
 			return c.state == Resolved
 		}
-		utils.Logger.Debug().Msgf("resolveTangentConstraint: added constraint id %d", constraint.GetID())
+		utils.Logger.Debug().
+			Uint("constraint", constraint.GetID()).
+			Msg("resolveTangentConstraint: added constraint")
 		c.elements[0].constraints = append(c.elements[0].constraints, constraint)
 		c.elements[1].constraints = append(c.elements[1].constraints, constraint)
 		c.constraints = append(c.constraints, constraint)
-		/*constraint = s.addDistanceConstraint(c.elements[1], c.elements[2], radius)
-		fmt.Printf("resolveTangentConstraint: added constraint id %d\n", constraint.GetID())
-		c.elements[1].constraints = append(c.elements[1].constraints, constraint)
-		c.elements[2].constraints = append(c.elements[2].constraints, constraint)
-		c.constraints = append(c.constraints, constraint)
-		constraint = s.addDistanceConstraint(c.elements[1], c.elements[0], 0)
-		fmt.Printf("resolveTangentConstraint: added constraint id %d\n", constraint.GetID())
-		c.elements[1].constraints = append(c.elements[1].constraints, constraint)
-		c.elements[0].constraints = append(c.elements[0].constraints, constraint)
-		c.constraints = append(c.constraints, constraint)
-		s.constraints = append(s.constraints, c)*/
 		c.state = Resolved
 	}
 

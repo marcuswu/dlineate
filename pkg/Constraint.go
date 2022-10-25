@@ -98,13 +98,19 @@ func (c *Constraint) checkSolved() bool {
 		solved = true
 	}
 	for _, constraint := range c.constraints {
-		utils.Logger.Trace().Msgf("Constraint %d has solved %v", constraint.GetID(), constraint.Solved)
+		utils.Logger.Trace().
+			Uint("constraint", constraint.GetID()).
+			Bool("state", constraint.Solved).
+			Msg("Constraint solve state")
 		solved = solved && constraint.Solved
 	}
 	if solved {
 		c.state = Solved
 	}
-	utils.Logger.Debug().Msgf("Constraint type %v has state %v", c.constraintType, c.state)
+	utils.Logger.Debug().
+		Str("type", c.constraintType.String()).
+		Str("state", c.state.String()).
+		Msg("Constraint solve state")
 
 	return c.state == Solved
 }

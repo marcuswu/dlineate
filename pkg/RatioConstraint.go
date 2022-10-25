@@ -41,7 +41,9 @@ func (s *Sketch) resolveRatioConstraint(c *Constraint) bool {
 	if ok {
 		constraint := s.addDistanceConstraint(p2, nil, dist*c.dataValue)
 		if constraint != nil {
-			utils.Logger.Debug().Msgf("resolveRatioConstraint: added constraint id %d", constraint.GetID())
+			utils.Logger.Debug().
+				Uint("constraint", constraint.GetID()).
+				Msg("resolveRatioConstraint: added constraint")
 			p2.constraints = append(p2.constraints, constraint)
 			c.constraints = append(c.constraints, constraint)
 		}
@@ -54,7 +56,9 @@ func (s *Sketch) resolveRatioConstraint(c *Constraint) bool {
 	if ok {
 		constraint := s.addDistanceConstraint(p1, nil, dist/c.dataValue)
 		if constraint != nil {
-			utils.Logger.Debug().Msgf("resolveRatioConstraint: added constraint id %d", constraint.GetID())
+			utils.Logger.Debug().
+				Uint("constraint", constraint.GetID()).
+				Msg("resolveRatioConstraint: added constraint")
 			p1.constraints = append(p1.constraints, constraint)
 			c.constraints = append(c.constraints, constraint)
 		}
@@ -69,7 +73,9 @@ func (s *Sketch) resolveRatioConstraint(c *Constraint) bool {
 	if ok {
 		constraint := s.addDistanceConstraint(p1, nil, p1Radius*c.dataValue)
 		if constraint != nil {
-			utils.Logger.Debug().Msgf("resolveRatioConstraint: added constraint id %d", constraint.GetID())
+			utils.Logger.Debug().
+				Uint("constraint", constraint.GetID()).
+				Msg("resolveRatioConstraint: added constraint")
 			p1.constraints = append(p1.constraints, constraint)
 			c.constraints = append(c.constraints, constraint)
 		}
@@ -83,7 +89,9 @@ func (s *Sketch) resolveRatioConstraint(c *Constraint) bool {
 	if ok {
 		constraint := s.addDistanceConstraint(p2, nil, p2Radius/c.dataValue)
 		if constraint != nil {
-			utils.Logger.Debug().Msgf("resolveRatioConstraint: added constraint id %d", constraint.GetID())
+			utils.Logger.Debug().
+				Uint("constraint", constraint.GetID()).
+				Msg("resolveRatioConstraint: added constraint")
 			p1.constraints = append(p1.constraints, constraint)
 			c.constraints = append(c.constraints, constraint)
 		}

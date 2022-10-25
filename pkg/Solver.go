@@ -138,7 +138,11 @@ func (s *Sketch) AddLine(x1 float64, y1 float64, x2 float64, y2 float64) *Elemen
 	s.eToC[l.id] = make([]*Constraint, 0)
 	s.AddDistanceConstraint(l, start, 0.0)
 	s.AddDistanceConstraint(l, end, 0.0)
-	utils.Logger.Info().Msgf("Added Line %d with points %d and %d", l.element.GetID(), l.children[0].element.GetID(), l.children[1].element.GetID())
+	utils.Logger.Info().
+		Uint("line", l.element.GetID()).
+		Uint("start", l.children[0].element.GetID()).
+		Uint("end", l.children[1].element.GetID()).
+		Msg("Added Line")
 	return l
 }
 
@@ -161,7 +165,9 @@ func (s *Sketch) AddCircle(x float64, y float64, r float64) *Element {
 	c.children = append(c.children, center)
 	s.eToC[center.id] = make([]*Constraint, 0)
 	s.eToC[c.id] = make([]*Constraint, 0)
-	utils.Logger.Info().Msgf("Added Circle with center %d", c.element.GetID())
+	utils.Logger.Info().
+		Uint("center", c.element.GetID()).
+		Msg("Added Circle")
 	return c
 }
 
@@ -198,7 +204,11 @@ func (s *Sketch) AddArc(x1 float64, y1 float64, x2 float64, y2 float64, x3 float
 	a.children = append(a.children, end)
 	s.AddDistanceConstraint(a, start, 0.0)
 	s.AddDistanceConstraint(a, end, 0.0)
-	utils.Logger.Info().Msgf("Added Arc %d with points %d and %d", a.element.GetID(), a.children[1].element.GetID(), a.children[2].element.GetID())
+	utils.Logger.Info().
+		Uint("arc", a.element.GetID()).
+		Uint("start", a.children[1].element.GetID()).
+		Uint("end", a.children[2].element.GetID()).
+		Msg("Added Arc")
 	return a
 }
 
@@ -365,7 +375,7 @@ func (s *Sketch) Solve() error {
 		Int("total", len(s.constraints)).
 		Int("unresolved", unresolved).
 		Int("unsolved", unsolved).
-		Msgf("Initial constraint state.", len(s.constraints), unresolved, unsolved)
+		Msg("Initial constraint state.")
 
 	// This isn't correct -- should run until everything is solved
 	lastUnsolved := 0
@@ -377,7 +387,7 @@ func (s *Sketch) Solve() error {
 				Int("current unsolved", numUnsolved).
 				Int("last unresolved", lastUnresolved).
 				Int("current unresolved", numUnresolved).
-				Msgf("Exiting solve loop early", lastUnsolved, numUnsolved, lastUnresolved, numUnresolved)
+				Msg("Exiting solve loop early")
 			break
 		}
 		utils.Logger.Info().
