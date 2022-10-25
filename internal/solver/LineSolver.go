@@ -1,11 +1,11 @@
 package solver
 
 import (
-	"fmt"
 	"math"
 
 	"github.com/marcuswu/dlineation/internal/constraint"
 	el "github.com/marcuswu/dlineation/internal/element"
+	"github.com/marcuswu/dlineation/utils"
 )
 
 func SolveForLine(c1 *constraint.Constraint, c2 *constraint.Constraint) SolveState {
@@ -42,21 +42,21 @@ func LineResult(c1 *constraint.Constraint, c2 *constraint.Constraint) (*el.Sketc
 	var solveState SolveState = NonConvergent
 	if numLines == 3 {
 		line, solveState = LineFromPointLine(c1, c2)
-		fmt.Printf("LineFromPointLine result: %v: %v\n", solveState, line)
+		utils.Logger.Trace().Msgf("LineFromPointLine result: %v: %v", solveState, line)
 	}
 
 	// 1 line, 2 points -> LineFromPoints
 	if numLines == 2 {
 		line, solveState = LineFromPoints(c1, c2)
-		fmt.Printf("LineFromPoints result: %v: %v\n", solveState, line)
+		utils.Logger.Trace().Msgf("LineFromPoints result: %v: %v", solveState, line)
 	}
 
 	if solveState == Solved {
-		fmt.Printf("LineFromPoints solved constraints %d %d\n", c1.GetID(), c2.GetID())
+		utils.Logger.Trace().Msgf("LineResult solved constraints %d %d", c1.GetID(), c2.GetID())
 		c1.Solved = true
 		c2.Solved = true
 	} else {
-		fmt.Printf("LineFromPoints did not solve constraints %d %d\n", c1.GetID(), c2.GetID())
+		utils.Logger.Error().Msgf("LineResult did not solve constraints %d %d", c1.GetID(), c2.GetID())
 	}
 
 	return line, solveState
@@ -65,6 +65,7 @@ func LineResult(c1 *constraint.Constraint, c2 *constraint.Constraint) (*el.Sketc
 // MoveLineToPoint solves a constraint between a line and a point where the line needs to move
 func MoveLineToPoint(c *constraint.Constraint) SolveState {
 	if c.Type != constraint.Distance {
+		utils.Logger.Error().Msgf("MoveLineToPoint could not solve constraint %d: constraint was not Distance type", c.GetID())
 		return NonConvergent
 	}
 
@@ -73,6 +74,7 @@ func MoveLineToPoint(c *constraint.Constraint) SolveState {
 	var e1Type = c.Element1.GetType()
 	var e2Type = c.Element2.GetType()
 	if e1Type == e2Type {
+		utils.Logger.Error().Msgf("MoveLineToPoint did not have the correct element types for constraint %d", c.GetID())
 		return NonConvergent
 	}
 	if e1Type == el.Point && e2Type == el.Line {
@@ -104,6 +106,7 @@ func MoveLineToPoint(c *constraint.Constraint) SolveState {
 // Sets both angle and position by moving the line so that it coincides both points
 func MoveLineToPoints(c []*constraint.Constraint) SolveState {
 	if len(c) < 2 || c[0].Type != constraint.Distance || c[1].Type != constraint.Distance {
+		utils.Logger.Error().Msgf("MoveLineToPoints did not have the correct constraints or number of constraints")
 		return NonConvergent
 	}
 
@@ -131,6 +134,7 @@ func MoveLineToPoints(c []*constraint.Constraint) SolveState {
 	}
 
 	if line1.GetID() != line2.GetID() {
+		utils.Logger.Error().Msgf("MoveLineToPoints encountered more than one line")
 		return NonConvergent
 	}
 
@@ -152,6 +156,7 @@ func LineFromPoints(c1 *constraint.Constraint, c2 *constraint.Constraint) (*el.S
 	}
 
 	if _, ok := c2.Element(line.GetID()); !ok {
+		utils.Logger.Error().Msgf("LineFromPoints could not find the line to work with. Constraints were %d %d", c1.GetID(), c2.GetID())
 		return line, NonConvergent
 	}
 
@@ -160,6 +165,7 @@ func LineFromPoints(c1 *constraint.Constraint, c2 *constraint.Constraint) (*el.S
 	p1 := p1e.AsPoint()
 	p2 := p2e.AsPoint()
 	if p1 == nil || p2 == nil {
+		utils.Logger.Error().Msgf("LineFromPoints could not find the points to work with. Constraints were %d %d", c1.GetID(), c2.GetID())
 		return line, NonConvergent
 	}
 	p1Dist := c1.Value
@@ -192,6 +198,7 @@ func LineFromPoints(c1 *constraint.Constraint, c2 *constraint.Constraint) (*el.S
 	// The line must be tangent to the two circles defined by the two points and their distances
 	// TODO: fix this check -- this is not true for external tangents!
 	if p1.DistanceTo(p2) < p1Dist+p2Dist {
+		utils.Logger.Error().Msgf("LineFromPoints determined the points were too close together. Constraints %d %d", c1.GetID(), c2.GetID())
 		return line, NonConvergent
 	}
 
@@ -276,6 +283,7 @@ func LineFromPointLine(c1 *constraint.Constraint, c2 *constraint.Constraint) (*e
 // SolveAngleConstraint solve an angle constraint between two lines
 func SolveAngleConstraint(c *constraint.Constraint, e uint) (*el.SketchLine, SolveState) {
 	if c.Type != constraint.Angle {
+		utils.Logger.Error().Msgf("SolveAngleConstraint was not sent an angle constraint. Constraint %d", c.GetID())
 		return nil, NonConvergent
 	}
 

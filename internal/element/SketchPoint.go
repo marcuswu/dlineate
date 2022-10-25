@@ -34,38 +34,6 @@ func (p *SketchPoint) GetType() Type {
 	return p.elementType
 }
 
-/*
-// GetX gets the x coordinate of the element
-func (p *BaseElement) GetX() float64 {
-	return p.x
-}
-
-// GetY gets the y coordinate of the element
-func (p *BaseElement) GetY() float64 {
-	return p.y
-}
-
-// Translate an element by an offset
-func (p *BaseElement) Translate(tx float64, ty float64) {
-	p.x = p.x + tx
-	p.y = p.y + ty
-}
-
-// Rotate an element around an origin (tx, ty) by an angle in radians
-func (p *BaseElement) Rotate(tx float64, ty float64, angle float64) {
-	p.Translate(-tx, -ty)
-	sinAngle := math.Sin(angle)
-	cosAngle := math.Cos(angle)
-
-	newX := p.x*cosAngle - p.y*sinAngle
-	newY := p.x*sinAngle + p.y*cosAngle
-
-	p.x = newX
-	p.y = newY
-
-	p.Translate(tx, ty)
-}*/
-
 // TranslateByElement translates coordinates by another element's coordinates
 func (p *SketchPoint) TranslateByElement(e SketchElement) {
 	var point *SketchPoint

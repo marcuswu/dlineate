@@ -136,7 +136,7 @@ func (c *Constraint) IsMet() bool {
 
 	comparison := utils.StandardFloatCompare(math.Abs(current), math.Abs(c.Value))
 	if comparison != 0 {
-		fmt.Printf("Comparing %f to %f\n", math.Abs(current), math.Abs(c.Value))
+		utils.Logger.Trace().Msgf("Comparing %f to %f", math.Abs(current), math.Abs(c.Value))
 	} else {
 		c.Solved = true
 	}

@@ -1,7 +1,6 @@
 package solver
 
 import (
-	"fmt"
 	"math"
 
 	"github.com/marcuswu/dlineation/internal/constraint"
@@ -80,11 +79,11 @@ func PointResult(c1 *constraint.Constraint, c2 *constraint.Constraint) (*el.Sket
 	}
 
 	if solveState == Solved {
-		fmt.Printf("PointResult solved constraints %d %d\n", c1.GetID(), c2.GetID())
+		utils.Logger.Trace().Msgf("PointResult solved constraints %d %d", c1.GetID(), c2.GetID())
 		c1.Solved = true
 		c2.Solved = true
 	} else {
-		fmt.Printf("PointResult did not solve constraints %d %d\n", c1.GetID(), c2.GetID())
+		utils.Logger.Error().Msgf("PointResult did not solve constraints %d %d", c1.GetID(), c2.GetID())
 	}
 
 	return point, solveState
@@ -93,6 +92,7 @@ func PointResult(c1 *constraint.Constraint, c2 *constraint.Constraint) (*el.Sket
 // SolveDistanceConstraint solves a distance constraint and returns the solution state
 func SolveDistanceConstraint(c *constraint.Constraint) SolveState {
 	if c.Type != constraint.Distance {
+		utils.Logger.Error().Msgf("SolveDistanceConstraint: was not sent a distance constraint %d", c.GetID())
 		return NonConvergent
 	}
 
@@ -112,6 +112,7 @@ func SolveDistanceConstraint(c *constraint.Constraint) SolveState {
 	dist := trans.Magnitude()
 
 	if dist == 0 && c.GetValue() > 0 {
+		utils.Logger.Error().Msg("SolveDistanceConstraint: points are coincident, but they shouldn't be. Infinite solutions.")
 		return NonConvergent
 	}
 
@@ -143,6 +144,7 @@ func GetPointFromPoints(p1 el.SketchElement, originalP2 el.SketchElement, origin
 	constraintDist := p1Radius + p2Radius
 
 	if pointDistance > constraintDist {
+		utils.Logger.Error().Msgf("GetPointFromPoints no solution because the points are too far apart %d and %d", p1.GetID(), p2.GetID())
 		return nil, NonConvergent
 	}
 
@@ -230,7 +232,7 @@ func pointFromPointLine(originalP1 el.SketchElement, originalL2 el.SketchElement
 	p3.Translate(-xTranslate, yTranslate)
 
 	if utils.StandardFloatCompare(pointDist, math.Abs(p1.GetY())) < 0 {
-		fmt.Printf("pointFromPointLine: Nonconvergent with pointDist %f <= p1.y %f\n", pointDist, math.Abs(p1.GetY()))
+		utils.Logger.Error().Msgf("pointFromPointLine: Nonconvergent with pointDist %f <= p1.y %f", pointDist, math.Abs(p1.GetY()))
 		return nil, NonConvergent
 	}
 
@@ -290,6 +292,7 @@ func pointFromLineLine(l1 *el.SketchLine, l2 *el.SketchLine, p3 *el.SketchPoint,
 	// If l1 and l2 are parallel, and line distances aren't what is passed in, there is no solution
 	if sameSlope &&
 		utils.StandardFloatCompare(line1Dist+line2Dist, l1.DistanceTo(l2)) != 0 {
+		utils.Logger.Error().Msgf("pointFromLineLine no solution to find a point because the lines %d and %d are parallel", l1.GetID(), l2.GetID())
 		return nil, NonConvergent
 	}
 
