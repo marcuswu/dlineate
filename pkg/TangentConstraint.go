@@ -2,7 +2,8 @@ package dlineation
 
 import (
 	"errors"
-	"fmt"
+
+	"github.com/marcuswu/dlineation/utils"
 )
 
 func TangentConstraint(p1 *Element, p2 *Element) *Constraint {
@@ -20,7 +21,7 @@ func (s *Sketch) AddTangentConstraint(p1 *Element, p2 *Element) (*Constraint, er
 	var line, curve, err = orderParams(p1, p2)
 
 	if err != nil {
-		fmt.Printf("Tangent constraint had incorrect parameters")
+		utils.Logger.Error().Msg("Tangent constraint had incorrect parameters")
 		return nil, err
 	}
 
@@ -71,26 +72,20 @@ func orderParams(p1 *Element, p2 *Element) (*Element, *Element, error) {
 func (s *Sketch) resolveTangentConstraint(c *Constraint) bool {
 	radius, ok := s.resolveCurveRadius(c.elements[1])
 	if ok {
-		fmt.Printf("addDistanceConstraint with elements %v, %v\n", c.elements[0], c.elements[1].children[0])
+		utils.Logger.Debug().
+			Str("element 1", c.elements[0].String()).
+			Str("element 2", c.elements[1].children[0].String()).
+			Msg("addDistanceConstraint")
 		constraint := s.addDistanceConstraint(c.elements[0], c.elements[1].children[0], radius)
 		if constraint == nil {
 			return c.state == Resolved
 		}
-		fmt.Printf("resolveTangentConstraint: added constraint id %d\n", constraint.GetID())
+		utils.Logger.Debug().
+			Uint("constraint", constraint.GetID()).
+			Msg("resolveTangentConstraint: added constraint")
 		c.elements[0].constraints = append(c.elements[0].constraints, constraint)
 		c.elements[1].constraints = append(c.elements[1].constraints, constraint)
 		c.constraints = append(c.constraints, constraint)
-		/*constraint = s.addDistanceConstraint(c.elements[1], c.elements[2], radius)
-		fmt.Printf("resolveTangentConstraint: added constraint id %d\n", constraint.GetID())
-		c.elements[1].constraints = append(c.elements[1].constraints, constraint)
-		c.elements[2].constraints = append(c.elements[2].constraints, constraint)
-		c.constraints = append(c.constraints, constraint)
-		constraint = s.addDistanceConstraint(c.elements[1], c.elements[0], 0)
-		fmt.Printf("resolveTangentConstraint: added constraint id %d\n", constraint.GetID())
-		c.elements[1].constraints = append(c.elements[1].constraints, constraint)
-		c.elements[0].constraints = append(c.elements[0].constraints, constraint)
-		c.constraints = append(c.constraints, constraint)
-		s.constraints = append(s.constraints, c)*/
 		c.state = Resolved
 	}
 

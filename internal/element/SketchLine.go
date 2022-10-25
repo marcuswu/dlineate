@@ -89,7 +89,7 @@ func (l *SketchLine) SquareDistanceTo(o SketchElement) float64 {
 }
 
 func (l *SketchLine) distanceToPoint(x float64, y float64) float64 {
-	return /*math.Abs(*/ (l.a * x) + (l.b * y) + l.c //)
+	return (l.a * x) + (l.b * y) + l.c
 }
 
 // NearestPoint returns the point on the line nearest the provided point

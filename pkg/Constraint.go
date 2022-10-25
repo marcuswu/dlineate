@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	c "github.com/marcuswu/dlineation/internal/constraint"
+	"github.com/marcuswu/dlineation/utils"
 )
 
 // Type of a Constraint(Distance or Angle)
@@ -97,13 +98,19 @@ func (c *Constraint) checkSolved() bool {
 		solved = true
 	}
 	for _, constraint := range c.constraints {
-		fmt.Printf("Constraint %d has solved %v\n", constraint.GetID(), constraint.Solved)
+		utils.Logger.Trace().
+			Uint("constraint", constraint.GetID()).
+			Bool("state", constraint.Solved).
+			Msg("Constraint solve state")
 		solved = solved && constraint.Solved
 	}
 	if solved {
 		c.state = Solved
 	}
-	fmt.Printf("Constraint type %v has state %v\n", c.constraintType, c.state)
+	utils.Logger.Debug().
+		Str("type", c.constraintType.String()).
+		Str("state", c.state.String()).
+		Msg("Constraint solve state")
 
 	return c.state == Solved
 }

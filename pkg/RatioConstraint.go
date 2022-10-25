@@ -1,6 +1,8 @@
 package dlineation
 
-import "fmt"
+import (
+	"github.com/marcuswu/dlineation/utils"
+)
 
 /*
  * Order matters for ratio constraints. p2's magnitude = p1's magnitude * constraint value
@@ -39,7 +41,9 @@ func (s *Sketch) resolveRatioConstraint(c *Constraint) bool {
 	if ok {
 		constraint := s.addDistanceConstraint(p2, nil, dist*c.dataValue)
 		if constraint != nil {
-			fmt.Printf("resolveRatioConstraint: added constraint id %d\n", constraint.GetID())
+			utils.Logger.Debug().
+				Uint("constraint", constraint.GetID()).
+				Msg("resolveRatioConstraint: added constraint")
 			p2.constraints = append(p2.constraints, constraint)
 			c.constraints = append(c.constraints, constraint)
 		}
@@ -52,7 +56,9 @@ func (s *Sketch) resolveRatioConstraint(c *Constraint) bool {
 	if ok {
 		constraint := s.addDistanceConstraint(p1, nil, dist/c.dataValue)
 		if constraint != nil {
-			fmt.Printf("resolveRatioConstraint: added constraint id %d\n", constraint.GetID())
+			utils.Logger.Debug().
+				Uint("constraint", constraint.GetID()).
+				Msg("resolveRatioConstraint: added constraint")
 			p1.constraints = append(p1.constraints, constraint)
 			c.constraints = append(c.constraints, constraint)
 		}
@@ -67,7 +73,9 @@ func (s *Sketch) resolveRatioConstraint(c *Constraint) bool {
 	if ok {
 		constraint := s.addDistanceConstraint(p1, nil, p1Radius*c.dataValue)
 		if constraint != nil {
-			fmt.Printf("resolveRatioConstraint: added constraint id %d\n", constraint.GetID())
+			utils.Logger.Debug().
+				Uint("constraint", constraint.GetID()).
+				Msg("resolveRatioConstraint: added constraint")
 			p1.constraints = append(p1.constraints, constraint)
 			c.constraints = append(c.constraints, constraint)
 		}
@@ -81,7 +89,9 @@ func (s *Sketch) resolveRatioConstraint(c *Constraint) bool {
 	if ok {
 		constraint := s.addDistanceConstraint(p2, nil, p2Radius/c.dataValue)
 		if constraint != nil {
-			fmt.Printf("resolveRatioConstraint: added constraint id %d\n", constraint.GetID())
+			utils.Logger.Debug().
+				Uint("constraint", constraint.GetID()).
+				Msg("resolveRatioConstraint: added constraint")
 			p1.constraints = append(p1.constraints, constraint)
 			c.constraints = append(c.constraints, constraint)
 		}

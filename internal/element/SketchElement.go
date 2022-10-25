@@ -45,6 +45,7 @@ func (cl ConstraintLevel) String() string {
 
 // SketchElement A 2D element within a Sketch
 type SketchElement interface {
+	fmt.Stringer
 	SetID(uint)
 	GetID() uint
 	GetType() Type
