@@ -1,8 +1,8 @@
-- [x] Return details about under / over constrained elements
-- [x] Rework pkg/Solver to use maps to handle findConstraint(s)
-- [x] Add SVG export functionality to visualize input and output
+- [X] Return details about under / over constrained elements
+- [X] Rework pkg/Solver to use maps to handle findConstraint(s)
+- [X] Add SVG export functionality to visualize input and output
 - [-] Build out some core examples / tests
-  - [x] Fix square example -- internal solver tests succeed, but using pkg/ fails... something wrong with interface
+  - [X] Fix square example -- internal solver tests succeed, but using pkg/ fails... something wrong with interface
         Or something is wrong with internal that is exposed via how the interface is using it
   - [X] Add / fix distance constraint for a line
   - [X] Figure out how to handle origin and axes
@@ -18,12 +18,12 @@
   - [X] Fix solved constraints showing as unsolved in pkg/Solver
   - [X] Fix pentagon cluster 0, 1 merge (no elements in cluster 0!?)
   - [X] Fix svg output for the modified cylinder example
-  - [ ] Solve animation
-  - [ ] Improve logging
+  - [X] Improve logging
   - [ ] Update unit tests
     - [ ] SolveDistanceConstraint 0 distance translate
   - [X] Get the BellSketch (modifiedCylinder) working
-  - [ ] Add horizontal, vertical constraints
+  - [X] Add horizontal, vertical constraints
+  - [ ] Add the ability to add fixed elements
 - [X] Load element values from solver when solved
 - [X] External interface should take two passes. One to solve independent constraints. One to solve dependent.
 - [X] Ratio & equality lengths are dependent constraints
