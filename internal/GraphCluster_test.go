@@ -10,6 +10,42 @@ import (
 	"github.com/marcuswu/dlineation/utils"
 )
 
+func TestAddElement(t *testing.T) {
+	e1 := el.NewSketchPoint(0, 0, 1)
+	e2 := el.NewSketchPoint(1, 2, 1)
+
+	g := NewGraphCluster(1)
+	g.AddElement(e1)
+
+	if len(g.elements) != 1 {
+		t.Error("expected one element to be added to the cluster, found", len(g.elements))
+	}
+
+	if len(g.solveOrder) != 1 {
+		t.Error("expected one element to be added to the cluster's solve order, found", len(g.solveOrder))
+	}
+
+	g.AddElement(e1)
+
+	if len(g.elements) != 1 {
+		t.Error("expected no change tothe cluster element length, found", len(g.elements))
+	}
+
+	if len(g.solveOrder) != 1 {
+		t.Error("expected no change to the cluster's solve order, found", len(g.solveOrder))
+	}
+
+	g.AddElement(e2)
+
+	if len(g.elements) != 2 {
+		t.Error("expected two elements to be added to the cluster, found", len(g.elements))
+	}
+
+	if len(g.solveOrder) != 2 {
+		t.Error("expected two elements to be added to the cluster's solve order, found", len(g.solveOrder))
+	}
+}
+
 func TestAddConstraint(t *testing.T) {
 	e1 := el.NewSketchPoint(0, 0, 1)
 	e2 := el.NewSketchPoint(1, 2, 1)
@@ -20,11 +56,27 @@ func TestAddConstraint(t *testing.T) {
 	g := NewGraphCluster(0)
 	g.AddConstraint(c1)
 
+	if g.GetID() != 0 {
+		t.Error("expected cluster id to be 0")
+	}
+
 	if len(g.constraints) != 1 {
 		t.Error("expected graph cluster to have one constraint, found", len(g.constraints))
 	}
 	if len(g.elements) != 2 {
 		t.Error("expected graph cluster to have 2 elements, found", len(g.elements))
+	}
+
+	c1.Solved = true
+	g.AddConstraint(c1)
+	if len(g.constraints) != 1 {
+		t.Error("expected no change to cluster constraints after adding the same constraint twice")
+	}
+	if len(g.elements) != 2 {
+		t.Error("expected no change to elements after adding the same constraint twice")
+	}
+	if !g.constraints[c1.GetID()].Solved {
+		t.Error("expected constraint solve state to change after adding the solved constraint")
 	}
 
 	g.AddConstraint(c2)

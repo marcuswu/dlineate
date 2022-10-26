@@ -27,3 +27,7 @@
 - [X] Load element values from solver when solved
 - [X] External interface should take two passes. One to solve independent constraints. One to solve dependent.
 - [X] Ratio & equality lengths are dependent constraints
+- [ ] Add the ability to add fixed elements
+- [ ] Add the ability to retrieve degree of freedom for elements
+- [ ] Add the ability to retrieve a list of conflicting constraints
+- [ ] Add documentation
