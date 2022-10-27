@@ -1,10 +1,14 @@
 package element
 
 import (
+	"fmt"
 	"math"
+	"sort"
+	"strings"
 	"testing"
 
 	"github.com/marcuswu/dlineation/utils"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestIntersection(t *testing.T) {
@@ -219,5 +223,55 @@ func TestIs(t *testing.T) {
 
 	if p1.Is(p3) {
 		t.Error("Expected p1 is not p3, got ", false)
+	}
+}
+
+func TestElementTypeString(t *testing.T) {
+	tests := []struct {
+		elementType Type
+		expected    string
+	}{
+		{Point, "Point"},
+		{Line, "Line"},
+		{7, "7"},
+	}
+	for _, tt := range tests {
+		assert.Equal(t, tt.expected, tt.elementType.String())
+	}
+}
+
+func TestConstraintLevelString(t *testing.T) {
+	tests := []struct {
+		level    ConstraintLevel
+		expected string
+	}{
+		{OverConstrained, "over constrained"},
+		{UnderConstrained, "under constrained"},
+		{FullyConstrained, "fully constrained"},
+		{7, "7"},
+	}
+	for _, tt := range tests {
+		assert.Equal(t, tt.expected, tt.level.String())
+	}
+}
+
+func TestCopyAndSort(t *testing.T) {
+	elementList := List{
+		NewSketchLine(1, 1, 0, 0),
+		NewSketchPoint(0, 0, 1),
+	}
+
+	elementList = append(elementList, CopySketchElement(elementList[1]))
+	elementList = append(elementList, CopySketchElement(elementList[0]))
+	sort.Sort(elementList)
+
+	sortOrder := []uint{0, 0, 1, 1}
+
+	for i, tt := range elementList {
+		assert.Equal(t, sortOrder[i], tt.GetID())
+
+		str := tt.ToGraphViz(7)
+		assert.True(t, strings.Contains(str, fmt.Sprintf("7-%d", tt.GetID())))
+		assert.True(t, strings.Contains(str, fmt.Sprintf("label=%d", tt.GetID())))
 	}
 }
