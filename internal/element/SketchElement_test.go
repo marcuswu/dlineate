@@ -11,6 +11,21 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestPointBasics(t *testing.T) {
+	p1 := NewSketchPoint(0, 0, 1)
+
+	assert.Equal(t, uint(0), p1.GetID())
+	p1.SetID(1)
+	assert.Equal(t, uint(1), p1.GetID())
+	p1.X = 1
+	assert.Equal(t, 1.0, p1.GetX())
+	p1.Y = 2
+	assert.Equal(t, 2.0, p1.GetY())
+
+	p2 := NewSketchPoint(1, 1, 0)
+	assert.True(t, p1.Is(p2))
+}
+
 func TestIntersection(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -87,18 +102,25 @@ func TestReverseTranslateByElement(t *testing.T) {
 	pointNearOrigin = l1.PointNearestOrigin()
 	assert.Zero(t, utils.StandardFloatCompare(math.Abs(desiredPointNearOrigin.X), pointNearOrigin.X))
 	assert.Zero(t, utils.StandardFloatCompare(math.Abs(desiredPointNearOrigin.Y), pointNearOrigin.Y))
+
+	p1.X = 0.94
+	p1.Y = 1.38
+	var p2 = NewSketchPoint(0, 1.3, 2.1)
+	p1.ReverseTranslateByElement(l2)
+	assert.InDelta(t, 1.0, p1.X, utils.StandardCompare)
+	assert.InDelta(t, 1.5, p1.Y, utils.StandardCompare)
+	p1.ReverseTranslateByElement(p2)
+	assert.InDelta(t, -0.3, p1.X, utils.StandardCompare)
+	assert.InDelta(t, -0.6, p1.Y, utils.StandardCompare)
 }
 
 func TestTranslateByElement(t *testing.T) {
 	var l1 = NewSketchLine(0, 1, 2, -1.5)
 	var l2 = NewSketchLine(0, 1, 2, 0.3) // PointNearestOrigin = -0.06, -0.12
 	var p1 = NewSketchPoint(0, -0.3, -0.6)
-	t.Log("before translate point nearest origin: ", l1.PointNearestOrigin())
-	t.Log("origin distance before translate: ", l1.GetOriginDistance())
+	var p2 = NewSketchPoint(0, 1.3, 2.1)
 	l1.TranslateByElement(p1)
 	var pointNearOrigin = l1.PointNearestOrigin()
-	t.Log("after translate point nearest origin: ", pointNearOrigin)
-	t.Log("origin distance after translate: ", l1.GetOriginDistance())
 	if utils.StandardFloatCompare(pointNearOrigin.GetX(), 0) != 0 ||
 		utils.StandardFloatCompare(pointNearOrigin.GetY(), 0) != 0 {
 		t.Error("Expected Point near origin Point(0, 0), got ", pointNearOrigin)
@@ -111,6 +133,14 @@ func TestTranslateByElement(t *testing.T) {
 	pointNearOrigin = l1.PointNearestOrigin()
 	assert.Zero(t, utils.StandardFloatCompare(desiredPointNearOrigin.X, pointNearOrigin.X))
 	assert.Zero(t, utils.StandardFloatCompare(desiredPointNearOrigin.Y, pointNearOrigin.Y))
+
+	p1.TranslateByElement(p2)
+	assert.InDelta(t, 1.0, p1.X, utils.StandardCompare)
+	assert.InDelta(t, 1.5, p1.Y, utils.StandardCompare)
+
+	p1.TranslateByElement(l2)
+	assert.InDelta(t, 0.94, p1.X, utils.StandardCompare)
+	assert.InDelta(t, 1.38, p1.Y, utils.StandardCompare)
 }
 
 func TestTranslated(t *testing.T) {
@@ -354,4 +384,54 @@ func TestVectorTo(t *testing.T) {
 		assert.InDelta(t, tt.expected.X, v.X, utils.StandardCompare, tt.name)
 		assert.InDelta(t, tt.expected.Y, v.Y, utils.StandardCompare, tt.name)
 	}
+}
+
+func TestAsPointAsLine(t *testing.T) {
+	tests := []struct {
+		el SketchElement
+	}{
+		{NewSketchPoint(0, 1, 1)},
+		{NewSketchLine(0, 1, 2, 1)},
+	}
+	for _, tt := range tests {
+		p := tt.el.AsPoint()
+		l := tt.el.AsLine()
+		if tt.el.GetType() == Point {
+			assert.NotNil(t, p)
+			assert.Nil(t, l)
+		} else {
+			assert.NotNil(t, l)
+			assert.Nil(t, p)
+		}
+	}
+}
+
+func TestElementString(t *testing.T) {
+	tests := []struct {
+		el SketchElement
+	}{
+		{NewSketchPoint(0, 1, 1)},
+		{NewSketchLine(0, 1, 2, 1)},
+	}
+	for _, tt := range tests {
+		str := tt.el.String()
+		if tt.el.GetType() == Point {
+			assert.Contains(t, str, fmt.Sprintf("Point(%d)", 0))
+			assert.Contains(t, str, fmt.Sprintf("(%f, %f)", tt.el.AsPoint().X, tt.el.AsPoint().Y))
+		} else {
+			assert.Contains(t, str, fmt.Sprintf("Line(%d)", 0))
+			assert.Contains(t, str, fmt.Sprintf("%fx", tt.el.AsLine().a))
+			assert.Contains(t, str, fmt.Sprintf("%fy", tt.el.AsLine().b))
+			assert.Contains(t, str, fmt.Sprintf("%f = 0", tt.el.AsLine().c))
+		}
+	}
+}
+
+func TestSketchPointFromVector(t *testing.T) {
+	v := Vector{1, 2}
+	p := SketchPointFromVector(7, v)
+
+	assert.Equal(t, uint(7), p.GetID())
+	assert.Equal(t, float64(1), p.X)
+	assert.Equal(t, float64(2), p.Y)
 }
