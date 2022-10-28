@@ -536,54 +536,6 @@ func TestPointFromLineLineExt(t *testing.T) {
 	}
 }
 
-func TestSolveAngleConstraint(t *testing.T) {
-	l1 := el.NewSketchLine(0, 0, 1, 0)
-	l2 := el.NewSketchLine(1, -0.951057, 0.309017, 0)
-	l3 := el.NewSketchLine(2, -0.506732, -0.862104, 0)
-	l4 := el.NewSketchLine(3, -0.506732, -0.862104, 0)
-	l5 := el.NewSketchLine(4, 0.0, 1.0, 0)
-	angle := -(108.0 / 180.0) * math.Pi
-
-	c := constraint.NewConstraint(0, constraint.Angle, l1, l2, angle, false)
-	SolveConstraint(c)
-	c = constraint.NewConstraint(0, constraint.Angle, l2, l3, angle, false)
-	SolveConstraint(c)
-	c = constraint.NewConstraint(0, constraint.Angle, l3, l4, angle, false)
-	SolveConstraint(c)
-	c = constraint.NewConstraint(0, constraint.Angle, l4, l5, angle, false)
-	SolveConstraint(c)
-
-	t.Logf(`elements after solve: 
-	l1: %fx + %fy + %f = 0
-	l2: %fx + %fy + %f = 0
-	l3: %fx + %fy + %f = 0
-	l4: %fx + %fy + %f = 0
-	l5: %fx + %fy + %f = 0
-	`,
-		l1.GetA(), l1.GetB(), l1.GetC(),
-		l2.GetA(), l2.GetB(), l2.GetC(),
-		l3.GetA(), l3.GetB(), l3.GetC(),
-		l4.GetA(), l4.GetB(), l4.GetC(),
-		l5.GetA(), l5.GetB(), l5.GetC(),
-	)
-
-	if utils.StandardFloatCompare(l1.AngleToLine(l2), angle) != 0 {
-		t.Error("Expected angle from l1 to l2 to be", angle, "found", l1.AngleToLine(l2))
-	}
-	if utils.StandardFloatCompare(l2.AngleToLine(l3), angle) != 0 {
-		t.Error("Expected angle from l2 to l3 to be", angle, "found", l2.AngleToLine(l3))
-	}
-	if utils.StandardFloatCompare(l3.AngleToLine(l4), angle) != 0 {
-		t.Error("Expected angle from l3 to l4 to be", angle, "found", l3.AngleToLine(l4))
-	}
-	if utils.StandardFloatCompare(l4.AngleToLine(l5), angle) != 0 {
-		t.Error("Expected angle from l4 to l5 to be", angle, "found", l4.AngleToLine(l5))
-	}
-	if utils.StandardFloatCompare(math.Pi-l5.AngleToLine(l1), -angle) != 0 {
-		t.Error("Expected angle from l1 to l5 to be", -angle, "found", (math.Pi - l5.AngleToLine(l1)))
-	}
-}
-
 func TestSolveConstraints(t *testing.T) {
 	l1 := el.NewSketchLine(0, 0, 1, -1.1) // top line
 	p1 := el.NewSketchPoint(2, 0.1, 1)    // top left
