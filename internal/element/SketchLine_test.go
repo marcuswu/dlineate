@@ -26,6 +26,23 @@ func TestLineBasics(t *testing.T) {
 	assert.False(t, l1.IsEquivalent(l2))
 }
 
+func TestNormalize(t *testing.T) {
+	tests := []struct {
+		line *SketchLine
+	}{
+		{NewSketchLine(0, 5, 10, 3)},
+		{NewSketchLine(1, 3.5, 1.04, 3.7)},
+		{NewSketchLine(2, 8.2, 2.8, 9.1)},
+	}
+	for _, tt := range tests {
+		slope := tt.line.GetSlope()
+		point := tt.line.PointNearestOrigin()
+		tt.line.Normalize()
+		assert.Zero(t, utils.StandardFloatCompare(slope, tt.line.GetSlope()))
+		assert.Equal(t, point, tt.line.PointNearestOrigin())
+	}
+}
+
 func TestAngleToLine(t *testing.T) {
 	l1 := NewSketchLine(0, -0.611735, -0.791063, 6.155367)
 	l2 := NewSketchLine(1, -0.563309, 0.826247, -3.804226)
@@ -73,5 +90,21 @@ func TestTranslateDistance(t *testing.T) {
 	for _, tt := range tests {
 		tt.line.TranslateDistance(tt.distance)
 		assert.Equal(t, tt.translated, tt.line)
+	}
+}
+
+func TestRotate(t *testing.T) {
+	tests := []struct {
+		line  *SketchLine
+		angle float64
+	}{
+		{NewSketchLine(0, 1, 4, 7), math.Pi / 6},
+		{NewSketchLine(0, 0.67, 1.455, 2.34), math.Pi / 2},
+	}
+	for _, tt := range tests {
+		original := CopySketchElement(tt.line).AsLine()
+		tt.line.Rotate(tt.angle)
+		assert.InDelta(t, tt.angle, original.AngleToLine(tt.line), utils.StandardCompare)
+		assert.InDelta(t, original.GetOriginDistance(), tt.line.GetOriginDistance(), utils.StandardCompare)
 	}
 }
