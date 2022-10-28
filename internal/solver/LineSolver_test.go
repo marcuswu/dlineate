@@ -101,14 +101,14 @@ func TestLineFromPointLine(t *testing.T) {
 			"test 1",
 			constraint.NewConstraint(0, constraint.Angle, el.NewSketchLine(0, 1.5, 0.3, 0.1), el.NewSketchLine(1, 0.3, 1.5, -0.1), (70.0/180.0)*math.Pi, false),
 			constraint.NewConstraint(0, constraint.Distance, el.NewSketchPoint(0, 1, 1), el.NewSketchLine(1, 0.3, 1.5, -0.1), 1, false),
-			el.NewSketchLine(1, 0.519667, -0.854369, -0.665298),
+			el.NewSketchLine(1, 0.151089, 0.988520, -0.139610),
 			Solved,
 		},
 		{
 			"test 2",
 			constraint.NewConstraint(0, constraint.Angle, el.NewSketchLine(0, 1.5, 0.3, 0.1), el.NewSketchLine(1, 0.3, 1.5, -0.1), (70.0/180.0)*math.Pi, false),
 			constraint.NewConstraint(0, constraint.Distance, el.NewSketchPoint(0, -1, -1), el.NewSketchLine(1, 0.3, 1.5, -0.1), 1, false),
-			el.NewSketchLine(1, 0.519667, -0.854369, 0.665298),
+			el.NewSketchLine(1, 0.151089, 0.988520, 0.139610),
 			Solved,
 		},
 	}
