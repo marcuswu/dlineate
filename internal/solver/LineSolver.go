@@ -119,59 +119,13 @@ func MoveLineToPoint(c *constraint.Constraint) SolveState {
 	return Solved
 }
 
-// Sets both angle and position by moving the line so that it coincides both points
-func MoveLineToPoints(c []*constraint.Constraint) SolveState {
-	if len(c) < 2 || c[0].Type != constraint.Distance || c[1].Type != constraint.Distance {
-		utils.Logger.Error().Msg("MoveLineToPoints did not have the correct constraints or number of constraints")
-		return NonConvergent
-	}
-
-	var line1 *el.SketchLine
-	var line2 *el.SketchLine
-	var p1 *el.SketchPoint
-	var p2 *el.SketchPoint
-
-	if c[0].Element1.GetType() == el.Point && c[0].Element2.GetType() == el.Line {
-		p1 = c[0].Element1.(*el.SketchPoint)
-		line1 = c[0].Element2.(*el.SketchLine)
-	}
-	if c[0].Element2.GetType() == el.Point && c[0].Element1.GetType() == el.Line {
-		p1 = c[0].Element2.(*el.SketchPoint)
-		line1 = c[0].Element1.(*el.SketchLine)
-	}
-
-	if c[1].Element1.GetType() == el.Point && c[1].Element2.GetType() == el.Line {
-		p2 = c[1].Element1.(*el.SketchPoint)
-		line2 = c[1].Element2.(*el.SketchLine)
-	}
-	if c[1].Element2.GetType() == el.Point && c[1].Element1.GetType() == el.Line {
-		p2 = c[1].Element2.(*el.SketchPoint)
-		line2 = c[1].Element1.(*el.SketchLine)
-	}
-
-	if line1.GetID() != line2.GetID() {
-		utils.Logger.Error().Msg("MoveLineToPoints encountered more than one line")
-		return NonConvergent
-	}
-
-	// Calculate line that goes through the two points
-	la := p2.Y - p1.Y                // y' - y
-	lb := p1.X - p2.X                // x - x'
-	lc := (-la * p1.X) - (lb * p1.Y) // c = -ax - by from ax + by + c = 0
-	line1.SetA(la)
-	line1.SetB(lb)
-	line1.SetC(lc)
-
-	return Solved
-}
-
 func LineFromPoints(c1 *constraint.Constraint, c2 *constraint.Constraint) (*el.SketchLine, SolveState) {
 	line := c1.First().AsLine()
 	if line == nil {
 		line = c1.Second().AsLine()
 	}
 
-	if _, ok := c2.Element(line.GetID()); !ok {
+	if line == nil {
 		utils.Logger.Error().
 			Uint("constraint 1", c1.GetID()).
 			Uint("constraint 2", c2.GetID()).
@@ -187,7 +141,7 @@ func LineFromPoints(c1 *constraint.Constraint, c2 *constraint.Constraint) (*el.S
 		utils.Logger.Error().
 			Uint("constraint 1", c1.GetID()).
 			Uint("constraint 2", c2.GetID()).
-			Msg("LineFromPoints could not find the line to work with.")
+			Msg("LineFromPoints could not find the points to work with.")
 		return line, NonConvergent
 	}
 	p1Dist := c1.Value
@@ -251,16 +205,50 @@ func LineFromPoints(c1 *constraint.Constraint, c2 *constraint.Constraint) (*el.S
 	tanB2 := (R * Y) + (k*X)*math.Sqrt(1.0-rSquared)
 	tanC2 := p1Dist - ((tanA2 * p1.X) + (tanB2 * p1.Y))
 
+	k = 1
+	R = (-p2Dist - p1Dist) / d
+	rSquared = R * R
+	tanA3 := (R * X) - (k*Y)*math.Sqrt(1.0-rSquared)
+	tanB3 := (R * Y) + (k*X)*math.Sqrt(1.0-rSquared)
+	tanC3 := p1Dist - ((tanA3 * p1.X) + (tanB3 * p1.Y))
+
+	k = -1
+	tanA4 := (R * X) - (k*Y)*math.Sqrt(1.0-rSquared)
+	tanB4 := (R * Y) + (k*X)*math.Sqrt(1.0-rSquared)
+	tanC4 := p1Dist - ((tanA4 * p1.X) + (tanB4 * p1.Y))
+
 	origSlope := line.GetB() / line.GetA()
-	slope1 := tanB1 / tanA1
-	slope2 := tanB2 / tanA2
-	slope1Dist := math.Abs(slope1 - origSlope)
-	slope2Dist := math.Abs(slope2 - origSlope)
+	externalSlope := tanB1 / tanA1
+	internalSlope := tanB3 / tanA3
+	externalSlopeDist := math.Abs(externalSlope - origSlope)
+	internalSlopeDist := math.Abs(internalSlope - origSlope)
+	mag1 := math.Sqrt(tanA1*tanA1) + (tanB1 * tanB1)
+	mag2 := math.Sqrt(tanA2*tanA2) + (tanB2 * tanB2)
+	c1Normal := tanC1 / mag1
+	c2Normal := tanC2 / mag2
+	useInternal := externalSlopeDist > internalSlopeDist
+	if useInternal {
+		tanA1 = tanA3
+		tanB1 = tanB3
+		tanC1 = tanC3
+		tanA2 = tanA4
+		tanB2 = tanB4
+		tanC2 = tanC4
+		mag1 := math.Sqrt(tanA1*tanA1) + (tanB1 * tanB1)
+		mag2 := math.Sqrt(tanA2*tanA2) + (tanB2 * tanB2)
+		c1Normal = tanC1 / mag1
+		c2Normal = tanC2 / mag2
+	}
+
+	originalOriginDistance := line.GetOriginDistance()
+	originDistance1 := math.Abs(c1Normal - originalOriginDistance)
+	originDistance2 := math.Abs(c2Normal - originalOriginDistance)
+	useOption1 := originDistance2 > originDistance1
 
 	line.SetA(tanA1)
 	line.SetB(tanB1)
 	line.SetC(tanC1)
-	if slope2Dist < slope1Dist {
+	if !useOption1 {
 		line.SetA(tanA2)
 		line.SetB(tanB2)
 		line.SetC(tanC2)
@@ -324,7 +312,14 @@ func SolveAngleConstraint(c *constraint.Constraint, e uint) (*el.SketchLine, Sol
 
 	angle := l2.AngleToLine(l1)
 	rotate := angle + desired
-	newLine := l2.Rotated(rotate)
+	reverseRotate := angle - desired
+	line1 := l2.Rotated(rotate)
+	line2 := l2.Rotated(reverseRotate)
+
+	newLine := line1
+	if math.Abs(line2.AngleToLine(l1)) < math.Abs(line1.AngleToLine(l1)) {
+		newLine = line2
+	}
 	c.Solved = true
 	return newLine, Solved
 }
