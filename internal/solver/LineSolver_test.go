@@ -272,3 +272,103 @@ func TestMoveLineToPoint(t *testing.T) {
 		assert.InDelta(t, tt.desired.GetC(), newLine.GetC(), utils.StandardCompare, tt.name)
 	}
 }
+
+func TestLineResult(t *testing.T) {
+	tests := []struct {
+		name    string
+		c1      *constraint.Constraint
+		c2      *constraint.Constraint
+		desired *el.SketchLine
+		state   SolveState
+	}{
+		{
+			"Test Line From Points",
+			constraint.NewConstraint(0, constraint.Distance, el.NewSketchPoint(0, 1.5, 0.3), el.NewSketchLine(1, 0.3, 1.5, -0.1), 0, false),
+			constraint.NewConstraint(0, constraint.Distance, el.NewSketchPoint(2, 1, 1), el.NewSketchLine(1, 0.3, 1.5, -0.1), 0, false),
+			el.NewSketchLine(1, 0.7, 0.5, -1.2),
+			Solved,
+		},
+		{
+			"Test Line From Point Line",
+			constraint.NewConstraint(0, constraint.Angle, el.NewSketchLine(0, 1.5, 0.3, 0.1), el.NewSketchLine(1, 0.3, 1.5, -0.1), (70.0/180.0)*math.Pi, false),
+			constraint.NewConstraint(0, constraint.Distance, el.NewSketchPoint(0, 1, 1), el.NewSketchLine(1, 0.3, 1.5, -0.1), 1, false),
+			el.NewSketchLine(1, 0.151089, 0.988520, -0.139610),
+			Solved,
+		},
+	}
+	for _, tt := range tests {
+		newLine, state := LineResult(tt.c1, tt.c2)
+		assert.Equal(t, state, tt.state, tt.name)
+		if tt.desired == nil {
+			assert.Nil(t, newLine, tt.name)
+		} else {
+			newLine.Normalize()
+			c1Line, _ := tt.c1.Element(newLine.GetID())
+			c2Line, _ := tt.c2.Element(newLine.GetID())
+			c1Line.AsLine().SetA(newLine.GetA())
+			c1Line.AsLine().SetB(newLine.GetB())
+			c1Line.AsLine().SetC(newLine.GetC())
+			c2Line.AsLine().SetA(newLine.GetA())
+			c2Line.AsLine().SetB(newLine.GetB())
+			c2Line.AsLine().SetC(newLine.GetC())
+			assert.Equal(t, tt.desired.GetID(), newLine.GetID(), tt.name)
+			assert.InDelta(t, tt.desired.GetA(), newLine.GetA(), utils.StandardCompare, tt.name)
+			assert.InDelta(t, tt.desired.GetB(), newLine.GetB(), utils.StandardCompare, tt.name)
+			assert.InDelta(t, tt.desired.GetC(), newLine.GetC(), utils.StandardCompare, tt.name)
+		}
+
+		if tt.state == Solved {
+			assert.True(t, tt.c1.IsMet(), tt.name)
+			assert.True(t, tt.c2.IsMet(), tt.name)
+		}
+	}
+}
+
+func TestSolveForLine(t *testing.T) {
+	tests := []struct {
+		name    string
+		c1      *constraint.Constraint
+		c2      *constraint.Constraint
+		desired *el.SketchLine
+		state   SolveState
+	}{
+		{
+			"Test Nonconvergent",
+			constraint.NewConstraint(0, constraint.Distance, el.NewSketchPoint(0, 1.5, 0.3), el.NewSketchPoint(1, 0.3, 1.5), 0, false),
+			constraint.NewConstraint(0, constraint.Distance, el.NewSketchPoint(2, 1, 1), el.NewSketchPoint(1, 0.3, 1.5), 0, false),
+			nil,
+			NonConvergent,
+		},
+		{
+			"Test Line From Points",
+			constraint.NewConstraint(0, constraint.Distance, el.NewSketchPoint(0, 1.5, 0.3), el.NewSketchLine(1, 0.3, 1.5, -0.1), 0, false),
+			constraint.NewConstraint(0, constraint.Distance, el.NewSketchPoint(2, 1, 1), el.NewSketchLine(1, 0.3, 1.5, -0.1), 0, false),
+			el.NewSketchLine(1, 0.7, 0.5, -1.2),
+			Solved,
+		},
+		{
+			"Test Line From Point Line",
+			constraint.NewConstraint(0, constraint.Angle, el.NewSketchLine(0, 1.5, 0.3, 0.1), el.NewSketchLine(1, 0.3, 1.5, -0.1), (70.0/180.0)*math.Pi, false),
+			constraint.NewConstraint(0, constraint.Distance, el.NewSketchPoint(2, 1, 1), el.NewSketchLine(1, 0.3, 1.5, -0.1), 1, false),
+			el.NewSketchLine(1, 0.151089, 0.988520, -0.139610),
+			Solved,
+		},
+	}
+	for _, tt := range tests {
+		state := SolveForLine(tt.c1, tt.c2)
+		assert.Equal(t, state, tt.state, tt.name)
+		if tt.state == Solved {
+			assert.True(t, tt.c1.IsMet(), tt.name)
+			assert.True(t, tt.c2.IsMet(), tt.name)
+		}
+		shared, _ := tt.c1.Shared(tt.c2)
+		if shared == nil || tt.state == NonConvergent {
+			continue
+		}
+		shared.AsLine().Normalize()
+		assert.Equal(t, tt.desired.GetID(), shared.GetID(), tt.name)
+		assert.InDelta(t, tt.desired.GetA(), shared.AsLine().GetA(), utils.StandardCompare, tt.name)
+		assert.InDelta(t, tt.desired.GetB(), shared.AsLine().GetB(), utils.StandardCompare, tt.name)
+		assert.InDelta(t, tt.desired.GetC(), shared.AsLine().GetC(), utils.StandardCompare, tt.name)
+	}
+}

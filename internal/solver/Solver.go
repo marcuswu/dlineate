@@ -151,7 +151,7 @@ func GetPointFromPoints(p1 el.SketchElement, originalP2 el.SketchElement, origin
 	pointDistance := p1.DistanceTo(p2)
 	constraintDist := p1Radius + p2Radius
 
-	if pointDistance > constraintDist {
+	if utils.StandardFloatCompare(pointDistance, constraintDist) > 0 {
 		utils.Logger.Error().
 			Uint("point 1", p1.GetID()).
 			Uint("point 2", p2.GetID()).
@@ -160,7 +160,10 @@ func GetPointFromPoints(p1 el.SketchElement, originalP2 el.SketchElement, origin
 	}
 
 	if utils.StandardFloatCompare(pointDistance, constraintDist) == 0 {
-		return originalP3.AsPoint(), Solved
+		translate := p1.VectorTo(p2)
+		translate.Scaled(p1Radius / translate.Magnitude())
+		newP3 := el.NewSketchPoint(p3.GetID(), p1.AsPoint().X-translate.X, p1.AsPoint().Y-translate.Y)
+		return newP3, Solved
 	}
 
 	// Solve for p3
@@ -305,7 +308,7 @@ func pointFromLineLine(l1 *el.SketchLine, l2 *el.SketchLine, p3 *el.SketchPoint,
 	sameSlope := utils.StandardFloatCompare(l1.GetA(), l2.GetA()) == 0 && utils.StandardFloatCompare(l1.GetB(), l2.GetB()) == 0
 	// If l1 and l2 are parallel, and line distances aren't what is passed in, there is no solution
 	if sameSlope &&
-		utils.StandardFloatCompare(line1Dist+line2Dist, l1.DistanceTo(l2)) != 0 {
+		utils.StandardFloatCompare(line1Dist-line2Dist, l1.DistanceTo(l2)) != 0 {
 		utils.Logger.Error().
 			Uint("line 1", l1.GetID()).
 			Uint("line 2", l2.GetID()).
@@ -317,7 +320,7 @@ func pointFromLineLine(l1 *el.SketchLine, l2 *el.SketchLine, p3 *el.SketchPoint,
 	// Choose the one closest to the current point location
 	if sameSlope {
 		translate := l1.VectorTo(p3)
-		translate.Scaled(p3.DistanceTo(l1) - line1Dist)
+		translate.Scaled((p3.DistanceTo(l1) - line1Dist) / translate.Magnitude())
 		return el.NewSketchPoint(p3.GetID(), p3.X+translate.X, p3.Y+translate.Y), Solved
 	}
 	// Translate l1 line1Dist

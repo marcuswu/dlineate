@@ -58,17 +58,8 @@ func LineResult(c1 *constraint.Constraint, c2 *constraint.Constraint) (*el.Sketc
 	}
 
 	if solveState == Solved {
-		utils.Logger.Trace().
-			Uint("constraint 1", c1.GetID()).
-			Uint("constraint 2", c2.GetID()).
-			Msgf("LineResult solved")
 		c1.Solved = true
 		c2.Solved = true
-	} else {
-		utils.Logger.Error().
-			Uint("constraint 1", c1.GetID()).
-			Uint("constraint 2", c2.GetID()).
-			Msgf("LineResult did not solve")
 	}
 
 	return line, solveState
