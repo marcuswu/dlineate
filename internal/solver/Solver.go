@@ -79,17 +79,8 @@ func PointResult(c1 *constraint.Constraint, c2 *constraint.Constraint) (*el.Sket
 	}
 
 	if solveState == Solved {
-		utils.Logger.Trace().
-			Uint("constraint 1", c1.GetID()).
-			Uint("constraint 2", c1.GetID()).
-			Msg("PointResult solved constraints")
 		c1.Solved = true
 		c2.Solved = true
-	} else {
-		utils.Logger.Error().
-			Uint("constraint 1", c1.GetID()).
-			Uint("constraint 2", c2.GetID()).
-			Msg("PointResult did not solve constraints")
 	}
 
 	return point, solveState

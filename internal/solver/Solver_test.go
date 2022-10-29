@@ -576,3 +576,58 @@ func TestSolveConstraints(t *testing.T) {
 		t.Error("Expected distance between p1 and l1 to be 0, found", p1.DistanceTo(l1))
 	}
 }
+
+func TestSolveDistanceConstraint(t *testing.T) {
+	tests := []struct {
+		name    string
+		c1      *constraint.Constraint
+		desired *el.SketchPoint
+		state   SolveState
+	}{
+		{
+			"Angle constraint passed",
+			constraint.NewConstraint(0, constraint.Angle, el.NewSketchLine(0, 1, 1, 1), el.NewSketchLine(1, 2, 2, 2), 1, false),
+			nil,
+			NonConvergent,
+		},
+		{
+			"Coincident point values with constraint value > 0",
+			constraint.NewConstraint(0, constraint.Distance, el.NewSketchPoint(0, 1, 1), el.NewSketchPoint(1, 1, 1), 1, false),
+			nil,
+			NonConvergent,
+		},
+		{
+			"Coincident point values already solved",
+			constraint.NewConstraint(0, constraint.Distance, el.NewSketchPoint(0, 1, 1), el.NewSketchPoint(1, 1, 1), 0, false),
+			el.NewSketchPoint(0, 1, 1),
+			Solved,
+		},
+		{
+			"Test 1",
+			constraint.NewConstraint(0, constraint.Distance, el.NewSketchPoint(0, 1, 1), el.NewSketchPoint(1, 1, 2), 2, false),
+			el.NewSketchPoint(0, 1, 0),
+			Solved,
+		},
+		{
+			"Test 2",
+			constraint.NewConstraint(0, constraint.Distance, el.NewSketchLine(0, 0, 1, 1), el.NewSketchPoint(1, 1, 2), 2, false),
+			el.NewSketchPoint(1, 1, 1),
+			Solved,
+		},
+	}
+	for _, tt := range tests {
+		state := SolveDistanceConstraint(tt.c1)
+		assert.Equal(t, tt.state, state, tt.name)
+		if tt.state != Solved {
+			continue
+		}
+		assert.True(t, tt.c1.IsMet(), tt.name)
+		newPoint := tt.c1.Element1.AsPoint()
+		if newPoint == nil {
+			newPoint = tt.c1.Element2.AsPoint()
+		}
+		assert.Equal(t, tt.desired.GetID(), newPoint.GetID(), tt.name)
+		assert.InDelta(t, tt.desired.GetX(), newPoint.GetX(), utils.StandardCompare, tt.name)
+		assert.InDelta(t, tt.desired.GetY(), newPoint.GetY(), utils.StandardCompare, tt.name)
+	}
+}
