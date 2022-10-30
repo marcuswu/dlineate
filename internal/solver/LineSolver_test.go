@@ -37,7 +37,7 @@ func TestSolveAngleConstraint(t *testing.T) {
 				constraint.Angle,
 				el.NewSketchLine(2, -0.506732, -0.862104, 0),
 				el.NewSketchLine(3, -0.506732, -0.862104, 0),
-				-(108.0/180.0)*math.Pi,
+				(108.0/180.0)*math.Pi,
 				false,
 			),
 			3,
@@ -137,7 +137,6 @@ func TestLineFromPointLine(t *testing.T) {
 }
 
 func TestLineFromPoints(t *testing.T) {
-	// func LineFromPoints(c1 *constraint.Constraint, c2 *constraint.Constraint) (*el.SketchLine, SolveState) {
 	tests := []struct {
 		name    string
 		c1      *constraint.Constraint

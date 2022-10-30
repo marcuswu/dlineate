@@ -298,7 +298,6 @@ func SolveAngleConstraint(c *constraint.Constraint, e uint) (*el.SketchLine, Sol
 	desired := c.Value
 	if l1.GetID() == e {
 		l1, l2 = l2, l1
-		desired = -desired
 	}
 
 	angle := l2.AngleToLine(l1)
