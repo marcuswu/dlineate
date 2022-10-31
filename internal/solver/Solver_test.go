@@ -553,27 +553,33 @@ func TestPointFromLineLineExt(t *testing.T) {
 }
 
 func TestSolveConstraints(t *testing.T) {
-	l1 := el.NewSketchLine(0, 0, 1, -1.1) // top line
-	p1 := el.NewSketchPoint(2, 0.1, 1)    // top left
-	p2 := el.NewSketchPoint(3, 1, 1.1)    // top right
-	c1 := constraint.NewConstraint(0, constraint.Distance, p1, p2, 1, false)
-	c2 := constraint.NewConstraint(1, constraint.Distance, p1, l1, 0, false)
-
-	solved := SolveConstraints(c1, c2, p1)
-	p1 = c1.Element1.(*el.SketchPoint)
-	p2 = c1.Element2.(*el.SketchPoint)
-	l1 = c2.Element2.(*el.SketchLine)
-
-	if solved != Solved {
-		t.Error("Expected solved state, got", solved)
+	tests := []struct {
+		name     string
+		c1       *constraint.Constraint
+		c2       *constraint.Constraint
+		solveFor el.SketchElement
+		state    SolveState
+	}{
+		{
+			"Test Solve For Point",
+			constraint.NewConstraint(0, constraint.Distance, el.NewSketchPoint(2, 0.1, 1), el.NewSketchPoint(3, 1, 1.1), 1, false),
+			constraint.NewConstraint(1, constraint.Distance, el.NewSketchPoint(2, 0.1, 1), el.NewSketchLine(0, 0, 1, -1.1), 0, false),
+			el.NewSketchPoint(2, 0.1, 1),
+			Solved,
+		},
+		{
+			"Test Solve For Line",
+			constraint.NewConstraint(0, constraint.Angle, el.NewSketchLine(0, 1.5, 0.3, 0.1), el.NewSketchLine(1, 0.3, 1.5, -0.1), (70.0/180.0)*math.Pi, false),
+			constraint.NewConstraint(0, constraint.Distance, el.NewSketchPoint(2, 1, 1), el.NewSketchLine(1, 0.3, 1.5, -0.1), 1, false),
+			el.NewSketchLine(1, 0.151089, 0.988520, -0.139610),
+			Solved,
+		},
 	}
-
-	if p1.DistanceTo(p2) != 1 {
-		t.Error("Expected distance between p1 and p2 to be 1, found", p1.DistanceTo(p2))
-	}
-
-	if p1.DistanceTo(l1) != 0 {
-		t.Error("Expected distance between p1 and l1 to be 0, found", p1.DistanceTo(l1))
+	for _, tt := range tests {
+		solved := SolveConstraints(tt.c1, tt.c2, tt.solveFor)
+		assert.Equal(t, tt.state, solved, tt.name)
+		assert.True(t, tt.c1.IsMet(), tt.name)
+		assert.True(t, tt.c2.IsMet(), tt.name)
 	}
 }
 
@@ -629,5 +635,149 @@ func TestSolveDistanceConstraint(t *testing.T) {
 		assert.Equal(t, tt.desired.GetID(), newPoint.GetID(), tt.name)
 		assert.InDelta(t, tt.desired.GetX(), newPoint.GetX(), utils.StandardCompare, tt.name)
 		assert.InDelta(t, tt.desired.GetY(), newPoint.GetY(), utils.StandardCompare, tt.name)
+	}
+}
+
+func TestPointResult(t *testing.T) {
+	tests := []struct {
+		name    string
+		c1      *constraint.Constraint
+		c2      *constraint.Constraint
+		desired *el.SketchPoint
+		state   SolveState
+	}{
+		{
+			"Test PointFromPoints",
+			constraint.NewConstraint(0, constraint.Distance, el.NewSketchPoint(0, 1.5, 0.3), el.NewSketchPoint(1, 0.25, 0), 1, false),
+			constraint.NewConstraint(0, constraint.Distance, el.NewSketchPoint(2, 1, 1), el.NewSketchPoint(1, 0.25, 0), 1, false),
+			el.NewSketchPoint(1, 0.515383, 0.125274),
+			Solved,
+		},
+		{
+			"Test PointFromLineLine",
+			constraint.NewConstraint(0, constraint.Distance, el.NewSketchPoint(2, 1, 1), el.NewSketchLine(0, 1.5, 0.3, 0.1), 1, false),
+			constraint.NewConstraint(0, constraint.Distance, el.NewSketchPoint(2, 1, 1), el.NewSketchLine(1, 0.151089, 0.988520, -0.139610), 1, false),
+			el.NewSketchPoint(2, 0.745353, 1.038922),
+			Solved,
+		},
+	}
+	for _, tt := range tests {
+		newPoint, state := PointResult(tt.c1, tt.c2)
+		assert.Equal(t, state, tt.state, tt.name)
+		shared, _ := tt.c1.Shared(tt.c2)
+		if shared == nil || tt.state == NonConvergent {
+			continue
+		}
+		shared.AsPoint().X = newPoint.X
+		shared.AsPoint().Y = newPoint.Y
+		shared, _ = tt.c2.Element(shared.GetID())
+		shared.AsPoint().X = newPoint.X
+		shared.AsPoint().Y = newPoint.Y
+		assert.True(t, tt.c1.IsMet(), tt.name)
+		assert.True(t, tt.c2.IsMet(), tt.name)
+		assert.Equal(t, tt.desired.GetID(), shared.GetID(), tt.name)
+		assert.InDelta(t, tt.desired.X, shared.AsPoint().X, utils.StandardCompare, tt.name)
+		assert.InDelta(t, tt.desired.Y, shared.AsPoint().Y, utils.StandardCompare, tt.name)
+	}
+}
+
+func TestSolveForPoint(t *testing.T) {
+	tests := []struct {
+		name    string
+		c1      *constraint.Constraint
+		c2      *constraint.Constraint
+		desired *el.SketchPoint
+		state   SolveState
+	}{
+		{
+			"Test Nonconvergent",
+			constraint.NewConstraint(0, constraint.Angle, el.NewSketchLine(2, 1, 1, 0), el.NewSketchLine(0, 1.5, 0.3, 0.1), 1, false),
+			constraint.NewConstraint(0, constraint.Angle, el.NewSketchLine(2, 1, 1, 0), el.NewSketchLine(1, 0.151089, 0.988520, -0.139610), 1, false),
+			nil,
+			NonConvergent,
+		},
+	}
+	for _, tt := range tests {
+		state := SolveForPoint(tt.c1, tt.c2)
+		assert.Equal(t, state, tt.state, tt.name)
+	}
+}
+
+func TestConstraintResult(t *testing.T) {
+	tests := []struct {
+		name    string
+		c1      *constraint.Constraint
+		c2      *constraint.Constraint
+		desired el.SketchElement
+		state   SolveState
+	}{
+		{
+			"Test Point Solve",
+			constraint.NewConstraint(0, constraint.Distance, el.NewSketchPoint(0, 1.5, 0.3), el.NewSketchPoint(1, 0.25, 0), 1, false),
+			constraint.NewConstraint(0, constraint.Distance, el.NewSketchPoint(2, 1, 1), el.NewSketchPoint(1, 0.25, 0), 1, false),
+			el.NewSketchPoint(1, 0.515383, 0.125274),
+			Solved,
+		},
+		{
+			"Test Line Solve",
+			constraint.NewConstraint(0, constraint.Angle, el.NewSketchLine(0, 1.5, 0.3, 0.1), el.NewSketchLine(1, 0.3, 1.5, -0.1), (70.0/180.0)*math.Pi, false),
+			constraint.NewConstraint(0, constraint.Distance, el.NewSketchPoint(2, 1, 1), el.NewSketchLine(1, 0.3, 1.5, -0.1), 1, false),
+			el.NewSketchLine(1, 0.151089, 0.988520, -0.139610),
+			Solved,
+		},
+	}
+	for _, tt := range tests {
+		result, state := ConstraintResult(tt.c1, tt.c2, tt.desired)
+		assert.Equal(t, state, tt.state, tt.name)
+		if tt.state == NonConvergent {
+			continue
+		}
+		c1e, _ := tt.c1.Element(tt.desired.GetID())
+		if c1p := c1e.AsPoint(); c1p != nil {
+			c1p.X = result.AsPoint().X
+			c1p.Y = result.AsPoint().Y
+		}
+		if c1l := c1e.AsLine(); c1l != nil {
+			c1l.SetA(result.AsLine().GetA())
+			c1l.SetB(result.AsLine().GetB())
+			c1l.SetC(result.AsLine().GetC())
+		}
+		c2e, _ := tt.c2.Element(tt.desired.GetID())
+		if c2p := c2e.AsPoint(); c2p != nil {
+			c2p.X = result.AsPoint().X
+			c2p.Y = result.AsPoint().Y
+		}
+		if c2l := c2e.AsLine(); c2l != nil {
+			c2l.SetA(result.AsLine().GetA())
+			c2l.SetB(result.AsLine().GetB())
+			c2l.SetC(result.AsLine().GetC())
+		}
+		assert.True(t, tt.c1.IsMet(), tt.name)
+		assert.True(t, tt.c2.IsMet(), tt.name)
+	}
+
+}
+
+func TestSolveConstraint(t *testing.T) {
+	tests := []struct {
+		name  string
+		c1    *constraint.Constraint
+		state SolveState
+	}{
+		{
+			"Solve Angle Constraint",
+			constraint.NewConstraint(0, constraint.Angle, el.NewSketchLine(0, 0.98, 0, 1), el.NewSketchLine(1, 0, 0.98, 0), math.Pi/2, false),
+			Solved,
+		},
+		{
+			"Solve Distance Constraint",
+			constraint.NewConstraint(1, constraint.Distance, el.NewSketchPoint(0, 1, 0), el.NewSketchPoint(0, 1, 1), 1.2, false),
+			Solved,
+		},
+	}
+	for _, tt := range tests {
+		state := SolveConstraint(tt.c1)
+		assert.Equal(t, tt.state, state, tt.name)
+		assert.True(t, tt.c1.IsMet(), tt.name)
 	}
 }

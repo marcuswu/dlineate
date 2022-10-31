@@ -8,6 +8,7 @@ import (
 	el "github.com/marcuswu/dlineation/internal/element"
 	"github.com/marcuswu/dlineation/internal/solver"
 	"github.com/marcuswu/dlineation/utils"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestAddElement(t *testing.T) {
@@ -551,14 +552,10 @@ func TestLocalSolve2(t *testing.T) {
 	}
 
 	angle := c2.Element1.AsLine().AngleToLine(c2.Element2.AsLine())
-	if utils.StandardFloatCompare(angle, c2.Value) != 0 {
-		t.Error("Expected line l5 to be", c2.Value, "radians from line l4, angle is", angle)
-	}
+	assert.InDelta(t, math.Abs(angle), math.Abs(c2.Value), utils.StandardCompare, "Expected line l5 angle to be correct")
 
 	angle = c6.Element1.AsLine().AngleToLine(c6.Element2.AsLine())
-	if utils.StandardFloatCompare(angle, c6.Value) != 0 {
-		t.Error("Expected line l3 to be", c6.Value, "radians from line l4, angle is", angle)
-	}
+	assert.InDelta(t, math.Abs(angle), math.Abs(c6.Value), utils.StandardCompare, "Expected line l3 angle to be correct")
 }
 
 func TestSolveMerge(t *testing.T) {

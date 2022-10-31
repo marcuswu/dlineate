@@ -20,10 +20,9 @@
   - [X] Fix svg output for the modified cylinder example
   - [X] Improve logging
   - [ ] Update unit tests
-    - [ ] SolveDistanceConstraint 0 distance translate
+    - [X] SolveDistanceConstraint 0 distance translate
   - [X] Get the BellSketch (modifiedCylinder) working
   - [X] Add horizontal, vertical constraints
-  - [ ] Add the ability to add fixed elements
 - [X] Load element values from solver when solved
 - [X] External interface should take two passes. One to solve independent constraints. One to solve dependent.
 - [X] Ratio & equality lengths are dependent constraints

@@ -371,7 +371,3 @@ func TestSolveForLine(t *testing.T) {
 		assert.InDelta(t, tt.desired.GetC(), shared.AsLine().GetC(), utils.StandardCompare, tt.name)
 	}
 }
-
-func TestSolveForPoint(t *testing.T) {
-
-}
