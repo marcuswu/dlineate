@@ -194,6 +194,8 @@ func (g *SketchGraph) AddConstraint(t constraint.Type, e1 el.SketchElement, e2 e
 	if g.clusters[0].HasElement(e1) && g.clusters[0].HasElement(e2) {
 		g.clusters[0].AddConstraint(constraint)
 		g.constraints[constraintID] = constraint
+		g.eToC[e1.GetID()] = append(g.eToC[e1.GetID()], constraint)
+		g.eToC[e2.GetID()] = append(g.eToC[e2.GetID()], constraint)
 		return constraint
 	}
 	g.constraints[constraintID] = constraint
