@@ -34,3 +34,75 @@ func TestGraphBasics(t *testing.T) {
 	assert.False(t, sketch.IsElementSolved(origin), "origin should not be solved")
 	assert.True(t, sketch.IsElementSolved(xAxis), "xAxis should be solved")
 }
+
+func TestCombinePoints(t *testing.T) {
+
+}
+
+func TestFindStartConstraint(t *testing.T) {
+
+}
+
+func TestFindConstraints(t *testing.T) {
+
+}
+
+func TestAddConstraintToCluster(t *testing.T) {
+
+}
+
+func TestCreateCluster(t *testing.T) {
+
+}
+
+func TestCreateClusters(t *testing.T) {
+
+}
+
+func TestConstraintLevel(t *testing.T) {
+
+}
+
+func TestTranslateRotate(t *testing.T) {
+
+}
+
+func TestLogConstraintsElements(t *testing.T) {
+
+}
+
+func TestUpdateElements(t *testing.T) {
+
+}
+
+func TestAddClusterConstraints(t *testing.T) {
+
+}
+
+func TestResetClusters(t *testing.T) {
+
+}
+
+func TestBuildClusters(t *testing.T) {
+
+}
+
+func TestSolve(t *testing.T) {
+
+}
+
+func TestFindMergeForCluster(t *testing.T) {
+
+}
+
+func TestFindMerge(t *testing.T) {
+
+}
+
+func TestIsSolved(t *testing.T) {
+
+}
+
+func TestGraphToGraphViz(t *testing.T) {
+
+}

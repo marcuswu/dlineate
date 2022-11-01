@@ -726,11 +726,6 @@ func (g *SketchGraph) IsSolved() bool {
 	return solved
 }
 
-// Test is a test function
-func (g *SketchGraph) Test() string {
-	return "SketchGraph"
-}
-
 func (g *SketchGraph) ToGraphViz() string {
 	edges := ""
 	uniqueSharedElements := make(map[string]interface{})
