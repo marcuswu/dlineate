@@ -1,7 +1,6 @@
 package core
 
 import (
-	"errors"
 	"fmt"
 	"sort"
 
@@ -25,7 +24,6 @@ type SketchGraph struct {
 
 	state            solver.SolveState
 	degreesOfFreedom uint
-	constraintMap    map[uint]int
 }
 
 // NewSketch creates a new sketch for solving
@@ -73,7 +71,7 @@ func (g *SketchGraph) AddPoint(x float64, y float64) el.SketchElement {
 	p := el.NewSketchPoint(elementID, x, y)
 	g.freeNodes.Add(elementID)
 	g.elements[elementID] = p
-	return p //g.GetElement(elementID)
+	return p
 }
 
 // AddLine adds a line to the sketch
@@ -88,7 +86,7 @@ func (g *SketchGraph) AddLine(a float64, b float64, c float64) el.SketchElement 
 	l := el.NewSketchLine(elementID, a, b, c)
 	g.freeNodes.Add(elementID)
 	g.elements[elementID] = l
-	return l //g.GetElement(elementID)
+	return l
 }
 
 func (g *SketchGraph) AddOrigin(x float64, y float64) el.SketchElement {
@@ -105,7 +103,7 @@ func (g *SketchGraph) AddOrigin(x float64, y float64) el.SketchElement {
 	g.addElementToCluster(g.clusters[0], ax)
 	g.addElementToCluster(g.baseCluster, ax)
 
-	return ax //g.GetElement(elementID)
+	return ax
 }
 
 func (g *SketchGraph) AddAxis(a float64, b float64, c float64) el.SketchElement {
@@ -193,6 +191,7 @@ func (g *SketchGraph) AddConstraint(t constraint.Type, e1 el.SketchElement, e2 e
 	constraint := constraint.NewConstraint(constraintID, t, e1, e2, value, false)
 	if g.clusters[0].HasElement(e1) && g.clusters[0].HasElement(e2) {
 		g.clusters[0].AddConstraint(constraint)
+		g.baseCluster.AddConstraint(constraint)
 		g.constraints[constraintID] = constraint
 		g.eToC[e1.GetID()] = append(g.eToC[e1.GetID()], constraint)
 		g.eToC[e2.GetID()] = append(g.eToC[e2.GetID()], constraint)
@@ -342,16 +341,7 @@ func (g *SketchGraph) createCluster(first uint, id int) *GraphCluster {
 				Int("cluster", clusterNum).
 				Uint("constraint", cId).
 				Msgf("createCluster(%d): adding constraint", clusterNum)
-			oc, ok = g.GetConstraint(cId)
-			if !ok {
-				utils.Logger.Error().
-					Int("cluster", clusterNum).
-					Uint("constraint", cId).
-					Uint("element", eId).
-					Msgf("createCluster(%d): Failed to find constraint", clusterNum)
-				continue
-			}
-			//cc := constraint.CopyConstraint(oc)
+			oc, _ = g.GetConstraint(cId)
 			g.addConstraintToCluster(c, oc)
 		}
 	}
@@ -378,58 +368,9 @@ func (g *SketchGraph) createClusters() {
 		id++
 		utils.Logger.Info().Msgf("%d unassigned constraints left\n", len(g.constraints))
 	}
-	for _, c := range g.constraints {
-		if !g.usedNodes.Contains(c.Element1.GetID()) {
-			g.elements[c.Element1.GetID()].SetConstraintLevel(el.UnderConstrained)
-		}
-		if !g.usedNodes.Contains(c.Element2.GetID()) {
-			g.elements[c.Element1.GetID()].SetConstraintLevel(el.UnderConstrained)
-		}
-	}
 	utils.Logger.Info().
 		Int("unassigned constraints", len(g.constraints)).
 		Msg("Created clusters")
-}
-
-func (g *SketchGraph) buildConstraintMap() {
-	g.constraintMap = make(map[uint]int, len(g.elements))
-	// Create an []int slice where indices represent element ids and values represent number of constraints
-	for _, c := range g.constraints {
-		g.constraintMap[c.Element1.GetID()]++
-		g.constraintMap[c.Element2.GetID()]++
-	}
-}
-
-func (g *SketchGraph) ConstraintLevel(e el.SketchElement) el.ConstraintLevel {
-	numConstraints := g.constraintMap[e.GetID()]
-	switch {
-	case numConstraints < 2:
-		return el.UnderConstrained
-	case numConstraints > 2:
-		return el.OverConstrained
-	default:
-		return el.FullyConstrained
-	}
-}
-
-func (g *SketchGraph) Translate(x float64, y float64) error {
-	if len(g.clusters) > 1 {
-		return errors.New("Solve the sketch before translating it")
-	}
-
-	g.clusters[0].Translate(x, y)
-
-	return nil
-}
-
-func (g *SketchGraph) Rotate(origin *el.SketchPoint, angle float64) error {
-	if len(g.clusters) > 1 {
-		return errors.New("Solve the sketch before translating it")
-	}
-
-	g.clusters[0].Rotate(origin, angle)
-
-	return nil
 }
 
 func (g *SketchGraph) logElements(level zerolog.Level) {
@@ -514,7 +455,6 @@ func (g *SketchGraph) BuildClusters() {
 		}
 	}
 	g.logConstraintsElements(zerolog.InfoLevel)
-	g.buildConstraintMap()
 	if len(g.clusters) == 1 {
 		g.createClusters()
 	}
