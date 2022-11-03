@@ -548,7 +548,7 @@ func (g *SketchGraph) Solve() solver.SolveState {
 	g.updateElements(g.clusters[1])
 	g.addClusterConstraints(g.clusters[0])
 	g.addClusterConstraints(g.clusters[1])
-	if g.state == solver.None || (g.state != mergeState && !(g.state != solver.Solved && mergeState == solver.Solved)) {
+	if g.state != mergeState && mergeState != solver.Solved {
 		utils.Logger.Debug().
 			Str("graph state", mergeState.String()).
 			Msg("Updating state after cluster merge")
@@ -565,7 +565,7 @@ func (g *SketchGraph) Solve() solver.SolveState {
 	return g.state
 }
 
-func (g *SketchGraph) findMergeForCluster(c *GraphCluster, first int) (int, int) {
+func (g *SketchGraph) findMergeForCluster(c *GraphCluster) (int, int) {
 	connectedClusters := func(g *SketchGraph, c *GraphCluster) map[int][]uint {
 		connected := make(map[int][]uint)
 		for i, other := range g.clusters {
@@ -642,7 +642,7 @@ func (g *SketchGraph) findMerge() (int, int, int) {
 		utils.Logger.Debug().
 			Int("start cluster", c.id).
 			Msg("Looking for merge")
-		c1, c2 := g.findMergeForCluster(c, i)
+		c1, c2 := g.findMergeForCluster(c)
 		if c1 >= 0 {
 			return i, c1, c2
 		}
@@ -707,7 +707,7 @@ func (g *SketchGraph) ToGraphViz() string {
 
 	// Output free elements
 	for _, eId := range g.freeNodes.Contents() {
-		edges = edges + fmt.Sprintf("\t%d\n", g.elements[eId].GetID())
+		edges = edges + g.elements[eId].ToGraphViz(-1)
 	}
 
 	return fmt.Sprintf(`

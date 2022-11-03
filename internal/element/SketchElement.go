@@ -88,6 +88,9 @@ func CopySketchElement(e SketchElement) SketchElement {
 }
 
 func toGraphViz(e SketchElement, cId int) string {
+	if cId < 0 {
+		return fmt.Sprintf("\t%d\n", e.GetID())
+	}
 	return fmt.Sprintf("\"%d-%d\" [label=%d]\n", cId, e.GetID(), e.GetID())
 }
 

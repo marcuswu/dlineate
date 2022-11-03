@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/marcuswu/dlineation/internal/constraint"
+	el "github.com/marcuswu/dlineation/internal/element"
 	"github.com/marcuswu/dlineation/internal/solver"
 	"github.com/stretchr/testify/assert"
 )
@@ -298,7 +299,7 @@ func TestSolve(t *testing.T) {
 	s.AddConstraint(constraint.Distance, p3, p4, 4)
 	c3 := s.AddConstraint(constraint.Distance, p4, p5, 4)
 
-	s.AddConstraint(constraint.Angle, l1, xAxis, 0)
+	c4 := s.AddConstraint(constraint.Angle, l1, xAxis, 0)
 	s.AddConstraint(constraint.Distance, p1, origin, 0)
 
 	s.ResetClusters()
@@ -308,9 +309,20 @@ func TestSolve(t *testing.T) {
 	assert.Equal(t, solver.Solved, state, "Graph should be solved")
 
 	s.ResetClusters()
-	c1.Value = 0
-	c2.Value = 1
-	c3.Value = 8
+	s.constraints[c1.GetID()].Value = 0
+	s.constraints[c2.GetID()].Value = 1
+	s.constraints[c3.GetID()].Value = 8
+	s.BuildClusters()
+
+	state = s.Solve()
+
+	assert.Equal(t, solver.NonConvergent, state, "Graph should be non-convergent")
+
+	s.ResetClusters()
+	s.constraints[c1.GetID()].Value = 0
+	s.constraints[c2.GetID()].Value = 4
+	s.constraints[c3.GetID()].Value = 4
+	delete(s.constraints, c4.GetID())
 	s.BuildClusters()
 
 	state = s.Solve()
@@ -319,17 +331,124 @@ func TestSolve(t *testing.T) {
 }
 
 func TestFindMergeForCluster(t *testing.T) {
+	s := NewSketch()
+	origin := s.AddOrigin(0, 0)
+	xAxis := s.AddAxis(0, -1, 0)
+	yAxis := s.AddAxis(1, 0, 0)
+	s.AddConstraint(constraint.Angle, xAxis, yAxis, math.Pi/2)
+	s.AddConstraint(constraint.Distance, origin, xAxis, 0)
+	s.AddConstraint(constraint.Distance, origin, yAxis, 0)
 
-}
+	p1 := s.AddPoint(0, 0) // 3
+	p2 := s.AddPoint(4, 0) // 4
+	p3 := s.AddPoint(5.236068, 3.804226)
+	p4 := s.AddPoint(2, 6.155367)
+	p5 := s.AddPoint(-1.236068, 3.804226)
 
-func TestFindMerge(t *testing.T) {
+	l1 := s.AddLine(0, -1, 0)
+	l2 := s.AddLine(0.951057, -0.309017, -3.804226)
+	l3 := s.AddLine(0.587785, 0.809017, -6.155367)
+	l4 := s.AddLine(-0.587785, 0.809017, -3.804226)
+	l5 := s.AddLine(-0.951057, -0.309017, 0) // 12
 
-}
+	s.AddConstraint(constraint.Distance, l1, p1, 0)
+	s.AddConstraint(constraint.Distance, l1, p2, 0)
+	s.AddConstraint(constraint.Distance, l2, p2, 0)
+	s.AddConstraint(constraint.Distance, l2, p3, 0)
+	s.AddConstraint(constraint.Distance, l3, p3, 0)
+	s.AddConstraint(constraint.Distance, l3, p4, 0)
+	s.AddConstraint(constraint.Distance, l4, p4, 0)
+	s.AddConstraint(constraint.Distance, l4, p5, 0)
+	s.AddConstraint(constraint.Distance, l5, p5, 0)
+	s.AddConstraint(constraint.Distance, l5, p1, 0)
 
-func TestIsSolved(t *testing.T) {
+	s.AddConstraint(constraint.Angle, l2, l3, (72.0/180.0)*math.Pi)
+	s.AddConstraint(constraint.Angle, l3, l4, (72.0/180.0)*math.Pi)
+	s.AddConstraint(constraint.Angle, l4, l5, (72.0/180.0)*math.Pi)
 
+	s.AddConstraint(constraint.Distance, p1, p2, 4)
+	s.AddConstraint(constraint.Distance, p2, p3, 4)
+	s.AddConstraint(constraint.Distance, p3, p4, 4)
+	s.AddConstraint(constraint.Distance, p4, p5, 4)
+
+	s.AddConstraint(constraint.Angle, l1, xAxis, 0)
+	s.AddConstraint(constraint.Distance, p1, origin, 0)
+
+	s.ResetClusters()
+	s.BuildClusters()
+
+	for _, c := range s.clusters {
+		c.Solve()
+		s.updateElements(c)
+		s.addClusterConstraints(c)
+	}
+	a, b := s.findMergeForCluster(s.clusters[3])
+
+	assert.Contains(t, []int{5, 6}, a, "First merge cluster is 5 or 6")
+	assert.Contains(t, []int{5, 6}, b, "Second merge cluster is 5 or 6")
+
+	a, b = s.findMergeForCluster(s.clusters[0])
+
+	assert.Equal(t, 1, a, "First merge cluster is 1")
+	assert.Equal(t, -1, b, "No second merge cluster")
 }
 
 func TestGraphToGraphViz(t *testing.T) {
+	s := NewSketch()
 
+	e1 := el.NewSketchPoint(0, 0, 1)
+	e2 := el.NewSketchPoint(1, 2, 1)
+	e3 := el.NewSketchLine(2, 2, 1, -1)
+	e4 := el.NewSketchLine(3, 2, 2, -0)
+	c1 := constraint.NewConstraint(0, constraint.Distance, e1, e2, 5, false)
+	c2 := constraint.NewConstraint(1, constraint.Distance, e2, e3, 7, false)
+	c3 := constraint.NewConstraint(2, constraint.Distance, e3, e4, 2, false)
+
+	g := NewGraphCluster(0)
+	g.AddConstraint(c1)
+	g.AddConstraint(c2)
+	g.AddConstraint(c3)
+	s.clusters = append(s.clusters, g)
+
+	o := NewGraphCluster(1)
+	p1 := el.NewSketchPoint(0, 0, 0)
+	p2 := el.NewSketchPoint(5, 4, 0)
+	l1 := el.NewSketchLine(6, 0, -1, 0)
+	c4 := constraint.NewConstraint(3, constraint.Distance, l1, p1, 0, false)
+	c5 := constraint.NewConstraint(4, constraint.Distance, l1, p2, 0, false)
+	o.AddConstraint(c4)
+	o.AddConstraint(c5)
+	s.clusters = append(s.clusters, o)
+
+	e5 := el.NewSketchPoint(7, 1, 1)
+	e6 := el.NewSketchPoint(8, 2, 1)
+	c6 := constraint.NewConstraint(5, constraint.Distance, e5, e6, 1, false)
+	s.elements[e5.GetID()] = e5
+	s.freeNodes.Add(e5.GetID())
+	s.elements[e6.GetID()] = e6
+	s.freeNodes.Add(e6.GetID())
+	s.constraints[c6.GetID()] = c6
+
+	gvString := s.ToGraphViz()
+	assert.Contains(t, gvString, "subgraph cluster_0")
+	assert.Contains(t, gvString, "label = \"Cluster 0\"")
+	assert.Contains(t, gvString, c1.ToGraphViz(0), "GraphViz output contains constraint 1")
+	assert.Contains(t, gvString, c2.ToGraphViz(0), "GraphViz output contains constraint 2")
+	assert.Contains(t, gvString, c3.ToGraphViz(0), "GraphViz output contains constraint 3")
+	assert.Contains(t, gvString, e1.ToGraphViz(0), "GraphViz output contains element 1")
+	assert.Contains(t, gvString, e2.ToGraphViz(0), "GraphViz output contains element 2")
+	assert.Contains(t, gvString, e3.ToGraphViz(0), "GraphViz output contains element 3")
+	assert.Contains(t, gvString, e4.ToGraphViz(0), "GraphViz output contains element 4")
+
+	assert.Contains(t, gvString, "subgraph cluster_1")
+	assert.Contains(t, gvString, "label = \"Cluster 1\"")
+	assert.Contains(t, gvString, c4.ToGraphViz(1), "GraphViz output contains constraint 4")
+	assert.Contains(t, gvString, c5.ToGraphViz(1), "GraphViz output contains constraint 5")
+	assert.Contains(t, gvString, p1.ToGraphViz(1), "GraphViz output contains point 1")
+	assert.Contains(t, gvString, p2.ToGraphViz(1), "GraphViz output contains point 2")
+	assert.Contains(t, gvString, l1.ToGraphViz(1), "GraphViz output contains line 1")
+
+	assert.Contains(t, gvString, e5.ToGraphViz(-1), "GraphViz output contains element 5")
+	assert.Contains(t, gvString, e6.ToGraphViz(-1), "GraphViz output contains element 6")
+	assert.Contains(t, gvString, c6.ToGraphViz(-1), "GraphViz output contains constraint 6")
 }

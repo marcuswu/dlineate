@@ -300,15 +300,26 @@ func SolveAngleConstraint(c *constraint.Constraint, e uint) (*el.SketchLine, Sol
 		l1, l2 = l2, l1
 	}
 
-	angle := l2.AngleToLine(l1)
-	rotate := angle + desired
-	reverseRotate := angle - desired
-	line1 := l2.Rotated(rotate)
-	line2 := l2.Rotated(reverseRotate)
+	angle1 := l2.AngleToLine(l1)
+	angle2 := l1.AngleToLine(l2)
+	rotate1 := angle1 + desired
+	rotate2 := angle2 + desired
+	reverseRotate1 := angle1 - desired
+	reverseRotate2 := angle2 - desired
+	line1 := l2.Rotated(rotate1)
+	line2 := l2.Rotated(reverseRotate1)
+	line3 := l2.Rotated(rotate2)
+	line4 := l2.Rotated(reverseRotate2)
 
 	newLine := line1
-	if math.Abs(line2.AngleToLine(l2)) < math.Abs(line1.AngleToLine(l2)) {
+	if math.Abs(line2.AngleToLine(l2)) < math.Abs(newLine.AngleToLine(l2)) {
 		newLine = line2
+	}
+	if math.Abs(line3.AngleToLine(l2)) < math.Abs(newLine.AngleToLine(l2)) {
+		newLine = line3
+	}
+	if math.Abs(line4.AngleToLine(l2)) < math.Abs(newLine.AngleToLine(l2)) {
+		newLine = line4
 	}
 	c.Solved = true
 	return newLine, Solved
