@@ -703,7 +703,7 @@ func TestSolveMerge(t *testing.T) {
 	p5 = g0.elements[9].AsPoint()
 
 	rad2Deg := func(rad float64) float64 { return (rad / math.Pi) * 180 }
-	deg2Rad := func(deg float64) float64 { return (deg / 180) * math.Pi }
+	deg2Rad := func(deg float64) float64 { return (deg / 180.0) * math.Pi }
 	desired := deg2Rad(72)
 	angle := l1.AngleToLine(l2)
 	if utils.StandardFloatCompare(angle, desired) != 0 {
@@ -948,30 +948,33 @@ func TestSolveMergeEdgeCases(t *testing.T) {
 	assert.Equal(t, solver.Solved, state, "Three cluster solve with three lines")
 
 	// Solve merge with one point and two lines where lines are in clusters 0 and 1
+	// I don't know where I got these values... they may be incorrect
 	g = NewGraphCluster(0)
 	g.AddElement(el.NewSketchPoint(0, 0, 0))
-	g.AddElement(el.NewSketchLine(9, 0.611735, 0.791063, -6.155367))
-	g.AddElement(el.NewSketchLine(1, 0, 1, 0))
+	g.AddElement(el.NewSketchLine(3, 0, -1, 0))
+	g.AddElement(el.NewSketchPoint(5, 4, 0))
+	g.AddElement(el.NewSketchLine(1, 0, -1, 0))
 
 	o1 = NewGraphCluster(1)
-	o1.AddElement(el.NewSketchPoint(0, 0, 0))
-	o1.AddElement(el.NewSketchPoint(5, 3.998208, -0.119717))
 	o1.AddElement(el.NewSketchPoint(11, 2.183330, 6.092751))
-	o1.AddElement(el.NewSketchLine(6, 0.611735, 0.791063, -6.155367))
-	o1.AddElement(el.NewSketchLine(2, 1, 0, 0))
+	o1.AddElement(el.NewSketchLine(12, -0.563309, 0.826247, -3.804226))
+	o1.AddElement(el.NewSketchLine(15, -3.839516, -1.121656, 0))
+	o1.AddElement(el.NewSketchLine(9, 0.611735, 0.791063, -6.155367))
+	o1.AddElement(el.NewSketchPoint(14, -1.121656, 3.839516))
+	o1.AddElement(el.NewSketchPoint(0, 0, 0))
 
 	o2 = NewGraphCluster(2)
-	o2.AddElement(el.NewSketchLine(15, -0.959879, -0.280414, 0))
-	o2.AddElement(el.NewSketchPoint(8, 3.998208, -0.119717))
-	o2.AddElement(el.NewSketchLine(1, 0, 1, 0))
-	o2.AddElement(el.NewSketchLine(2, 1, 0.0, 0.0))
+	o2.AddElement(el.NewSketchPoint(8, 5.14, 2.27))
+	o2.AddElement(el.NewSketchLine(6, 2.029929, -2.651719, -9.373495))
+	o2.AddElement(el.NewSketchPoint(5, 2.488281, -0.724727))
+	o2.AddElement(el.NewSketchLine(9, 0.861839, 0.507182, -5.581155))
 
 	state = g.solveMerge(o1, o2)
 	assert.Equal(t, solver.Solved, state, "Three cluster solve with three shared elements should solve")
 
 	g.elements[0] = el.NewSketchLine(0, 1, 1, 1)
 	o1.elements[0] = el.NewSketchLine(0, 3, 2, 1)
-	line := o2.elements[2]
+	line := o2.elements[9]
 	line.AsLine().SetB(0.235)
 	line.AsLine().SetC(2)
 	state = g.solveMerge(o1, o2)

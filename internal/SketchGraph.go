@@ -515,7 +515,9 @@ func (g *SketchGraph) Solve() solver.SolveState {
 			c3 = g.clusters[third]
 		}
 		mergeState := c1.solveMerge(c2, c3)
-		utils.Logger.Debug().Msg("Completed merge")
+		utils.Logger.Debug().
+			Str("state", fmt.Sprintf("%v", mergeState)).
+			Msg("Completed merge")
 		for _, c := range g.clusters {
 			c.IsSolved()
 		}

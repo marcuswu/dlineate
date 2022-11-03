@@ -663,10 +663,52 @@ func (g *GraphCluster) solveMerge(c1 *GraphCluster, c2 *GraphCluster) solver.Sol
 		Msgf("parent 1 moved")
 
 	utils.Logger.Info().Msg("Completed cluster merge")
+	utils.Logger.Info().Msg("")
+	utils.Logger.Info().Msg("g:")
 	g.logElements(zerolog.InfoLevel)
+	utils.Logger.Info().Msg("c1:")
+	c1.logElements(zerolog.InfoLevel)
+	utils.Logger.Info().Msg("c2:")
+	c2.logElements(zerolog.InfoLevel)
 	utils.Logger.Info().Msg("")
 
+	if !g.SharedElementsEquivalent(c1) || !g.SharedElementsEquivalent(c2) || !c1.SharedElementsEquivalent(c2) {
+		utils.Logger.Info().Msg("Returning Non-convergent due to element inequivalancy after merge")
+		return solver.NonConvergent
+	}
+
 	return solver.Solved
+}
+
+func (g *GraphCluster) SharedElementsEquivalent(o *GraphCluster) bool {
+	compareElement := func(e1 el.SketchElement, e2 el.SketchElement) bool {
+		if e1.GetType() != e2.GetType() {
+			return false
+		}
+
+		if e1.AsLine() != nil {
+			l1 := e1.AsLine()
+			l2 := e2.AsLine()
+			return utils.StandardFloatCompare(l1.GetA(), l2.GetA()) == 0 &&
+				utils.StandardFloatCompare(l1.GetB(), l2.GetB()) == 0 &&
+				utils.StandardFloatCompare(l1.GetC(), l2.GetC()) == 0
+		}
+
+		p1 := e1.AsPoint()
+		p2 := e2.AsPoint()
+
+		return utils.StandardFloatCompare(p1.X, p2.X) == 0 &&
+			utils.StandardFloatCompare(p1.Y, p2.Y) == 0
+	}
+	equal := true
+	shared := g.SharedElements(o)
+	for _, e := range shared.Contents() {
+		e1 := g.elements[e]
+		e2 := o.elements[e]
+		equal = equal && compareElement(e1, e2)
+	}
+
+	return equal
 }
 
 // Solve solves the cluster and any child clusters associated with it

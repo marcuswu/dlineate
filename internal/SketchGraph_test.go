@@ -266,8 +266,8 @@ func TestSolve(t *testing.T) {
 	s.AddConstraint(constraint.Distance, origin, xAxis, 0)
 	s.AddConstraint(constraint.Distance, origin, yAxis, 0)
 
-	p1 := s.AddPoint(0, 0)
-	p2 := s.AddPoint(4, 0)
+	p1 := s.AddPoint(0, 0) // 3
+	p2 := s.AddPoint(4, 0) // 4
 	p3 := s.AddPoint(5.236068, 3.804226)
 	p4 := s.AddPoint(2, 6.155367)
 	p5 := s.AddPoint(-1.236068, 3.804226)
@@ -276,7 +276,7 @@ func TestSolve(t *testing.T) {
 	l2 := s.AddLine(0.951057, -0.309017, -3.804226)
 	l3 := s.AddLine(0.587785, 0.809017, -6.155367)
 	l4 := s.AddLine(-0.587785, 0.809017, -3.804226)
-	l5 := s.AddLine(-0.951057, -0.309017, 0)
+	l5 := s.AddLine(-0.951057, -0.309017, 0) // 12
 
 	s.AddConstraint(constraint.Distance, l1, p1, 0)
 	s.AddConstraint(constraint.Distance, l1, p2, 0)
@@ -287,16 +287,16 @@ func TestSolve(t *testing.T) {
 	s.AddConstraint(constraint.Distance, l4, p4, 0)
 	s.AddConstraint(constraint.Distance, l4, p5, 0)
 	s.AddConstraint(constraint.Distance, l5, p5, 0)
-	s.AddConstraint(constraint.Distance, l5, p1, 0)
+	c1 := s.AddConstraint(constraint.Distance, l5, p1, 0)
 
 	s.AddConstraint(constraint.Angle, l2, l3, (72.0/180.0)*math.Pi)
 	s.AddConstraint(constraint.Angle, l3, l4, (72.0/180.0)*math.Pi)
 	s.AddConstraint(constraint.Angle, l4, l5, (72.0/180.0)*math.Pi)
 
-	s.AddConstraint(constraint.Distance, p1, p2, 4)
+	c2 := s.AddConstraint(constraint.Distance, p1, p2, 4)
 	s.AddConstraint(constraint.Distance, p2, p3, 4)
 	s.AddConstraint(constraint.Distance, p3, p4, 4)
-	s.AddConstraint(constraint.Distance, p4, p5, 4)
+	c3 := s.AddConstraint(constraint.Distance, p4, p5, 4)
 
 	s.AddConstraint(constraint.Angle, l1, xAxis, 0)
 	s.AddConstraint(constraint.Distance, p1, origin, 0)
@@ -306,6 +306,16 @@ func TestSolve(t *testing.T) {
 	state := s.Solve()
 
 	assert.Equal(t, solver.Solved, state, "Graph should be solved")
+
+	s.ResetClusters()
+	c1.Value = 0
+	c2.Value = 1
+	c3.Value = 8
+	s.BuildClusters()
+
+	state = s.Solve()
+
+	assert.Equal(t, solver.NonConvergent, state, "Graph should be non-convergent")
 }
 
 func TestFindMergeForCluster(t *testing.T) {
