@@ -41,7 +41,7 @@ func NewSketch() *Sketch {
 	s.Origin = s.addOrigin()
 	s.XAxis = s.addAxis(0, -1, 0)
 	s.YAxis = s.addAxis(1, 0, 0)
-	s.AddAngleConstraint(s.XAxis, s.YAxis, 90)
+	s.AddAngleConstraint(s.XAxis, s.YAxis, 90, false)
 	s.AddCoincidentConstraint(s.Origin, s.XAxis)
 	s.AddCoincidentConstraint(s.Origin, s.YAxis)
 

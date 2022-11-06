@@ -50,10 +50,10 @@ func main() {
 
 	// line2 constraints
 	sketch.AddParallelConstraint(sketch.YAxis, line2)
-	sketch.AddAngleConstraint(line2, line3, 135)
+	sketch.AddAngleConstraint(line2, line3, 135, false)
 
 	// line3 constraints
-	sketch.AddAngleConstraint(line3, line4, 90)
+	sketch.AddAngleConstraint(line3, line4, 90, false)
 
 	// arc1 constraints
 	sketch.AddDistanceConstraint(arc1, nil, 0.5)

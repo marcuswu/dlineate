@@ -33,13 +33,9 @@ func main() {
 	sketch.AddCoincidentConstraint(l5.End(), l1.Start())
 
 	// 108 degrees between lines (skip 2 to not over constrain)
-	// sketch.AddAngleConstraint(l2, l3, 72)
-	// sketch.AddAngleConstraint(l3, l4, 72)
-	// sketch.AddAngleConstraint(l4, l5, 72)
-
-	sketch.AddAngleConstraint(l2, l3, 108)
-	sketch.AddAngleConstraint(l3, l4, 108)
-	sketch.AddAngleConstraint(l4, l5, 108)
+	sketch.AddAngleConstraint(l2, l3, 108, true)
+	sketch.AddAngleConstraint(l3, l4, 108, true)
+	sketch.AddAngleConstraint(l4, l5, 108, true)
 
 	// 4 unit length on lines (skip 1 to not over constrain)
 	sketch.AddDistanceConstraint(l1, nil, 4.0)
