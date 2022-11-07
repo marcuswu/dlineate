@@ -30,15 +30,9 @@ func (s *Sketch) addDistanceConstraint(p1 *Element, p2 *Element, v float64) *ic.
 			// If p2 is nil, we're setting the circle radius
 			// This is more of a placeholder for being able to fulfill other constraints as there is no
 			// element to constrain to a distance from the center
-			//return s.sketch.AddConstraint(ic.Distance, p1.children[0].element, nil, v)
 			// Add a constraint to pkg/Sketch (not translatable to internal solver)
 			return nil
 		}
-		// r, ok := s.resolveCurveRadius(p1)
-		// if !ok {
-		// 	break nil
-		// }
-		// c = s.sketch.AddConstraint(ic.Distance, p1.element, p2.element, r+v)
 		return nil
 	case Axis:
 		fallthrough
@@ -62,19 +56,12 @@ func (s *Sketch) addDistanceConstraint(p1 *Element, p2 *Element, v float64) *ic.
 		if p2 == nil {
 			// Add a constraint to pkg/Sketch (not translatable to internal solver)
 			// If p2 is nil, we're setting the arc radius, so distance to start or end works
-			//return s.sketch.AddConstraint(ic.Distance, p1.element, p1.children[1].element, v)
 			return nil
 		}
 		// If p2 is not nil, we need to know the arc's radius is constrained
-		// r, ok := s.resolveCurveRadius(p1)
-		// if !ok {
-		// 	return nil
-		// }
-		// return s.sketch.AddConstraint(ic.Distance, p1.element, p2.element, r+v)
 		return nil
-	default:
-		return s.sketch.AddConstraint(ic.Distance, p1.element, p2.element, v)
 	}
+	return nil
 }
 
 func (s *Sketch) AddDistanceConstraint(p1 *Element, p2 *Element, v float64) *Constraint {
