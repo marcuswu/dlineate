@@ -26,6 +26,7 @@ func (s *Sketch) AddRatioConstraint(p1 *Element, p2 *Element, v float64) *Constr
 	}
 	s.eToC[p1.id] = append(s.eToC[p1.id], c)
 	s.eToC[p2.id] = append(s.eToC[p2.id], c)
+	s.constraints = append(s.constraints, c)
 
 	s.resolveRatioConstraint(c)
 
@@ -71,7 +72,7 @@ func (s *Sketch) resolveRatioConstraint(c *Constraint) bool {
 	// Circles and Arcs with solved center and solved elements coincident or distance to the circle / arc
 	p1Radius, ok := s.resolveCurveRadius(p1)
 	if ok {
-		constraint := s.addDistanceConstraint(p1, nil, p1Radius*c.dataValue)
+		constraint := s.addDistanceConstraint(p2, nil, p1Radius*c.dataValue)
 		if constraint != nil {
 			utils.Logger.Debug().
 				Uint("constraint", constraint.GetID()).
@@ -87,12 +88,12 @@ func (s *Sketch) resolveRatioConstraint(c *Constraint) bool {
 
 	p2Radius, ok := s.resolveCurveRadius(p2)
 	if ok {
-		constraint := s.addDistanceConstraint(p2, nil, p2Radius/c.dataValue)
+		constraint := s.addDistanceConstraint(p1, nil, p2Radius/c.dataValue)
 		if constraint != nil {
 			utils.Logger.Debug().
 				Uint("constraint", constraint.GetID()).
 				Msg("resolveRatioConstraint: added constraint")
-			p1.constraints = append(p1.constraints, constraint)
+			p2.constraints = append(p1.constraints, constraint)
 			c.constraints = append(c.constraints, constraint)
 		}
 		s.constraints = append(s.constraints, c)

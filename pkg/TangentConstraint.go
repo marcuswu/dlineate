@@ -46,15 +46,6 @@ func orderParams(p1 *Element, p2 *Element) (*Element, *Element, error) {
 		line = p2
 	}
 
-	// switch Point {
-	// case p1.elementType:
-	// 	point = p1
-	// case p2.elementType:
-	// 	point = p2
-	// default:
-	// 	point = p3
-	// }
-
 	switch true {
 	case p1.elementType == Circle || p1.elementType == Arc:
 		curve = p1
@@ -77,9 +68,6 @@ func (s *Sketch) resolveTangentConstraint(c *Constraint) bool {
 			Str("element 2", c.elements[1].children[0].String()).
 			Msg("addDistanceConstraint")
 		constraint := s.addDistanceConstraint(c.elements[0], c.elements[1].children[0], radius)
-		if constraint == nil {
-			return c.state == Resolved
-		}
 		utils.Logger.Debug().
 			Uint("constraint", constraint.GetID()).
 			Msg("resolveTangentConstraint: added constraint")

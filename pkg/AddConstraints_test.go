@@ -102,13 +102,6 @@ func TestAddDistanceConstraint(t *testing.T) {
 	assert.Equal(t, c8.state, Unresolved, "Distance cosntraint with unknown element type creates unresolved constraint")
 }
 
-func TestMidpointConstraint(t *testing.T) {
-	// s := NewSketch()
-	// s.AddPoint(1, 0)
-	// s.AddLine(1, 0, 5, 5)
-	// c1 :=
-}
-
 func TestAddRatioConstraint(t *testing.T) {
 	s := NewSketch()
 	p1 := s.AddPoint(1, 0)
@@ -124,4 +117,165 @@ func TestAddRatioConstraint(t *testing.T) {
 	s.AddDistanceConstraint(l1, nil, 10)
 	s.resolveConstraints()
 	assert.Equal(t, Resolved, c2.state, "Ratio constraint should be resolved with a line length")
+
+	c3 := s.AddRatioConstraint(l2, l1, 0.5)
+	assert.NotNil(t, c3, "Ratio constraint with lines is valid")
+	assert.Equal(t, Resolved, c3.state, "Ratio constraint should be resolved with a line length")
+
+	l3 := s.AddLine(2, 1, 3, 4)
+	curve1 := s.AddCircle(0, 1, 2)
+	s.AddDistanceConstraint(curve1, nil, 2)
+	c4 := s.AddRatioConstraint(l3, curve1, 0.5)
+	assert.NotNil(t, c4, "Ratio constraint with lines is valid")
+	assert.Equal(t, Resolved, c4.state, "Ratio constraint should be resolved with a line length")
+	c5 := s.AddRatioConstraint(curve1, l3, 0.5)
+	assert.NotNil(t, c5, "Ratio constraint with lines is valid")
+	assert.Equal(t, Resolved, c5.state, "Ratio constraint should be resolved with a line length")
+}
+
+func TestAddEqualConstraint(t *testing.T) {
+	s := NewSketch()
+	l1 := s.AddLine(1, 0, 1, 1)
+	l2 := s.AddLine(1, 0, 5, 5)
+	c1 := s.AddEqualConstraint(l1, l2)
+	assert.NotNil(t, c1, "Equal constraint with lines is valid")
+	assert.Equal(t, Unresolved, c1.state, "Equal constraint should be unresolved without a line length")
+	c2 := s.AddDistanceConstraint(l1, nil, 5)
+	s.resolveConstraints()
+	assert.NotNil(t, c2, "Equal constraint with lines is valid")
+	assert.Equal(t, Resolved, c1.state, "Equal constraint should be resolved with a line length")
+	assert.Equal(t, Resolved, c2.state, "Equal constraint should be resolved with a line length")
+}
+
+func TestAddMidpointConstraint(t *testing.T) {
+	s := NewSketch()
+	p1 := s.AddPoint(5, 5)
+	p2 := s.AddPoint(5, 5)
+	c0 := s.AddMidpointConstraint(p1, p2)
+	assert.Nil(t, c0, "Midpoint constraint with point and point is invalid")
+	l1 := s.AddLine(1, 0, 1, 1)
+	l2 := s.AddLine(1, 0, 1, 1)
+	c0 = s.AddMidpointConstraint(l1, l2)
+	assert.Nil(t, c0, "Midpoint constraint with line and line is invalid")
+	c1 := s.AddMidpointConstraint(l1, p1)
+	assert.NotNil(t, c1, "Midpoint constraint with point and line is valid")
+	assert.Equal(t, Unresolved, c1.state, "Midpoint constraint should be unresolved without a line length")
+	c2 := s.AddDistanceConstraint(l1, nil, 5)
+	s.resolveConstraints()
+	assert.NotNil(t, c2, "Midpoint constraint with point and line is valid")
+	assert.Equal(t, Resolved, c1.state, "Midpoint constraint should be resolved with a line length")
+	assert.Equal(t, Resolved, c2.state, "Midpoint constraint should be resolved with a line length")
+	a1 := s.AddArc(0, 1, 2, 3, 4, 5)
+	c3 := s.AddMidpointConstraint(a1, p1)
+	s.resolveConstraints()
+	assert.NotNil(t, c3, "Midpoint constraint with point and arc is valid")
+	assert.Equal(t, Unresolved, c3.state, "Midpoint constraint should be unresolved without a fully constrained arc")
+	c4 := s.AddDistanceConstraint(a1.Center(), s.Origin, 0) // This wouldn't really converge, but just for the test
+	c5 := s.AddDistanceConstraint(a1.Start(), s.Origin, 0)
+	c6 := s.AddDistanceConstraint(a1.End(), s.Origin, 0)
+	c7 := s.AddDistanceConstraint(a1, nil, 2)
+	c4.state = Solved
+	c5.state = Solved
+	c6.state = Solved
+	c7.state = Solved
+	s.resolveConstraints()
+	for _, c := range c4.constraints {
+		c.Solved = true
+	}
+	for _, c := range c5.constraints {
+		c.Solved = true
+	}
+	for _, c := range c6.constraints {
+		c.Solved = true
+	}
+	for _, c := range c7.constraints {
+		c.Solved = true
+	}
+	for _, c := range a1.constraints {
+		c.Solved = true
+	}
+	s.resolveConstraints()
+	assert.Equal(t, Resolved, c3.state, "Midpoint constraint should be resolved with a fully constrained arc")
+}
+
+func TestAddParallelConstraint(t *testing.T) {
+	s := NewSketch()
+	l1 := s.AddLine(0, 1, 2, 3)
+	p1 := s.AddPoint(0, 0)
+	l2 := s.AddLine(4, 5, 6, 7)
+	c1, err := s.AddParallelConstraint(l1, p1)
+	assert.Nil(t, c1, "Parallel constraint between point and line should error")
+	assert.NotNil(t, err, "Parallel constraint between point and line should error")
+
+	c1, err = s.AddParallelConstraint(l1, l2)
+	assert.NotNil(t, c1, "Parallel constraint between line and line is valid")
+	assert.Nil(t, err, "Parallel constraint between line and line is valid")
+	assert.Equal(t, Resolved, c1.state, "Parallel constraint should be resolved")
+}
+
+func TestHorizontalConstraint(t *testing.T) {
+	s := NewSketch()
+	p1 := s.AddPoint(0, 0)
+	l1 := s.AddLine(0, 1, 2, 3)
+	c1, err := s.AddHorizontalConstraint(p1)
+	assert.Nil(t, c1, "Horizontal constraint on a point should error")
+	assert.NotNil(t, err, "Horizontal constraint on a point should error")
+
+	c1, err = s.AddHorizontalConstraint(l1)
+	assert.NotNil(t, c1, "Horizontal constraint on a line is valid")
+	assert.Nil(t, err, "Horizontal constraint on a line is valid")
+	assert.Equal(t, Resolved, c1.state, "Horizontal constraint should be resolved")
+}
+
+func TestVerticalConstraint(t *testing.T) {
+	s := NewSketch()
+	p1 := s.AddPoint(0, 0)
+	l1 := s.AddLine(0, 1, 2, 3)
+	c1, err := s.AddVerticalConstraint(p1)
+	assert.Nil(t, c1, "Vertical constraint on a point should error")
+	assert.NotNil(t, err, "Vertical constraint on a point should error")
+
+	c1, err = s.AddVerticalConstraint(l1)
+	assert.NotNil(t, c1, "Vertical constraint on a line is valid")
+	assert.Nil(t, err, "Vertical constraint on a line is valid")
+	assert.Equal(t, Resolved, c1.state, "Vertical constraint should be resolved")
+}
+
+func TestAddPerpendicularConstraint(t *testing.T) {
+	s := NewSketch()
+	l1 := s.AddLine(0, 1, 2, 3)
+	p1 := s.AddPoint(0, 0)
+	l2 := s.AddLine(4, 5, 6, 7)
+	c1, err := s.AddPerpendicularConstraint(l1, p1)
+	assert.Nil(t, c1, "Perpendicular constraint between point and line should error")
+	assert.NotNil(t, err, "Perpendicular constraint between point and line should error")
+
+	c1, err = s.AddPerpendicularConstraint(l1, l2)
+	assert.NotNil(t, c1, "Perpendicular constraint between line and line is valid")
+	assert.Nil(t, err, "Perpendicular constraint between line and line is valid")
+	assert.Equal(t, Resolved, c1.state, "Perpendicular constraint should be resolved")
+}
+
+func TestTangentConstraint(t *testing.T) {
+	s := NewSketch()
+	p1 := s.AddPoint(1, 1)
+	l1 := s.AddLine(2, 3, 5, 8)
+	a1 := s.AddArc(13, 21, 34, 55, 89, 144)
+	c1, err := s.AddTangentConstraint(p1, l1)
+	assert.Nil(t, c1, "Tangent constraint between point and line should error")
+	assert.NotNil(t, err, "Tangent constraint between point and line should error")
+
+	c1, err = s.AddTangentConstraint(l1, a1)
+	assert.NotNil(t, c1, "Tangent constraint between line and arc is valid")
+	assert.Nil(t, err, "Tangent constraint between line and arc is valid")
+	assert.Equal(t, Unresolved, c1.state, "Tangent constraint should be unresolved")
+
+	s.AddDistanceConstraint(a1, nil, 3)
+	s.resolveConstraints()
+	assert.Equal(t, Resolved, c1.state, "Tangent constraint should be resolved")
+
+	c1, err = s.AddTangentConstraint(a1, l1)
+	assert.NotNil(t, c1, "Tangent constraint between arc and line is valid")
+	assert.Nil(t, err, "Tangent constraint between arc and line is valid")
+	assert.Equal(t, Resolved, c1.state, "Tangent constraint should be resolved")
 }

@@ -29,4 +29,5 @@
 - [ ] Add the ability to add fixed elements
 - [ ] Add the ability to retrieve degree of freedom for elements
 - [ ] Add the ability to retrieve a list of conflicting constraints
+- [ ] Add mapping 2D sketch to 3D workplane
 - [ ] Add documentation

@@ -270,19 +270,31 @@ func (s *Sketch) isElementSolved(e *Element) bool {
 }
 
 func (s *Sketch) getDistanceConstraint(e *Element) (*Constraint, bool) {
-	dc, err := s.findConstraint(Distance, e)
-	if err == nil {
-		return dc, true
+	if e.elementType != Line {
+		dc, err := s.findConstraint(Distance, e)
+		if err == nil {
+			return dc, true
+		}
+
+		// if e.elementType != Line { // Move to above
+		return nil, false
 	}
 
-	if e.elementType != Line {
-		return nil, false
+	for _, c := range s.eToC[e.id] {
+		if c.constraintType != Distance || (c.state != Resolved && c.state != Solved) {
+			continue
+		}
+		if len(c.elements) > 1 && c.elements[1] != nil {
+			continue
+		}
+		return c, true
 	}
 
 	// Can operate on pkg/Element
 	constraints := s.findConstraints(e.children[0])
 	for _, c := range constraints {
-		if c.elements[0] == e.children[1] || c.elements[1] == e.children[2] {
+		if c.elements[0] == e.children[1] || c.elements[1] == e.children[1] {
+			// if c.elements[0] == e.children[1] || c.elements[1] == e.children[2] {
 			return c, true
 		}
 	}
@@ -293,6 +305,16 @@ func (s *Sketch) getDistanceConstraint(e *Element) (*Constraint, bool) {
 func (s *Sketch) resolveLineLength(e *Element) (float64, bool) {
 	if e.elementType != Line {
 		return 0, false
+	}
+
+	constraints := s.findConstraints(e.children[0])
+	for _, c := range constraints {
+		if c.constraintType != Distance {
+			continue
+		}
+		if c.elements[0] == e.children[1] || c.elements[1] == e.children[1] {
+			return c.constraints[0].Value, true
+		}
 	}
 
 	dc, ok := s.getDistanceConstraint(e)

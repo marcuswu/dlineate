@@ -93,10 +93,11 @@ func (c *Constraint) replaceElement(from *Element, to *Element) {
 }
 
 func (c *Constraint) checkSolved() bool {
-	solved := true
-	if len(c.constraints) == 0 {
-		solved = true
-	}
+	// solved := true
+	// if len(c.constraints) == 0 {
+	// 	solved = true
+	// }
+	solved := c.state >= Resolved
 	for _, constraint := range c.constraints {
 		utils.Logger.Trace().
 			Uint("constraint", constraint.GetID()).
