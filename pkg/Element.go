@@ -120,7 +120,7 @@ func (e *Element) getCircleRadius(c *Constraint) (float64, error) {
 	if e.elementType != Circle {
 		return 0, errors.New("can't return radius for a non-circle")
 	}
-	if c.constraintType == Distance && len(c.elements) == 1 {
+	if c.constraintType == Distance && len(c.elements) == 1 && len(c.constraints) > 0 {
 		return c.constraints[0].Value, nil
 	}
 	if c.constraintType == Coincident {

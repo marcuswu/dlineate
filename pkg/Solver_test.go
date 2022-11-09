@@ -1,6 +1,8 @@
 package dlineation
 
 import (
+	"bytes"
+	"errors"
 	"testing"
 
 	"github.com/marcuswu/dlineation/internal/constraint"
@@ -141,4 +143,61 @@ func TestResolveCurveRadius(t *testing.T) {
 	r, ok := s.resolveCurveRadius(c1)
 	assert.True(t, ok, "Curve radius should be resolved")
 	assert.Equal(t, 3.0, r, "Curve radius should be 3")
+}
+
+func TestSolve(t *testing.T) {
+	s := NewSketch()
+	c1 := s.AddCircle(0, 0, 3)
+	s.AddCoincidentConstraint(c1.Center(), s.Origin)
+
+	err := s.Solve()
+	assert.NotNil(t, err, "Expected inconsistent constraints")
+	assert.Equal(t, errors.New("failed to solve completely"), err, "Should not solve")
+
+	s = NewSketch()
+
+	// Add elements
+	l1 := s.AddLine(0.0, 0.0, 3.13, 0.0)
+	l2 := s.AddLine(3.13, 0.0, 5.14, 2.27)
+	l3 := s.AddLine(5.14, 2.27, 2.28, 4.72)
+	l4 := s.AddLine(2.28, 4.72, -1.04, 3.56)
+	l5 := s.AddLine(-1.04, 3.56, 0.0, 0.0)
+
+	// Add constraints
+	// Bottom of pentagon starts at origin and aligns with x axis
+	s.AddCoincidentConstraint(s.Origin, l1.Start())
+	s.AddParallelConstraint(s.XAxis, l1)
+
+	// line points are coincident
+	s.AddCoincidentConstraint(l1.End(), l2.Start())
+	s.AddCoincidentConstraint(l2.End(), l3.Start())
+	s.AddCoincidentConstraint(l3.End(), l4.Start())
+	s.AddCoincidentConstraint(l4.End(), l5.Start())
+	s.AddCoincidentConstraint(l5.End(), l1.Start())
+
+	// 108 degrees between lines (skip 2 to not over constrain)
+	s.AddAngleConstraint(l2, l3, 108, true)
+	s.AddAngleConstraint(l3, l4, 108, true)
+	s.AddAngleConstraint(l4, l5, 108, true)
+
+	// 4 unit length on lines (skip 1 to not over constrain)
+	s.AddDistanceConstraint(l1, nil, 4.0)
+	s.AddDistanceConstraint(l2, nil, 4.0)
+	s.AddDistanceConstraint(l4, nil, 4.0)
+	s.AddDistanceConstraint(l5, nil, 4.0)
+
+	// Solve
+	err = s.Solve()
+	assert.Nil(t, err, "Expected no error")
+
+	minx, miny, maxx, maxy := s.calculateRectangle(1.0)
+	assert.InDelta(t, minx, -1.236068, utils.StandardCompare, "MinX")
+	assert.InDelta(t, miny, 0, utils.StandardCompare, "MinY")
+	assert.InDelta(t, maxx, 5.236068, utils.StandardCompare, "MaxX")
+	assert.InDelta(t, maxy, 6.155367, utils.StandardCompare, "MaxY")
+
+	var b bytes.Buffer
+	err = s.WriteImage(&b, 500, 200)
+	assert.Nil(t, err, "Expect no error from WriteImage")
+	assert.Contains(t, b.String(), "svg", "wrote an svg")
 }

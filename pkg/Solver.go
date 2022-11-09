@@ -2,6 +2,7 @@ package dlineation
 
 import (
 	"errors"
+	"io"
 	"math"
 	"os"
 
@@ -410,6 +411,7 @@ func (s *Sketch) Solve() error {
 				Int("last unresolved", lastUnresolved).
 				Int("current unresolved", numUnresolved).
 				Msg("Exiting solve loop early")
+			solveState = solver.NonConvergent
 			break
 		}
 		utils.Logger.Info().
@@ -447,19 +449,10 @@ func (s *Sketch) Solve() error {
 	}
 
 	switch solveState {
-	case solver.None:
-		return errors.New("unknown solver error")
-	// case solver.UnderConstrained:
-	// 	// TODO: return information about which elements are underconstrained
-	// 	return errors.New("the sketch is under constrained")
-	case solver.OverConstrained:
-		// TODO: return information about which constraints are overconstrained
-		return errors.New("the sketch is over constrained")
-	case solver.NonConvergent:
-		// TODO: return information about which constraints did not converge on a solved state
-		return errors.New("the solver did not converge on a solution")
-	default:
+	case solver.Solved:
 		return nil
+	default:
+		return errors.New("failed to solve completely")
 	}
 }
 
@@ -487,11 +480,21 @@ func (s *Sketch) calculateRectangle(scale float64) (float64, float64, float64, f
 	return minX * scale, minY * scale, maxX * scale, maxY * scale
 }
 
+func (s *Sketch) ExportImage(filename string, args ...float64) error {
+	f, err := os.OpenFile(filename, os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0644)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	return s.WriteImage(f, args...)
+}
+
 // ExportImage exports an image representing the current state of the sketch.
 // The origin and axes will be colored gray. Fully constrained solved elements will be colored black.
 // Other elements will be colored blue.
 // It returns an error if unable to open the output file.
-func (s *Sketch) ExportImage(filename string, args ...float64) error {
+func (s *Sketch) WriteImage(out io.Writer, args ...float64) error {
 	width := 150.0
 	height := 150.0
 	scale := 1.0
@@ -538,18 +541,11 @@ func (s *Sketch) ExportImage(filename string, args ...float64) error {
 
 	c.Fit(5.0)
 
-	f, err := os.OpenFile(filename, os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0644)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	svg := svg.New(f, c.W, c.H, &svg.Options{})
-	defer svg.Close()
+	svg := svg.New(out, c.W, c.H, &svg.Options{})
 
 	c.Render(svg)
 
-	return err
+	return svg.Close()
 }
 
 func (s *Sketch) ExportGraphViz(filename string) error {
