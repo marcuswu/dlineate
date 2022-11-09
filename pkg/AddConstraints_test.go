@@ -4,11 +4,18 @@ import (
 	"math"
 	"testing"
 
+	"github.com/marcuswu/dlineation/utils"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestAddAngleConstraint(t *testing.T) {
+	UseLogger(utils.Logger)
 	s := NewSketch()
+	o := NewVector(0, 0, 0)
+	xDir := NewVector(0, -1, 0)
+	yDir := NewVector(1, 0, 0)
+	wp := NewWorkPlane(o, xDir, yDir)
+	s.SetWorkplane(wp)
 	p1 := s.AddPoint(0, 0)
 	l1 := s.AddLine(1, 0, 0, 1)
 	c1, err := s.AddAngleConstraint(p1, l1, 45, false)

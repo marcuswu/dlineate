@@ -142,6 +142,10 @@ func (s *Sketch) resolveDistanceConstraint(c *Constraint) bool {
 	if len(c.elements) > 1 {
 		p2 = c.elements[1]
 	}
+	if len(c.constraints) > 0 {
+		c.state = Resolved
+		return true
+	}
 	if c.state == Resolved || c.state == Solved {
 		return true
 	}

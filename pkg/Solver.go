@@ -290,7 +290,7 @@ func (s *Sketch) getDistanceConstraint(e *Element) (*Constraint, bool) {
 		return c, true
 	}
 
-	// Can operate on pkg/Element
+	// Look for a constraint on a line between the start and end
 	constraints := s.findConstraints(e.children[0])
 	for _, c := range constraints {
 		if c.elements[0] == e.children[1] || c.elements[1] == e.children[1] {
@@ -352,7 +352,7 @@ func (s *Sketch) resolveCurveRadius(e *Element) (float64, bool) {
 
 	// Circles and Arcs with solved center and solved elements coincident or distance to the circle / arc
 	if centerSolved := s.isElementSolved(e.children[0]); centerSolved {
-		// Needs to operate on pkg/Element
+		// Find constraints against the curve itself (not against its center or other child elements)
 		eAll := s.findConstraints(e)
 		var other *Element = nil
 		for _, ec := range eAll {
@@ -368,7 +368,7 @@ func (s *Sketch) resolveCurveRadius(e *Element) (float64, bool) {
 			}
 			// Other & e have a distance constraint between them. dist(other, e.center) - c.value is radius
 			distFromCurve := other.element.AsPoint().DistanceTo(e.children[0].element.AsPoint())
-			radius := distFromCurve - ec.constraints[0].Value
+			radius := distFromCurve - ec.dataValue
 			return radius, true
 		}
 	}
