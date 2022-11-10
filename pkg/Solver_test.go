@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/marcuswu/dlineation/internal/constraint"
+	"github.com/marcuswu/dlineation/internal/element"
 	"github.com/marcuswu/dlineation/utils"
 	"github.com/stretchr/testify/assert"
 )
@@ -155,9 +156,21 @@ func TestSolve(t *testing.T) {
 	assert.Equal(t, errors.New("failed to solve completely"), err, "Should not solve")
 
 	s = NewSketch()
+	c1 = s.AddCircle(0, 0, 3)
+	l1 := s.AddLine(0, 0, 1, 1)
+	s.AddTangentConstraint(c1, l1)
+	s.AddCoincidentConstraint(l1.Start(), s.Origin)
+	s.AddDistanceConstraint(l1, nil, 5)
+	s.AddCoincidentConstraint(c1.Center(), l1.End())
+
+	err = s.Solve()
+	assert.NotNil(t, err, "Expected inconsistent constraints")
+	assert.Equal(t, errors.New("failed to solve completely"), err, "Should not solve")
+
+	s = NewSketch()
 
 	// Add elements
-	l1 := s.AddLine(0.0, 0.0, 3.13, 0.0)
+	l1 = s.AddLine(0.0, 0.0, 3.13, 0.0)
 	l2 := s.AddLine(3.13, 0.0, 5.14, 2.27)
 	l3 := s.AddLine(5.14, 2.27, 2.28, 4.72)
 	l4 := s.AddLine(2.28, 4.72, -1.04, 3.56)
@@ -197,6 +210,9 @@ func TestSolve(t *testing.T) {
 	assert.InDelta(t, maxy, 6.155367, utils.StandardCompare, "MaxY")
 
 	var b bytes.Buffer
+	s.AddArc(0, 0, -1, -0.1, -1, 0)
+	c := s.AddCircle(0, 0, 2)
+	c.Center().element.SetConstraintLevel(element.OverConstrained)
 	err = s.WriteImage(&b, 500, 200)
 	assert.Nil(t, err, "Expect no error from WriteImage")
 	assert.Contains(t, b.String(), "svg", "wrote an svg")
