@@ -1,4 +1,4 @@
-package dlineation
+package dlineate
 
 func (s *Sketch) AddCoincidentConstraint(p1 *Element, p2 *Element) *Constraint {
 	// If two points are coincident, they are the same point -- make them reference the same element

@@ -1,4 +1,4 @@
-package dlineation
+package dlineate
 
 import (
 	"errors"
@@ -10,9 +10,9 @@ import (
 	"github.com/tdewolff/canvas"
 	"github.com/tdewolff/canvas/renderers/svg"
 
-	core "github.com/marcuswu/dlineation/internal"
-	"github.com/marcuswu/dlineation/internal/solver"
-	"github.com/marcuswu/dlineation/utils"
+	core "github.com/marcuswu/dlineate/internal"
+	"github.com/marcuswu/dlineate/internal/solver"
+	"github.com/marcuswu/dlineate/utils"
 )
 
 type Sketch struct {

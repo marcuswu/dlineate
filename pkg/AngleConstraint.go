@@ -1,10 +1,10 @@
-package dlineation
+package dlineate
 
 import (
 	"errors"
 	"math"
 
-	ic "github.com/marcuswu/dlineation/internal/constraint"
+	ic "github.com/marcuswu/dlineate/internal/constraint"
 )
 
 func AngleConstraint(p1 *Element, p2 *Element) *Constraint {

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/marcuswu/dlineation/utils"
+	"github.com/marcuswu/dlineate/utils"
 )
 
 // SketchLine represents a line in a 2D sketch in the form

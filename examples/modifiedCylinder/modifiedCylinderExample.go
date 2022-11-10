@@ -4,14 +4,14 @@ import (
 	"fmt"
 	"os"
 
-	dlineation "github.com/marcuswu/dlineation/pkg"
-	"github.com/marcuswu/dlineation/utils"
+	dlineate "github.com/marcuswu/dlineate/pkg"
+	"github.com/marcuswu/dlineate/utils"
 	"github.com/rs/zerolog"
 )
 
 func main() {
 	utils.Logger = utils.Logger.Level(zerolog.InfoLevel).Output(zerolog.ConsoleWriter{Out: os.Stderr})
-	sketch := dlineation.NewSketch()
+	sketch := dlineate.NewSketch()
 
 	// Add elements
 	start := sketch.AddPoint(6, 0)

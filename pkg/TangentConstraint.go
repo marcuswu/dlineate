@@ -1,9 +1,9 @@
-package dlineation
+package dlineate
 
 import (
 	"errors"
 
-	"github.com/marcuswu/dlineation/utils"
+	"github.com/marcuswu/dlineate/utils"
 )
 
 func TangentConstraint(p1 *Element, p2 *Element) *Constraint {

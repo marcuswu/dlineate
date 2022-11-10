@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	el "github.com/marcuswu/dlineation/internal/element"
+	el "github.com/marcuswu/dlineate/internal/element"
 	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/assert"
 )

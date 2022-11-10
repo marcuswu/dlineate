@@ -1,10 +1,10 @@
-package dlineation
+package dlineate
 
 import (
 	"testing"
 
-	"github.com/marcuswu/dlineation/internal/constraint"
-	"github.com/marcuswu/dlineation/internal/element"
+	"github.com/marcuswu/dlineate/internal/constraint"
+	"github.com/marcuswu/dlineate/internal/element"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -29,5 +29,5 @@
 - [X] Add the ability to add fixed elements
 - [X] Add the ability to retrieve level of constraint for elements
 - [X] Add the ability to retrieve a list of conflicting constraints
-- [ ] Add mapping 2D sketch to 3D workplane
+- [X] Add mapping 2D sketch to 3D workplane -- nvm, this will be handled in MakerCAD
 - [ ] Add documentation

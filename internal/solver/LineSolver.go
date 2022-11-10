@@ -3,9 +3,9 @@ package solver
 import (
 	"math"
 
-	"github.com/marcuswu/dlineation/internal/constraint"
-	el "github.com/marcuswu/dlineation/internal/element"
-	"github.com/marcuswu/dlineation/utils"
+	"github.com/marcuswu/dlineate/internal/constraint"
+	el "github.com/marcuswu/dlineate/internal/element"
+	"github.com/marcuswu/dlineate/utils"
 )
 
 func SolveForLine(c1 *constraint.Constraint, c2 *constraint.Constraint) SolveState {

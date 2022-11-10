@@ -1,10 +1,10 @@
-package dlineation
+package dlineate
 
 import (
 	"math"
 
-	el "github.com/marcuswu/dlineation/internal/element"
-	"github.com/marcuswu/dlineation/utils"
+	el "github.com/marcuswu/dlineate/internal/element"
+	"github.com/marcuswu/dlineate/utils"
 )
 
 func (e *Element) isLineOrArc() bool {

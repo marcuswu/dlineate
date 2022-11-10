@@ -1,10 +1,10 @@
-package dlineation
+package dlineate
 
 import (
 	"math"
 	"testing"
 
-	"github.com/marcuswu/dlineation/utils"
+	"github.com/marcuswu/dlineate/utils"
 	"github.com/stretchr/testify/assert"
 )
 

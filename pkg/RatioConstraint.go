@@ -1,7 +1,7 @@
-package dlineation
+package dlineate
 
 import (
-	"github.com/marcuswu/dlineation/utils"
+	"github.com/marcuswu/dlineate/utils"
 )
 
 /*

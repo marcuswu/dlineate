@@ -1,12 +1,12 @@
-package dlineation
+package dlineate
 
 import (
 	"errors"
 	"fmt"
 	"math"
 
-	c "github.com/marcuswu/dlineation/internal/constraint"
-	el "github.com/marcuswu/dlineation/internal/element"
+	c "github.com/marcuswu/dlineate/internal/constraint"
+	el "github.com/marcuswu/dlineate/internal/element"
 	"github.com/tdewolff/canvas"
 )
 

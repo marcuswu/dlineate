@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"math"
 
-	el "github.com/marcuswu/dlineation/internal/element"
-	"github.com/marcuswu/dlineation/utils"
+	el "github.com/marcuswu/dlineate/internal/element"
+	"github.com/marcuswu/dlineate/utils"
 	"github.com/rs/zerolog"
 )
 

@@ -1,8 +1,8 @@
-package dlineation
+package dlineate
 
 import (
-	ic "github.com/marcuswu/dlineation/internal/constraint"
-	"github.com/marcuswu/dlineation/utils"
+	ic "github.com/marcuswu/dlineate/internal/constraint"
+	"github.com/marcuswu/dlineate/utils"
 )
 
 func DistanceConstraint(p1 *Element, p2 *Element) *Constraint {
