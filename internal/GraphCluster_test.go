@@ -1,14 +1,53 @@
 package core
 
 import (
+	"fmt"
 	"math"
+	"sort"
 	"testing"
 
-	"github.com/marcuswu/dlineation/internal/constraint"
-	el "github.com/marcuswu/dlineation/internal/element"
-	"github.com/marcuswu/dlineation/internal/solver"
-	"github.com/marcuswu/dlineation/utils"
+	"github.com/marcuswu/dlineate/internal/constraint"
+	el "github.com/marcuswu/dlineate/internal/element"
+	"github.com/marcuswu/dlineate/internal/solver"
+	"github.com/marcuswu/dlineate/utils"
+	"github.com/stretchr/testify/assert"
 )
+
+func TestAddElement(t *testing.T) {
+	e1 := el.NewSketchPoint(0, 0, 1)
+	e2 := el.NewSketchPoint(1, 2, 1)
+
+	g := NewGraphCluster(1)
+	g.AddElement(e1)
+
+	if len(g.elements) != 1 {
+		t.Error("expected one element to be added to the cluster, found", len(g.elements))
+	}
+
+	if len(g.solveOrder) != 1 {
+		t.Error("expected one element to be added to the cluster's solve order, found", len(g.solveOrder))
+	}
+
+	g.AddElement(e1)
+
+	if len(g.elements) != 1 {
+		t.Error("expected no change tothe cluster element length, found", len(g.elements))
+	}
+
+	if len(g.solveOrder) != 1 {
+		t.Error("expected no change to the cluster's solve order, found", len(g.solveOrder))
+	}
+
+	g.AddElement(e2)
+
+	if len(g.elements) != 2 {
+		t.Error("expected two elements to be added to the cluster, found", len(g.elements))
+	}
+
+	if len(g.solveOrder) != 2 {
+		t.Error("expected two elements to be added to the cluster's solve order, found", len(g.solveOrder))
+	}
+}
 
 func TestAddConstraint(t *testing.T) {
 	e1 := el.NewSketchPoint(0, 0, 1)
@@ -20,11 +59,27 @@ func TestAddConstraint(t *testing.T) {
 	g := NewGraphCluster(0)
 	g.AddConstraint(c1)
 
+	if g.GetID() != 0 {
+		t.Error("expected cluster id to be 0")
+	}
+
 	if len(g.constraints) != 1 {
 		t.Error("expected graph cluster to have one constraint, found", len(g.constraints))
 	}
 	if len(g.elements) != 2 {
 		t.Error("expected graph cluster to have 2 elements, found", len(g.elements))
+	}
+
+	c1.Solved = true
+	g.AddConstraint(c1)
+	if len(g.constraints) != 1 {
+		t.Error("expected no change to cluster constraints after adding the same constraint twice")
+	}
+	if len(g.elements) != 2 {
+		t.Error("expected no change to elements after adding the same constraint twice")
+	}
+	if !g.constraints[c1.GetID()].Solved {
+		t.Error("expected constraint solve state to change after adding the solved constraint")
 	}
 
 	g.AddConstraint(c2)
@@ -68,6 +123,36 @@ func TestHasElementID(t *testing.T) {
 	if g.HasElementID(4) {
 		t.Error("expected graph cluster to not have element 4, but element was found")
 	}
+}
+
+func TestHasElement(t *testing.T) {
+	e1 := el.NewSketchPoint(0, 0, 1)
+	e2 := el.NewSketchPoint(1, 2, 1)
+	e3 := el.NewSketchLine(2, 2, 1, -1)
+	e4 := el.NewSketchLine(3, 2, 2, -0)
+	c1 := constraint.NewConstraint(0, constraint.Distance, e1, e2, 5, false)
+	c2 := constraint.NewConstraint(1, constraint.Distance, e2, e3, 7, false)
+	c3 := constraint.NewConstraint(2, constraint.Distance, e3, e4, 2, false)
+
+	g := NewGraphCluster(0)
+	g.AddConstraint(c1)
+	g.AddConstraint(c2)
+
+	o := NewGraphCluster(1)
+	o.AddConstraint(c3)
+
+	elements1 := []el.SketchElement{e1, e2, e3}
+	elements2 := []el.SketchElement{e3, e4}
+	for _, e := range elements1 {
+		assert.True(t, g.HasElement(e), fmt.Sprintf("cluster 1 has expected element %d", e.GetID()))
+	}
+	for _, e := range elements2 {
+		assert.True(t, o.HasElement(e), fmt.Sprintf("cluster 2 has expected element %d", e.GetID()))
+	}
+	falseElement := el.NewSketchPoint(100, 0, 0)
+	assert.False(t, g.HasElement(falseElement))
+	assert.False(t, o.HasElement(falseElement))
+	assert.True(t, g.HasElement(nil))
 }
 
 func TestGetElement(t *testing.T) {
@@ -499,14 +584,10 @@ func TestLocalSolve2(t *testing.T) {
 	}
 
 	angle := c2.Element1.AsLine().AngleToLine(c2.Element2.AsLine())
-	if utils.StandardFloatCompare(angle, c2.Value) != 0 {
-		t.Error("Expected line l5 to be", c2.Value, "radians from line l4, angle is", angle)
-	}
+	assert.InDelta(t, math.Abs(angle), math.Abs(c2.Value), utils.StandardCompare, "Expected line l5 angle to be correct")
 
 	angle = c6.Element1.AsLine().AngleToLine(c6.Element2.AsLine())
-	if utils.StandardFloatCompare(angle, c6.Value) != 0 {
-		t.Error("Expected line l3 to be", c6.Value, "radians from line l4, angle is", angle)
-	}
+	assert.InDelta(t, math.Abs(angle), math.Abs(c6.Value), utils.StandardCompare, "Expected line l3 angle to be correct")
 }
 
 func TestSolveMerge(t *testing.T) {
@@ -622,7 +703,7 @@ func TestSolveMerge(t *testing.T) {
 	p5 = g0.elements[9].AsPoint()
 
 	rad2Deg := func(rad float64) float64 { return (rad / math.Pi) * 180 }
-	deg2Rad := func(deg float64) float64 { return (deg / 180) * math.Pi }
+	deg2Rad := func(deg float64) float64 { return (deg / 180.0) * math.Pi }
 	desired := deg2Rad(72)
 	angle := l1.AngleToLine(l2)
 	if utils.StandardFloatCompare(angle, desired) != 0 {
@@ -696,6 +777,263 @@ func TestSolveMerge(t *testing.T) {
 	)
 }
 
-func TestSolve(t *testing.T) {
+func TestSolvedUnsolvedConstraintsFor(t *testing.T) {
+	e1 := el.NewSketchPoint(0, 0, 1)
+	e2 := el.NewSketchPoint(1, 2, 1)
+	e3 := el.NewSketchLine(2, 2, 1, -1)
+	e4 := el.NewSketchLine(3, 2, 2, -0)
+	c1 := constraint.NewConstraint(0, constraint.Distance, e1, e2, 5, false)
+	c2 := constraint.NewConstraint(1, constraint.Distance, e2, e3, 7, false)
+	c3 := constraint.NewConstraint(2, constraint.Distance, e3, e4, 2, false)
 
+	g := NewGraphCluster(0)
+	g.AddConstraint(c1)
+	g.AddConstraint(c2)
+	g.AddConstraint(c3)
+	g.solved.Add(c1.GetID())
+	g.solved.Add(c3.GetID())
+
+	tests := []struct {
+		name     string
+		eId      uint
+		solved   []uint
+		unsolved []uint
+	}{
+		// Keep these lists sorted
+		{"constraints for element 0", 0, []uint{0}, []uint{}},
+		{"constraints for element 1", 1, []uint{0}, []uint{1}},
+		{"constraints for element 2", 2, []uint{2}, []uint{1}},
+		{"constraints for element 3", 3, []uint{2}, []uint{}},
+	}
+	for _, tt := range tests {
+		var solved constraint.ConstraintList = g.solvedConstraintsFor(tt.eId)
+		var unsolved constraint.ConstraintList = g.unsolvedConstraintsFor(tt.eId)
+		sort.Sort(solved)
+		sort.Sort(unsolved)
+		assert.Equal(t, len(tt.solved), len(solved), tt.name)
+		assert.Equal(t, len(tt.unsolved), len(unsolved), tt.name)
+		for i, c := range solved {
+			assert.Equal(t, tt.solved[i], c.GetID())
+		}
+		for i, c := range unsolved {
+			assert.Equal(t, tt.unsolved[i], c.GetID())
+		}
+	}
+}
+
+func TestLocalSolveEdgeCases(t *testing.T) {
+	e3 := el.NewSketchLine(2, 2, 1, -1)
+	e4 := el.NewSketchLine(3, 2, 2, -0)
+	c3 := constraint.NewConstraint(2, constraint.Distance, e3, e4, 2, false)
+
+	o := NewGraphCluster(1)
+	o.AddConstraint(c3)
+
+	state := o.localSolve()
+	assert.Equal(t, solver.NonConvergent, state, "Test local solve with solveorder < 2")
+
+	e1 := el.NewSketchPoint(0, 0, 1)
+	e2 := el.NewSketchPoint(1, 2, 1)
+	c1 := constraint.NewConstraint(0, constraint.Distance, e1, e2, 5, false)
+	o.AddConstraint(c1)
+	o.solveOrder = append(o.solveOrder, e1.GetID())
+	o.solveOrder = append(o.solveOrder, e2.GetID())
+	o.solveOrder = append(o.solveOrder, e3.GetID())
+
+	state = o.localSolve()
+	assert.Equal(t, solver.NonConvergent, state, "Test local solve without enough constraints to solve desired element")
+
+	c2 := constraint.NewConstraint(1, constraint.Distance, e2, e3, 7, false)
+	g := NewGraphCluster(0)
+	g.solveOrder = append(g.solveOrder, e1.GetID())
+	g.solveOrder = append(g.solveOrder, e2.GetID())
+	g.solveOrder = append(g.solveOrder, e3.GetID())
+	g.AddConstraint(c1)
+	g.AddConstraint(c2)
+	g.AddConstraint(c3)
+	g.solved.Add(c2.GetID())
+	g.solved.Add(c3.GetID())
+
+	state = g.Solve()
+	assert.Equal(t, solver.Solved, state, "Test local solve with pre-solved elements")
+}
+
+func TestMergeOne(t *testing.T) {
+	// Create fixed element cluster
+	// Create cluster w/ square
+	// merge the two -- use solveMerge instead of mergeOne
+	g := NewGraphCluster(0)
+	g.AddElement(el.NewSketchPoint(0, 0, 0))
+	g.AddElement(el.NewSketchLine(1, 0, 1, 0))
+	g.AddElement(el.NewSketchLine(2, 1, 0, 0))
+
+	o := NewGraphCluster(1)
+	o.AddElement(el.NewSketchLine(1, -0.029929, -0.999552, 0))
+
+	state := g.solveMerge(o, nil)
+	assert.Equal(t, solver.NonConvergent, state, "Merge containing only one shared element should fail to solve")
+
+	o.AddElement(el.NewSketchLine(2, 0.999552, -0.029929, 0))
+
+	state = g.solveMerge(o, nil)
+	assert.Equal(t, solver.NonConvergent, state, "Merge where shared elements are both lines should fail to solve")
+
+	o = NewGraphCluster(1)
+	o.AddElement(el.NewSketchPoint(0, 0, 0))
+	o.AddElement(el.NewSketchPoint(5, 3.998208, -0.119717))
+	o.AddElement(el.NewSketchLine(12, -0.563309, 0.826247, -3.804226))
+	o.AddElement(el.NewSketchPoint(11, 2.183330, 6.092751))
+	o.AddElement(el.NewSketchLine(9, 0.611735, 0.791063, -6.155367))
+	o.AddElement(el.NewSketchPoint(8, 5.347580, 3.645810))
+	o.AddElement(el.NewSketchLine(1, -0.029929, -0.999552, 0))
+	o.AddElement(el.NewSketchLine(2, 0.999552, -0.029929, 0))
+	o.AddElement(el.NewSketchLine(15, -0.959879, -0.280414, 0))
+	o.AddElement(el.NewSketchPoint(14, -1.121656, 3.839516))
+	o.AddElement(el.NewSketchLine(6, 0.941382, -0.337343, -3.804226))
+	o.AddElement(el.NewSketchLine(3, -0.029929, -0.999552, 0))
+	state = g.solveMerge(o, nil)
+	assert.Equal(t, solver.Solved, state, "Merge should solve successfully")
+
+	g = NewGraphCluster(0)
+	g.AddElement(el.NewSketchPoint(0, 0, 0))
+	g.AddElement(el.NewSketchLine(100, 0, 1, 0))
+	g.AddElement(el.NewSketchPoint(5, 4, 0))
+
+	state = g.solveMerge(o, nil)
+	assert.Equal(t, solver.Solved, state, "Merge with two shared points should solve successfully")
+}
+
+func TestSolveMergeEdgeCases(t *testing.T) {
+	g := NewGraphCluster(0)
+	g.AddElement(el.NewSketchPoint(0, 0, 0))
+	g.AddElement(el.NewSketchLine(1, 0, 1, 0))
+	g.AddElement(el.NewSketchLine(2, 1, 0, 0))
+
+	o1 := NewGraphCluster(1)
+	o1.AddElement(el.NewSketchPoint(0, 0, 0))
+	o1.AddElement(el.NewSketchPoint(5, 3.998208, -0.119717))
+	o1.AddElement(el.NewSketchLine(12, -0.563309, 0.826247, -3.804226))
+	o1.AddElement(el.NewSketchPoint(11, 2.183330, 6.092751))
+	o1.AddElement(el.NewSketchLine(9, 0.611735, 0.791063, -6.155367))
+
+	o2 := NewGraphCluster(2)
+	o2.AddElement(el.NewSketchLine(15, -0.959879, -0.280414, 0))
+	o2.AddElement(el.NewSketchPoint(5, -1.121656, 3.839516))
+	o2.AddElement(el.NewSketchLine(6, 0.941382, -0.337343, -3.804226))
+	o2.AddElement(el.NewSketchLine(3, -0.029929, -0.999552, 0))
+
+	state := g.solveMerge(o1, o2)
+	assert.Equal(t, solver.NonConvergent, state, "Three cluster solve with only two shared elements should fail")
+
+	// Solve merge with three lines lines
+	g = NewGraphCluster(0)
+	g.AddElement(el.NewSketchPoint(0, 0, 0))
+	g.AddElement(el.NewSketchLine(9, 0.611735, 0.791063, -6.155367))
+	g.AddElement(el.NewSketchLine(1, 0, 1, 0))
+
+	o1 = NewGraphCluster(1)
+	o1.AddElement(el.NewSketchPoint(7, 0, 1))
+	o1.AddElement(el.NewSketchPoint(5, 3.998208, -0.119717))
+	o1.AddElement(el.NewSketchPoint(11, 2.183330, 6.092751))
+	o1.AddElement(el.NewSketchLine(9, 0.611735, 0.791063, -6.155367))
+	o1.AddElement(el.NewSketchLine(2, 1, 0, 0))
+
+	o2 = NewGraphCluster(2)
+	o2.AddElement(el.NewSketchLine(15, -0.959879, -0.280414, 0))
+	o2.AddElement(el.NewSketchPoint(8, 3.998208, -0.119717))
+	o2.AddElement(el.NewSketchLine(1, 0, 1, 0))
+	o2.AddElement(el.NewSketchLine(2, 1, 0.0, 0.0))
+
+	state = g.solveMerge(o1, o2)
+	assert.Equal(t, solver.Solved, state, "Three cluster solve with three lines")
+
+	// Solve merge with one point and two lines where lines are in clusters 0 and 1
+	// I don't know where I got these values... they may be incorrect
+	g = NewGraphCluster(0)
+	g.AddElement(el.NewSketchPoint(0, 0, 0))
+	g.AddElement(el.NewSketchLine(3, 0, -1, 0))
+	g.AddElement(el.NewSketchPoint(5, 4, 0))
+	g.AddElement(el.NewSketchLine(1, 0, -1, 0))
+
+	o1 = NewGraphCluster(1)
+	o1.AddElement(el.NewSketchPoint(11, 2.183330, 6.092751))
+	o1.AddElement(el.NewSketchLine(12, -0.563309, 0.826247, -3.804226))
+	o1.AddElement(el.NewSketchLine(15, -3.839516, -1.121656, 0))
+	o1.AddElement(el.NewSketchLine(9, 0.611735, 0.791063, -6.155367))
+	o1.AddElement(el.NewSketchPoint(14, -1.121656, 3.839516))
+	o1.AddElement(el.NewSketchPoint(0, 0, 0))
+
+	o2 = NewGraphCluster(2)
+	o2.AddElement(el.NewSketchPoint(8, 5.14, 2.27))
+	o2.AddElement(el.NewSketchLine(6, 2.029929, -2.651719, -9.373495))
+	o2.AddElement(el.NewSketchPoint(5, 2.488281, -0.724727))
+	o2.AddElement(el.NewSketchLine(9, 0.861839, 0.507182, -5.581155))
+
+	state = g.solveMerge(o1, o2)
+	assert.Equal(t, solver.Solved, state, "Three cluster solve with three shared elements should solve")
+
+	g.elements[0] = el.NewSketchLine(0, 1, 1, 1)
+	o1.elements[0] = el.NewSketchLine(0, 3, 2, 1)
+	line := o2.elements[9]
+	line.AsLine().SetB(0.235)
+	line.AsLine().SetC(2)
+	state = g.solveMerge(o1, o2)
+	assert.Equal(t, solver.NonConvergent, state, "Three cluster solve with non-convergent lines")
+
+	o1.elements[2] = el.NewSketchLine(2, 1, 0, 0)
+	o2.elements[2] = el.NewSketchLine(2, 1, 0, 0)
+	g.elements[1] = el.NewSketchLine(1, 1, 0, 6)
+	o2.elements[1] = el.NewSketchLine(1, 1, 0, 6)
+	g.elements[0] = el.NewSketchPoint(0, -10, 1)
+	o1.elements[0] = el.NewSketchPoint(0, 3, 2)
+	state = g.solveMerge(o1, o2)
+	assert.Equal(t, solver.NonConvergent, state, "Fail to solve final element")
+
+	g = NewGraphCluster(0)
+	g.AddElement(el.NewSketchPoint(0, 0, 0))
+	g.AddElement(el.NewSketchLine(9, 0.611735, 0.791063, -6.155367))
+	g.AddElement(el.NewSketchLine(1, 0, 1, 0))
+
+	o1 = NewGraphCluster(1)
+	o1.AddElement(el.NewSketchPoint(0, 0, 0))
+	o1.AddElement(el.NewSketchPoint(5, 3.998208, -0.119717))
+	o1.AddElement(el.NewSketchPoint(11, 2.183330, 6.092751))
+	o1.AddElement(el.NewSketchLine(6, 0.611735, 0.791063, -6.155367))
+	o1.AddElement(el.NewSketchLine(2, 1, 0, 0))
+
+	o2 = NewGraphCluster(2)
+	o2.AddElement(el.NewSketchLine(15, -0.959879, -0.280414, 0))
+	o2.AddElement(el.NewSketchPoint(8, 3.998208, -0.119717))
+	o2.AddElement(el.NewSketchLine(1, 0, 1, 0))
+	o2.AddElement(el.NewSketchLine(2, 1, 0.0, 0.0))
+	o2.AddElement(el.NewSketchPoint(0, 0, 0))
+
+	state = g.solveMerge(o1, o2)
+	assert.Equal(t, solver.NonConvergent, state, "Nonconvergent where an element has too many parents")
+}
+
+func TestToGraphViz(t *testing.T) {
+	e1 := el.NewSketchPoint(0, 0, 1)
+	e2 := el.NewSketchPoint(1, 2, 1)
+	e3 := el.NewSketchLine(2, 2, 1, -1)
+	e4 := el.NewSketchLine(3, 2, 2, -0)
+	c1 := constraint.NewConstraint(0, constraint.Distance, e1, e2, 5, false)
+	c2 := constraint.NewConstraint(1, constraint.Distance, e2, e3, 7, false)
+	c3 := constraint.NewConstraint(2, constraint.Distance, e3, e4, 2, false)
+
+	g := NewGraphCluster(0)
+	g.AddConstraint(c1)
+	g.AddConstraint(c2)
+	g.AddConstraint(c3)
+
+	gvString := g.ToGraphViz()
+	assert.Contains(t, gvString, "subgraph cluster_0")
+	assert.Contains(t, gvString, "label = \"Cluster 0\"")
+	assert.Contains(t, gvString, c1.ToGraphViz(0), "GraphViz output contains constraint 1")
+	assert.Contains(t, gvString, c2.ToGraphViz(0), "GraphViz output contains constraint 2")
+	assert.Contains(t, gvString, c3.ToGraphViz(0), "GraphViz output contains constraint 3")
+	assert.Contains(t, gvString, e1.ToGraphViz(0), "GraphViz output contains element 1")
+	assert.Contains(t, gvString, e2.ToGraphViz(0), "GraphViz output contains element 2")
+	assert.Contains(t, gvString, e3.ToGraphViz(0), "GraphViz output contains element 3")
+	assert.Contains(t, gvString, e4.ToGraphViz(0), "GraphViz output contains element 4")
 }

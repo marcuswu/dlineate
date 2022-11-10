@@ -4,14 +4,14 @@ import (
 	"fmt"
 	"os"
 
-	dlineation "github.com/marcuswu/dlineation/pkg"
-	"github.com/marcuswu/dlineation/utils"
+	dlineate "github.com/marcuswu/dlineate/pkg"
+	"github.com/marcuswu/dlineate/utils"
 	"github.com/rs/zerolog"
 )
 
 func main() {
 	utils.Logger = utils.Logger.Level(zerolog.InfoLevel).Output(zerolog.ConsoleWriter{Out: os.Stderr})
-	sketch := dlineation.NewSketch()
+	sketch := dlineate.NewSketch()
 
 	// Add elements
 	l1 := sketch.AddLine(0.0, 0.0, 3.13, 0.0)
@@ -33,9 +33,9 @@ func main() {
 	sketch.AddCoincidentConstraint(l5.End(), l1.Start())
 
 	// 108 degrees between lines (skip 2 to not over constrain)
-	sketch.AddAngleConstraint(l2, l3, -108)
-	sketch.AddAngleConstraint(l3, l4, -108)
-	sketch.AddAngleConstraint(l4, l5, 72)
+	sketch.AddAngleConstraint(l2, l3, 108, true)
+	sketch.AddAngleConstraint(l3, l4, 108, true)
+	sketch.AddAngleConstraint(l4, l5, 108, true)
 
 	// 4 unit length on lines (skip 1 to not over constrain)
 	sketch.AddDistanceConstraint(l1, nil, 4.0)

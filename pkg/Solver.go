@@ -1,7 +1,8 @@
-package dlineation
+package dlineate
 
 import (
 	"errors"
+	"io"
 	"math"
 	"os"
 
@@ -9,9 +10,9 @@ import (
 	"github.com/tdewolff/canvas"
 	"github.com/tdewolff/canvas/renderers/svg"
 
-	core "github.com/marcuswu/dlineation/internal"
-	"github.com/marcuswu/dlineation/internal/solver"
-	"github.com/marcuswu/dlineation/utils"
+	core "github.com/marcuswu/dlineate/internal"
+	"github.com/marcuswu/dlineate/internal/solver"
+	"github.com/marcuswu/dlineate/utils"
 )
 
 type Sketch struct {
@@ -41,7 +42,7 @@ func NewSketch() *Sketch {
 	s.Origin = s.addOrigin()
 	s.XAxis = s.addAxis(0, -1, 0)
 	s.YAxis = s.addAxis(1, 0, 0)
-	s.AddAngleConstraint(s.XAxis, s.YAxis, 90)
+	s.AddAngleConstraint(s.XAxis, s.YAxis, 90, false)
 	s.AddCoincidentConstraint(s.Origin, s.XAxis)
 	s.AddCoincidentConstraint(s.Origin, s.YAxis)
 
@@ -212,6 +213,13 @@ func (s *Sketch) AddArc(x1 float64, y1 float64, x2 float64, y2 float64, x3 float
 	return a
 }
 
+func (s *Sketch) MakeFixed(e *Element) {
+	s.sketch.MakeFixed(e.element)
+	for _, el := range e.children {
+		s.sketch.MakeFixed(el.element)
+	}
+}
+
 func (s *Sketch) resolveConstraint(c *Constraint) bool {
 	if c.state == Resolved {
 		return true
@@ -270,19 +278,31 @@ func (s *Sketch) isElementSolved(e *Element) bool {
 }
 
 func (s *Sketch) getDistanceConstraint(e *Element) (*Constraint, bool) {
-	dc, err := s.findConstraint(Distance, e)
-	if err == nil {
-		return dc, true
-	}
-
 	if e.elementType != Line {
+		dc, err := s.findConstraint(Distance, e)
+		if err == nil {
+			return dc, true
+		}
+
+		// if e.elementType != Line { // Move to above
 		return nil, false
 	}
 
-	// Can operate on pkg/Element
+	for _, c := range s.eToC[e.id] {
+		if c.constraintType != Distance || (c.state != Resolved && c.state != Solved) {
+			continue
+		}
+		if len(c.elements) > 1 && c.elements[1] != nil {
+			continue
+		}
+		return c, true
+	}
+
+	// Look for a constraint on a line between the start and end
 	constraints := s.findConstraints(e.children[0])
 	for _, c := range constraints {
-		if c.elements[0] == e.children[1] || c.elements[1] == e.children[2] {
+		if c.elements[0] == e.children[1] || c.elements[1] == e.children[1] {
+			// if c.elements[0] == e.children[1] || c.elements[1] == e.children[2] {
 			return c, true
 		}
 	}
@@ -293,6 +313,16 @@ func (s *Sketch) getDistanceConstraint(e *Element) (*Constraint, bool) {
 func (s *Sketch) resolveLineLength(e *Element) (float64, bool) {
 	if e.elementType != Line {
 		return 0, false
+	}
+
+	constraints := s.findConstraints(e.children[0])
+	for _, c := range constraints {
+		if c.constraintType != Distance {
+			continue
+		}
+		if c.elements[0] == e.children[1] || c.elements[1] == e.children[1] {
+			return c.constraints[0].Value, true
+		}
 	}
 
 	dc, ok := s.getDistanceConstraint(e)
@@ -330,7 +360,7 @@ func (s *Sketch) resolveCurveRadius(e *Element) (float64, bool) {
 
 	// Circles and Arcs with solved center and solved elements coincident or distance to the circle / arc
 	if centerSolved := s.isElementSolved(e.children[0]); centerSolved {
-		// Needs to operate on pkg/Element
+		// Find constraints against the curve itself (not against its center or other child elements)
 		eAll := s.findConstraints(e)
 		var other *Element = nil
 		for _, ec := range eAll {
@@ -346,7 +376,7 @@ func (s *Sketch) resolveCurveRadius(e *Element) (float64, bool) {
 			}
 			// Other & e have a distance constraint between them. dist(other, e.center) - c.value is radius
 			distFromCurve := other.element.AsPoint().DistanceTo(e.children[0].element.AsPoint())
-			radius := distFromCurve - ec.constraints[0].Value
+			radius := distFromCurve - ec.dataValue
 			return radius, true
 		}
 	}
@@ -388,6 +418,7 @@ func (s *Sketch) Solve() error {
 				Int("last unresolved", lastUnresolved).
 				Int("current unresolved", numUnresolved).
 				Msg("Exiting solve loop early")
+			solveState = solver.NonConvergent
 			break
 		}
 		utils.Logger.Info().
@@ -425,20 +456,25 @@ func (s *Sketch) Solve() error {
 	}
 
 	switch solveState {
-	case solver.None:
-		return errors.New("unknown solver error")
-	// case solver.UnderConstrained:
-	// 	// TODO: return information about which elements are underconstrained
-	// 	return errors.New("the sketch is under constrained")
-	case solver.OverConstrained:
-		// TODO: return information about which constraints are overconstrained
-		return errors.New("the sketch is over constrained")
-	case solver.NonConvergent:
-		// TODO: return information about which constraints did not converge on a solved state
-		return errors.New("the solver did not converge on a solution")
-	default:
+	case solver.Solved:
 		return nil
+	default:
+		return errors.New("failed to solve completely")
 	}
+}
+
+func (s *Sketch) ConflictingConstraints() []*Constraint {
+	conflicting := make([]*Constraint, 0)
+	for _, c := range s.constraints {
+		for _, ic := range c.constraints {
+			if s.sketch.Conflicting().Contains(ic.GetID()) {
+				conflicting = append(conflicting, c)
+				break
+			}
+		}
+	}
+
+	return conflicting
 }
 
 func (s *Sketch) calculateRectangle(scale float64) (float64, float64, float64, float64) {
@@ -465,11 +501,21 @@ func (s *Sketch) calculateRectangle(scale float64) (float64, float64, float64, f
 	return minX * scale, minY * scale, maxX * scale, maxY * scale
 }
 
+func (s *Sketch) ExportImage(filename string, args ...float64) error {
+	f, err := os.OpenFile(filename, os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0644)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	return s.WriteImage(f, args...)
+}
+
 // ExportImage exports an image representing the current state of the sketch.
 // The origin and axes will be colored gray. Fully constrained solved elements will be colored black.
 // Other elements will be colored blue.
 // It returns an error if unable to open the output file.
-func (s *Sketch) ExportImage(filename string, args ...float64) error {
+func (s *Sketch) WriteImage(out io.Writer, args ...float64) error {
 	width := 150.0
 	height := 150.0
 	scale := 1.0
@@ -516,18 +562,11 @@ func (s *Sketch) ExportImage(filename string, args ...float64) error {
 
 	c.Fit(5.0)
 
-	f, err := os.OpenFile(filename, os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0644)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	svg := svg.New(f, c.W, c.H, &svg.Options{})
-	defer svg.Close()
+	svg := svg.New(out, c.W, c.H, &svg.Options{})
 
 	c.Render(svg)
 
-	return err
+	return svg.Close()
 }
 
 func (s *Sketch) ExportGraphViz(filename string) error {

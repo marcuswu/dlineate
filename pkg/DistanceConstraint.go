@@ -1,8 +1,8 @@
-package dlineation
+package dlineate
 
 import (
-	ic "github.com/marcuswu/dlineation/internal/constraint"
-	"github.com/marcuswu/dlineation/utils"
+	ic "github.com/marcuswu/dlineate/internal/constraint"
+	"github.com/marcuswu/dlineate/utils"
 )
 
 func DistanceConstraint(p1 *Element, p2 *Element) *Constraint {
@@ -30,15 +30,9 @@ func (s *Sketch) addDistanceConstraint(p1 *Element, p2 *Element, v float64) *ic.
 			// If p2 is nil, we're setting the circle radius
 			// This is more of a placeholder for being able to fulfill other constraints as there is no
 			// element to constrain to a distance from the center
-			//return s.sketch.AddConstraint(ic.Distance, p1.children[0].element, nil, v)
 			// Add a constraint to pkg/Sketch (not translatable to internal solver)
 			return nil
 		}
-		// r, ok := s.resolveCurveRadius(p1)
-		// if !ok {
-		// 	break nil
-		// }
-		// c = s.sketch.AddConstraint(ic.Distance, p1.element, p2.element, r+v)
 		return nil
 	case Axis:
 		fallthrough
@@ -62,19 +56,12 @@ func (s *Sketch) addDistanceConstraint(p1 *Element, p2 *Element, v float64) *ic.
 		if p2 == nil {
 			// Add a constraint to pkg/Sketch (not translatable to internal solver)
 			// If p2 is nil, we're setting the arc radius, so distance to start or end works
-			//return s.sketch.AddConstraint(ic.Distance, p1.element, p1.children[1].element, v)
 			return nil
 		}
 		// If p2 is not nil, we need to know the arc's radius is constrained
-		// r, ok := s.resolveCurveRadius(p1)
-		// if !ok {
-		// 	return nil
-		// }
-		// return s.sketch.AddConstraint(ic.Distance, p1.element, p2.element, r+v)
 		return nil
-	default:
-		return s.sketch.AddConstraint(ic.Distance, p1.element, p2.element, v)
 	}
+	return nil
 }
 
 func (s *Sketch) AddDistanceConstraint(p1 *Element, p2 *Element, v float64) *Constraint {
@@ -130,12 +117,17 @@ func (s *Sketch) resolveCurveDistance(e1 *Element, e2 *Element, c *Constraint) b
 		Float64("center y", e1.values[1]).
 		Float64("radius", eRadius).
 		Msg("Resolved curve radius")
-	constraint := s.sketch.AddConstraint(ic.Distance, e1.element, e2.element, eRadius+c.dataValue)
+	var constraint *ic.Constraint = nil
+	if e2 != nil {
+		constraint = s.sketch.AddConstraint(ic.Distance, e1.element, e2.element, eRadius+c.dataValue)
+	}
 	utils.Logger.Debug().
 		Uint("constraint", constraint.GetID()).
 		Msgf("resolveDistanceConstraint: added constraint")
-	e1.constraints = append(e1.constraints, constraint)
-	c.constraints = append(c.constraints, constraint)
+	if constraint != nil {
+		e1.constraints = append(e1.constraints, constraint)
+		c.constraints = append(c.constraints, constraint)
+	}
 	s.constraints = append(s.constraints, c)
 	if c.state != Solved {
 		c.state = Resolved
@@ -149,6 +141,10 @@ func (s *Sketch) resolveDistanceConstraint(c *Constraint) bool {
 	var p2 *Element = nil
 	if len(c.elements) > 1 {
 		p2 = c.elements[1]
+	}
+	if len(c.constraints) > 0 {
+		c.state = Resolved
+		return true
 	}
 	if c.state == Resolved || c.state == Solved {
 		return true

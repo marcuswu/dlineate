@@ -3,8 +3,8 @@ package solver
 import (
 	"fmt"
 
-	"github.com/marcuswu/dlineation/internal/constraint"
-	el "github.com/marcuswu/dlineation/internal/element"
+	"github.com/marcuswu/dlineate/internal/constraint"
+	el "github.com/marcuswu/dlineate/internal/element"
 )
 
 // SolveState The state of the sketch graph
@@ -13,7 +13,6 @@ type SolveState uint
 // SolveState constants
 const (
 	None SolveState = iota
-	// UnderConstrained
 	OverConstrained
 	NonConvergent
 	Solved
@@ -21,8 +20,6 @@ const (
 
 func (ss SolveState) String() string {
 	switch ss {
-	// case UnderConstrained:
-	// 	return "under constrained"
 	case OverConstrained:
 		return "over constrained"
 	case NonConvergent:

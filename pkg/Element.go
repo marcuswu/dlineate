@@ -1,12 +1,12 @@
-package dlineation
+package dlineate
 
 import (
 	"errors"
 	"fmt"
 	"math"
 
-	c "github.com/marcuswu/dlineation/internal/constraint"
-	el "github.com/marcuswu/dlineation/internal/element"
+	c "github.com/marcuswu/dlineate/internal/constraint"
+	el "github.com/marcuswu/dlineate/internal/element"
 	"github.com/tdewolff/canvas"
 )
 
@@ -120,8 +120,8 @@ func (e *Element) getCircleRadius(c *Constraint) (float64, error) {
 	if e.elementType != Circle {
 		return 0, errors.New("can't return radius for a non-circle")
 	}
-	if c.constraintType == Distance && len(c.elements) == 1 {
-		return c.constraints[0].Value, nil
+	if c.constraintType == Distance && len(c.elements) == 1 && c.elements[0].id == e.id {
+		return c.dataValue, nil
 	}
 	if c.constraintType == Coincident {
 		constraint := c.constraints[0]
@@ -133,7 +133,7 @@ func (e *Element) getCircleRadius(c *Constraint) (float64, error) {
 		return other.DistanceTo(e.children[0].element.AsPoint()), nil
 	}
 
-	return 0, errors.New("Constraint type for circle radius myst be Distance or Coincident")
+	return 0, errors.New("Constraint type for circle radius must be Distance or Coincident")
 }
 
 func (e *Element) Values(s *Sketch) []float64 {
@@ -208,10 +208,10 @@ func (e *Element) minMaxXY() (float64, float64, float64, float64) {
 		if e.values[0]+size > maxX {
 			maxX = e.values[0] + size
 		}
-		if e.values[1]-size < minX {
+		if e.values[1]-size < minY {
 			minY = e.values[1] - size
 		}
-		if e.values[1]+size > maxX {
+		if e.values[1]+size > maxY {
 			maxY = e.values[1] + size
 		}
 	case Arc:
@@ -257,9 +257,6 @@ func (e *Element) minMaxXY() (float64, float64, float64, float64) {
 
 func (e *Element) DrawToSVG(s *Sketch, ctx *canvas.Context, mult float64) {
 	ctx.StrokeColor = canvas.Blue
-	if e.elementType == Axis {
-		ctx.StrokeColor = canvas.Gray
-	}
 	if e.elementType != Axis && e.ConstraintLevel() == el.FullyConstrained {
 		ctx.StrokeColor = canvas.Black
 	}
@@ -272,8 +269,6 @@ func (e *Element) DrawToSVG(s *Sketch, ctx *canvas.Context, mult float64) {
 		// May want to draw a small filled circle
 		ctx.MoveTo(e.values[0]*mult+0.5, e.values[1]*mult)
 		ctx.Arc(0.5, 0.5, 0, 0, 360)
-	case Axis:
-		// drawing handled in Solver
 	case Line:
 		x1 := e.values[0] * mult
 		y1 := e.values[1] * mult

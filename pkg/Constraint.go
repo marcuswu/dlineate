@@ -1,10 +1,10 @@
-package dlineation
+package dlineate
 
 import (
 	"fmt"
 
-	c "github.com/marcuswu/dlineation/internal/constraint"
-	"github.com/marcuswu/dlineation/utils"
+	c "github.com/marcuswu/dlineate/internal/constraint"
+	"github.com/marcuswu/dlineate/utils"
 )
 
 // Type of a Constraint(Distance or Angle)
@@ -93,10 +93,11 @@ func (c *Constraint) replaceElement(from *Element, to *Element) {
 }
 
 func (c *Constraint) checkSolved() bool {
-	solved := true
-	if len(c.constraints) == 0 {
-		solved = true
-	}
+	// solved := true
+	// if len(c.constraints) == 0 {
+	// 	solved = true
+	// }
+	solved := c.state >= Resolved
 	for _, constraint := range c.constraints {
 		utils.Logger.Trace().
 			Uint("constraint", constraint.GetID()).

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/marcuswu/dlineation/utils"
+	"github.com/marcuswu/dlineate/utils"
 )
 
 // SketchLine represents a line in a 2D sketch in the form
@@ -117,6 +117,9 @@ func (l *SketchLine) GetOriginDistance() float64 { return l.distanceToPoint(0, 0
 
 // PointNearestOrigin get the point on the line nearest to the origin
 func (l *SketchLine) PointNearestOrigin() *SketchPoint {
+	if utils.StandardFloatCompare((l.a*l.a)+(l.b*l.b), 0) != 0 {
+		l.Normalize()
+	}
 	return NewSketchPoint(
 		0,
 		-l.GetC()*l.GetA(),
@@ -131,12 +134,17 @@ func (l *SketchLine) TranslateDistance(dist float64) {
 
 // TranslatedDistance returns the line translated by a distance along its normal
 func (l *SketchLine) TranslatedDistance(dist float64) *SketchLine {
+	if utils.StandardFloatCompare((l.a*l.a)+(l.b*l.b), 0) != 0 {
+		l.Normalize()
+	}
 	return &SketchLine{Line, l.GetID(), l.GetA(), l.GetB(), l.GetC() - dist, l.constraintLevel}
 }
 
 // Translated returns a line translated by an x and y value
 func (l *SketchLine) Translated(tx float64, ty float64) *SketchLine {
-	l.Normalize()
+	if utils.StandardFloatCompare((l.a*l.a)+(l.b*l.b), 0) != 0 {
+		l.Normalize()
+	}
 	pointOnLine := Vector{l.GetA() * -l.GetC(), l.GetB() * -l.GetC()}
 	pointOnLine.Translate(tx, ty)
 	newC := (-l.GetA() * pointOnLine.GetX()) - (l.GetB() * pointOnLine.GetY())
@@ -228,11 +236,18 @@ func (l *SketchLine) Intersection(l2 *SketchLine) Vector {
 func (l *SketchLine) VectorTo(o SketchElement) *Vector {
 	var point *SketchPoint
 	var myPoint *SketchPoint
+	if utils.StandardFloatCompare((l.a*l.a)+(l.b*l.b), 0) != 0 {
+		l.Normalize()
+	}
 	if o.GetType() == Point {
 		point = o.(*SketchPoint)
 		myPoint = l.NearestPoint(point.GetX(), point.GetY())
 	} else {
-		point = NewSketchPoint(0, o.AsLine().a*o.AsLine().c, o.AsLine().b*o.AsLine().c)
+		oline := o.AsLine()
+		if utils.StandardFloatCompare((oline.a*oline.a)+(oline.b*oline.b), 0) != 0 {
+			oline.Normalize()
+		}
+		point = NewSketchPoint(0, oline.a*oline.c, oline.b*oline.c)
 		myPoint = NewSketchPoint(0, l.a*l.c, l.b*l.c)
 	}
 

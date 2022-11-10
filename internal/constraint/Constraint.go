@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"math"
 
-	el "github.com/marcuswu/dlineation/internal/element"
-	"github.com/marcuswu/dlineation/utils"
+	el "github.com/marcuswu/dlineate/internal/element"
+	"github.com/marcuswu/dlineate/utils"
 	"github.com/rs/zerolog"
 )
 
@@ -141,11 +141,12 @@ func (c *Constraint) IsMet() bool {
 			Float64("value 1", math.Abs(current)).
 			Float64("value 2", math.Abs(c.Value)).
 			Msgf("Comparing values")
+		c.Solved = false
 	} else {
 		c.Solved = true
 	}
 
-	return comparison == 0
+	return c.Solved
 }
 
 func (c *Constraint) String() string {

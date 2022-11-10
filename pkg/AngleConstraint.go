@@ -1,10 +1,10 @@
-package dlineation
+package dlineate
 
 import (
 	"errors"
 	"math"
 
-	ic "github.com/marcuswu/dlineation/internal/constraint"
+	ic "github.com/marcuswu/dlineate/internal/constraint"
 )
 
 func AngleConstraint(p1 *Element, p2 *Element) *Constraint {
@@ -19,7 +19,7 @@ func AngleConstraint(p1 *Element, p2 *Element) *Constraint {
 
 // AddAngleConstraint adds a constraint between the lines p1 and p2 where the counter-clockwise angle
 // from p1 to p2 is the positive direction
-func (s *Sketch) AddAngleConstraint(p1 *Element, p2 *Element, v float64) (*Constraint, error) {
+func (s *Sketch) AddAngleConstraint(p1 *Element, p2 *Element, v float64, useSupplementary bool) (*Constraint, error) {
 	c := AngleConstraint(p1, p2)
 
 	if (p1.elementType != Line && p1.elementType != Axis) || (p2.elementType != Line && p2.elementType != Axis) {
@@ -27,6 +27,12 @@ func (s *Sketch) AddAngleConstraint(p1 *Element, p2 *Element, v float64) (*Const
 	}
 
 	radians := v / 180 * math.Pi
+	radiansAlt := math.Pi - math.Abs(radians)
+
+	if useSupplementary {
+		// if useSupplementary || math.Abs(math.Abs(currentAngle)-math.Abs(radiansAlt)) < math.Abs(math.Abs(currentAngle)-math.Abs(radians)) {
+		radians = radiansAlt
+	}
 
 	constraint := s.sketch.AddConstraint(ic.Angle, p1.element, p2.element, radians)
 	p1.constraints = append(p1.constraints, constraint)

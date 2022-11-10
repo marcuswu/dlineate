@@ -4,14 +4,14 @@ import (
 	"fmt"
 	"os"
 
-	dlineation "github.com/marcuswu/dlineation/pkg"
-	"github.com/marcuswu/dlineation/utils"
+	dlineate "github.com/marcuswu/dlineate/pkg"
+	"github.com/marcuswu/dlineate/utils"
 	"github.com/rs/zerolog"
 )
 
 func main() {
 	utils.Logger = utils.Logger.Level(zerolog.InfoLevel).Output(zerolog.ConsoleWriter{Out: os.Stderr})
-	sketch := dlineation.NewSketch()
+	sketch := dlineate.NewSketch()
 
 	// Add elements
 	start := sketch.AddPoint(6, 0)
@@ -50,10 +50,10 @@ func main() {
 
 	// line2 constraints
 	sketch.AddParallelConstraint(sketch.YAxis, line2)
-	sketch.AddAngleConstraint(line2, line3, 135)
+	sketch.AddAngleConstraint(line2, line3, 135, false)
 
 	// line3 constraints
-	sketch.AddAngleConstraint(line3, line4, 90)
+	sketch.AddAngleConstraint(line3, line4, 90, false)
 
 	// arc1 constraints
 	sketch.AddDistanceConstraint(arc1, nil, 0.5)

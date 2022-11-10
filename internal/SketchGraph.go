@@ -1,15 +1,14 @@
 package core
 
 import (
-	"errors"
 	"fmt"
 	"sort"
 
-	"github.com/marcuswu/dlineation/internal/constraint"
-	el "github.com/marcuswu/dlineation/internal/element"
-	"github.com/marcuswu/dlineation/internal/solver"
-	iutils "github.com/marcuswu/dlineation/internal/utils"
-	"github.com/marcuswu/dlineation/utils"
+	"github.com/marcuswu/dlineate/internal/constraint"
+	el "github.com/marcuswu/dlineate/internal/element"
+	"github.com/marcuswu/dlineate/internal/solver"
+	iutils "github.com/marcuswu/dlineate/internal/utils"
+	"github.com/marcuswu/dlineate/utils"
 	"github.com/rs/zerolog"
 )
 
@@ -25,7 +24,7 @@ type SketchGraph struct {
 
 	state            solver.SolveState
 	degreesOfFreedom uint
-	constraintMap    map[uint]int
+	conflicting      *utils.Set
 }
 
 // NewSketch creates a new sketch for solving
@@ -39,6 +38,7 @@ func NewSketch() *SketchGraph {
 	g.usedNodes = utils.NewSet()
 	g.state = solver.None
 	g.degreesOfFreedom = 6
+	g.conflicting = utils.NewSet()
 
 	g.baseCluster = NewGraphCluster(0)
 	c := NewGraphCluster(0)
@@ -62,6 +62,11 @@ func (g *SketchGraph) FindConstraints(elementId uint) []*constraint.Constraint {
 	return g.eToC[elementId]
 }
 
+func (g *SketchGraph) MakeFixed(e el.SketchElement) {
+	g.addElementToCluster(g.clusters[0], e)
+	g.addElementToCluster(g.baseCluster, e)
+}
+
 // AddPoint adds a point to the sketch
 func (g *SketchGraph) AddPoint(x float64, y float64) el.SketchElement {
 	elementID := uint(len(g.elements))
@@ -73,7 +78,7 @@ func (g *SketchGraph) AddPoint(x float64, y float64) el.SketchElement {
 	p := el.NewSketchPoint(elementID, x, y)
 	g.freeNodes.Add(elementID)
 	g.elements[elementID] = p
-	return p //g.GetElement(elementID)
+	return p
 }
 
 // AddLine adds a line to the sketch
@@ -88,7 +93,7 @@ func (g *SketchGraph) AddLine(a float64, b float64, c float64) el.SketchElement 
 	l := el.NewSketchLine(elementID, a, b, c)
 	g.freeNodes.Add(elementID)
 	g.elements[elementID] = l
-	return l //g.GetElement(elementID)
+	return l
 }
 
 func (g *SketchGraph) AddOrigin(x float64, y float64) el.SketchElement {
@@ -102,10 +107,9 @@ func (g *SketchGraph) AddOrigin(x float64, y float64) el.SketchElement {
 	g.freeNodes.Add(elementID)
 	g.elements[elementID] = ax
 
-	g.addElementToCluster(g.clusters[0], ax)
-	g.addElementToCluster(g.baseCluster, ax)
+	g.MakeFixed(ax)
 
-	return ax //g.GetElement(elementID)
+	return ax
 }
 
 func (g *SketchGraph) AddAxis(a float64, b float64, c float64) el.SketchElement {
@@ -120,8 +124,7 @@ func (g *SketchGraph) AddAxis(a float64, b float64, c float64) el.SketchElement 
 	g.freeNodes.Add(elementID)
 	g.elements[elementID] = ax
 
-	g.addElementToCluster(g.clusters[0], ax)
-	g.addElementToCluster(g.baseCluster, ax)
+	g.MakeFixed(ax)
 
 	return ax
 }
@@ -193,7 +196,10 @@ func (g *SketchGraph) AddConstraint(t constraint.Type, e1 el.SketchElement, e2 e
 	constraint := constraint.NewConstraint(constraintID, t, e1, e2, value, false)
 	if g.clusters[0].HasElement(e1) && g.clusters[0].HasElement(e2) {
 		g.clusters[0].AddConstraint(constraint)
+		g.baseCluster.AddConstraint(constraint)
 		g.constraints[constraintID] = constraint
+		g.eToC[e1.GetID()] = append(g.eToC[e1.GetID()], constraint)
+		g.eToC[e2.GetID()] = append(g.eToC[e2.GetID()], constraint)
 		return constraint
 	}
 	g.constraints[constraintID] = constraint
@@ -332,6 +338,8 @@ func (g *SketchGraph) createCluster(first uint, id int) *GraphCluster {
 		level := el.FullyConstrained
 		if len(cIds) > 2 {
 			level = el.OverConstrained
+			// These constraints are conflicting, add them to the conflicting list
+			g.conflicting.AddList(cIds)
 		}
 		g.elements[eId].SetConstraintLevel(level)
 		c.AddElement(g.elements[eId])
@@ -340,16 +348,7 @@ func (g *SketchGraph) createCluster(first uint, id int) *GraphCluster {
 				Int("cluster", clusterNum).
 				Uint("constraint", cId).
 				Msgf("createCluster(%d): adding constraint", clusterNum)
-			oc, ok = g.GetConstraint(cId)
-			if !ok {
-				utils.Logger.Error().
-					Int("cluster", clusterNum).
-					Uint("constraint", cId).
-					Uint("element", eId).
-					Msgf("createCluster(%d): Failed to find constraint", clusterNum)
-				continue
-			}
-			//cc := constraint.CopyConstraint(oc)
+			oc, _ = g.GetConstraint(cId)
 			g.addConstraintToCluster(c, oc)
 		}
 	}
@@ -376,58 +375,9 @@ func (g *SketchGraph) createClusters() {
 		id++
 		utils.Logger.Info().Msgf("%d unassigned constraints left\n", len(g.constraints))
 	}
-	for _, c := range g.constraints {
-		if !g.usedNodes.Contains(c.Element1.GetID()) {
-			g.elements[c.Element1.GetID()].SetConstraintLevel(el.UnderConstrained)
-		}
-		if !g.usedNodes.Contains(c.Element2.GetID()) {
-			g.elements[c.Element1.GetID()].SetConstraintLevel(el.UnderConstrained)
-		}
-	}
 	utils.Logger.Info().
 		Int("unassigned constraints", len(g.constraints)).
 		Msg("Created clusters")
-}
-
-func (g *SketchGraph) buildConstraintMap() {
-	g.constraintMap = make(map[uint]int, len(g.elements))
-	// Create an []int slice where indices represent element ids and values represent number of constraints
-	for _, c := range g.constraints {
-		g.constraintMap[c.Element1.GetID()]++
-		g.constraintMap[c.Element2.GetID()]++
-	}
-}
-
-func (g *SketchGraph) ConstraintLevel(e el.SketchElement) el.ConstraintLevel {
-	numConstraints := g.constraintMap[e.GetID()]
-	switch {
-	case numConstraints < 2:
-		return el.UnderConstrained
-	case numConstraints > 2:
-		return el.OverConstrained
-	default:
-		return el.FullyConstrained
-	}
-}
-
-func (g *SketchGraph) Translate(x float64, y float64) error {
-	if len(g.clusters) > 1 {
-		return errors.New("Solve the sketch before translating it")
-	}
-
-	g.clusters[0].Translate(x, y)
-
-	return nil
-}
-
-func (g *SketchGraph) Rotate(origin *el.SketchPoint, angle float64) error {
-	if len(g.clusters) > 1 {
-		return errors.New("Solve the sketch before translating it")
-	}
-
-	g.clusters[0].Rotate(origin, angle)
-
-	return nil
 }
 
 func (g *SketchGraph) logElements(level zerolog.Level) {
@@ -512,7 +462,6 @@ func (g *SketchGraph) BuildClusters() {
 		}
 	}
 	g.logConstraintsElements(zerolog.InfoLevel)
-	g.buildConstraintMap()
 	if len(g.clusters) == 1 {
 		g.createClusters()
 	}
@@ -573,7 +522,9 @@ func (g *SketchGraph) Solve() solver.SolveState {
 			c3 = g.clusters[third]
 		}
 		mergeState := c1.solveMerge(c2, c3)
-		utils.Logger.Debug().Msg("Completed merge")
+		utils.Logger.Debug().
+			Str("state", fmt.Sprintf("%v", mergeState)).
+			Msg("Completed merge")
 		for _, c := range g.clusters {
 			c.IsSolved()
 		}
@@ -599,12 +550,15 @@ func (g *SketchGraph) Solve() solver.SolveState {
 		}
 	}
 	utils.Logger.Info().Msg("Merging with origin and X & Y axes")
+	if len(g.clusters) < 2 {
+		return g.state
+	}
 	mergeState := g.clusters[0].mergeOne(g.clusters[1], false)
 	g.updateElements(g.clusters[0])
 	g.updateElements(g.clusters[1])
 	g.addClusterConstraints(g.clusters[0])
 	g.addClusterConstraints(g.clusters[1])
-	if g.state == solver.None || (g.state != mergeState && !(g.state != solver.Solved && mergeState == solver.Solved)) {
+	if g.state != mergeState && mergeState != solver.Solved {
 		utils.Logger.Debug().
 			Str("graph state", mergeState.String()).
 			Msg("Updating state after cluster merge")
@@ -621,7 +575,7 @@ func (g *SketchGraph) Solve() solver.SolveState {
 	return g.state
 }
 
-func (g *SketchGraph) findMergeForCluster(c *GraphCluster, first int) (int, int) {
+func (g *SketchGraph) findMergeForCluster(c *GraphCluster) (int, int) {
 	connectedClusters := func(g *SketchGraph, c *GraphCluster) map[int][]uint {
 		connected := make(map[int][]uint)
 		for i, other := range g.clusters {
@@ -698,7 +652,7 @@ func (g *SketchGraph) findMerge() (int, int, int) {
 		utils.Logger.Debug().
 			Int("start cluster", c.id).
 			Msg("Looking for merge")
-		c1, c2 := g.findMergeForCluster(c, i)
+		c1, c2 := g.findMergeForCluster(c)
 		if c1 >= 0 {
 			return i, c1, c2
 		}
@@ -724,9 +678,8 @@ func (g *SketchGraph) IsSolved() bool {
 	return solved
 }
 
-// Test is a test function
-func (g *SketchGraph) Test() string {
-	return "SketchGraph"
+func (g *SketchGraph) Conflicting() *utils.Set {
+	return g.conflicting
 }
 
 func (g *SketchGraph) ToGraphViz() string {
@@ -768,7 +721,7 @@ func (g *SketchGraph) ToGraphViz() string {
 
 	// Output free elements
 	for _, eId := range g.freeNodes.Contents() {
-		edges = edges + fmt.Sprintf("\t%d\n", g.elements[eId].GetID())
+		edges = edges + g.elements[eId].ToGraphViz(-1)
 	}
 
 	return fmt.Sprintf(`

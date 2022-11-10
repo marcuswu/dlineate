@@ -1,4 +1,4 @@
-module github.com/marcuswu/dlineation
+module github.com/marcuswu/dlineate
 
 go 1.18
 
@@ -9,12 +9,16 @@ require (
 	github.com/adrg/xdg v0.4.0 // indirect
 	github.com/benoitkugler/textlayout v0.2.1 // indirect
 	github.com/benoitkugler/textprocessing v0.0.2 // indirect
+	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dsnet/compress v0.0.1 // indirect
 	github.com/go-latex/latex v0.0.0-20210823091927-c0d11ff05a81 // indirect
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.16 // indirect
+	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rs/zerolog v1.28.0 // indirect
+	github.com/stretchr/objx v0.5.0 // indirect
+	github.com/stretchr/testify v1.8.1 // indirect
 	github.com/tdewolff/canvas v0.0.0-20221018191302-6bed7f464e8f // indirect
 	github.com/tdewolff/minify/v2 v2.12.4 // indirect
 	github.com/tdewolff/parse/v2 v2.6.4 // indirect
@@ -23,4 +27,5 @@ require (
 	golang.org/x/sys v0.1.0 // indirect
 	golang.org/x/text v0.4.0 // indirect
 	gonum.org/v1/plot v0.12.0 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
