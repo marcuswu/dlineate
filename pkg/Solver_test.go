@@ -164,6 +164,7 @@ func TestSolve(t *testing.T) {
 	s.AddCoincidentConstraint(c1.Center(), l1.End())
 
 	err = s.Solve()
+	s.ConflictingConstraints()
 	assert.NotNil(t, err, "Expected inconsistent constraints")
 	assert.Equal(t, errors.New("failed to solve completely"), err, "Should not solve")
 
@@ -201,6 +202,7 @@ func TestSolve(t *testing.T) {
 
 	// Solve
 	err = s.Solve()
+	s.ConflictingConstraints()
 	assert.Nil(t, err, "Expected no error")
 
 	minx, miny, maxx, maxy := s.calculateRectangle(1.0)
@@ -212,6 +214,7 @@ func TestSolve(t *testing.T) {
 	var b bytes.Buffer
 	s.AddArc(0, 0, -1, -0.1, -1, 0)
 	c := s.AddCircle(0, 0, 2)
+	s.MakeFixed(c)
 	c.Center().element.SetConstraintLevel(element.OverConstrained)
 	err = s.WriteImage(&b, 500, 200)
 	assert.Nil(t, err, "Expect no error from WriteImage")

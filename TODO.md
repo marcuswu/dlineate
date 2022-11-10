@@ -1,7 +1,7 @@
 - [X] Return details about under / over constrained elements
 - [X] Rework pkg/Solver to use maps to handle findConstraint(s)
 - [X] Add SVG export functionality to visualize input and output
-- [-] Build out some core examples / tests
+- [X] Build out some core examples / tests
   - [X] Fix square example -- internal solver tests succeed, but using pkg/ fails... something wrong with interface
         Or something is wrong with internal that is exposed via how the interface is using it
   - [X] Add / fix distance constraint for a line
@@ -19,15 +19,15 @@
   - [X] Fix pentagon cluster 0, 1 merge (no elements in cluster 0!?)
   - [X] Fix svg output for the modified cylinder example
   - [X] Improve logging
-  - [ ] Update unit tests
+  - [X] Update unit tests
     - [X] SolveDistanceConstraint 0 distance translate
   - [X] Get the BellSketch (modifiedCylinder) working
   - [X] Add horizontal, vertical constraints
 - [X] Load element values from solver when solved
 - [X] External interface should take two passes. One to solve independent constraints. One to solve dependent.
 - [X] Ratio & equality lengths are dependent constraints
-- [ ] Add the ability to add fixed elements
-- [ ] Add the ability to retrieve degree of freedom for elements
-- [ ] Add the ability to retrieve a list of conflicting constraints
+- [X] Add the ability to add fixed elements
+- [X] Add the ability to retrieve level of constraint for elements
+- [X] Add the ability to retrieve a list of conflicting constraints
 - [ ] Add mapping 2D sketch to 3D workplane
 - [ ] Add documentation

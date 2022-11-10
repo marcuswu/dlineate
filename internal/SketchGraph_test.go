@@ -326,6 +326,7 @@ func TestSolve(t *testing.T) {
 	s.BuildClusters()
 
 	state = s.Solve()
+	s.Conflicting()
 
 	assert.Equal(t, solver.NonConvergent, state, "Graph should be non-convergent")
 }

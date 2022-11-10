@@ -24,6 +24,7 @@ type SketchGraph struct {
 
 	state            solver.SolveState
 	degreesOfFreedom uint
+	conflicting      *utils.Set
 }
 
 // NewSketch creates a new sketch for solving
@@ -37,6 +38,7 @@ func NewSketch() *SketchGraph {
 	g.usedNodes = utils.NewSet()
 	g.state = solver.None
 	g.degreesOfFreedom = 6
+	g.conflicting = utils.NewSet()
 
 	g.baseCluster = NewGraphCluster(0)
 	c := NewGraphCluster(0)
@@ -58,6 +60,11 @@ func (g *SketchGraph) GetConstraint(id uint) (*constraint.Constraint, bool) {
 
 func (g *SketchGraph) FindConstraints(elementId uint) []*constraint.Constraint {
 	return g.eToC[elementId]
+}
+
+func (g *SketchGraph) MakeFixed(e el.SketchElement) {
+	g.addElementToCluster(g.clusters[0], e)
+	g.addElementToCluster(g.baseCluster, e)
 }
 
 // AddPoint adds a point to the sketch
@@ -100,8 +107,7 @@ func (g *SketchGraph) AddOrigin(x float64, y float64) el.SketchElement {
 	g.freeNodes.Add(elementID)
 	g.elements[elementID] = ax
 
-	g.addElementToCluster(g.clusters[0], ax)
-	g.addElementToCluster(g.baseCluster, ax)
+	g.MakeFixed(ax)
 
 	return ax
 }
@@ -118,8 +124,7 @@ func (g *SketchGraph) AddAxis(a float64, b float64, c float64) el.SketchElement 
 	g.freeNodes.Add(elementID)
 	g.elements[elementID] = ax
 
-	g.addElementToCluster(g.clusters[0], ax)
-	g.addElementToCluster(g.baseCluster, ax)
+	g.MakeFixed(ax)
 
 	return ax
 }
@@ -333,6 +338,8 @@ func (g *SketchGraph) createCluster(first uint, id int) *GraphCluster {
 		level := el.FullyConstrained
 		if len(cIds) > 2 {
 			level = el.OverConstrained
+			// These constraints are conflicting, add them to the conflicting list
+			g.conflicting.AddList(cIds)
 		}
 		g.elements[eId].SetConstraintLevel(level)
 		c.AddElement(g.elements[eId])
@@ -669,6 +676,10 @@ func (g *SketchGraph) IsSolved() bool {
 	}
 
 	return solved
+}
+
+func (g *SketchGraph) Conflicting() *utils.Set {
+	return g.conflicting
 }
 
 func (g *SketchGraph) ToGraphViz() string {

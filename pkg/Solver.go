@@ -213,6 +213,13 @@ func (s *Sketch) AddArc(x1 float64, y1 float64, x2 float64, y2 float64, x3 float
 	return a
 }
 
+func (s *Sketch) MakeFixed(e *Element) {
+	s.sketch.MakeFixed(e.element)
+	for _, el := range e.children {
+		s.sketch.MakeFixed(el.element)
+	}
+}
+
 func (s *Sketch) resolveConstraint(c *Constraint) bool {
 	if c.state == Resolved {
 		return true
@@ -454,6 +461,20 @@ func (s *Sketch) Solve() error {
 	default:
 		return errors.New("failed to solve completely")
 	}
+}
+
+func (s *Sketch) ConflictingConstraints() []*Constraint {
+	conflicting := make([]*Constraint, 0)
+	for _, c := range s.constraints {
+		for _, ic := range c.constraints {
+			if s.sketch.Conflicting().Contains(ic.GetID()) {
+				conflicting = append(conflicting, c)
+				break
+			}
+		}
+	}
+
+	return conflicting
 }
 
 func (s *Sketch) calculateRectangle(scale float64) (float64, float64, float64, float64) {
