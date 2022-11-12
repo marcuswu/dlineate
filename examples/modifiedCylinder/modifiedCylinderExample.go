@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	dlineate "github.com/marcuswu/dlineate/pkg"
+	"github.com/marcuswu/dlineate"
 	"github.com/marcuswu/dlineate/utils"
 	"github.com/rs/zerolog"
 )
