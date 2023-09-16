@@ -256,12 +256,12 @@ func (e *Element) minMaxXY() (float64, float64, float64, float64) {
 }
 
 func (e *Element) DrawToSVG(s *Sketch, ctx *canvas.Context, mult float64) {
-	ctx.StrokeColor = canvas.Blue
+	ctx.SetStrokeColor(canvas.Blue)
 	if e.elementType != Axis && e.ConstraintLevel() == el.FullyConstrained {
-		ctx.StrokeColor = canvas.Black
+		ctx.SetStrokeColor(canvas.Black)
 	}
 	if e.elementType != Axis && e.ConstraintLevel() == el.OverConstrained {
-		ctx.StrokeColor = canvas.Red
+		ctx.SetStrokeColor(canvas.Red)
 	}
 	ctx.StrokeWidth = 0.5
 	switch e.elementType {

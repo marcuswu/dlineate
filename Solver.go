@@ -564,7 +564,7 @@ func (s *Sketch) WriteImage(out io.Writer, args ...float64) error {
 
 	svg := svg.New(out, c.W, c.H, &svg.Options{})
 
-	c.Render(svg)
+	c.RenderTo(svg)
 
 	return svg.Close()
 }
