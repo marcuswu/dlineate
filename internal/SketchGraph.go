@@ -551,6 +551,8 @@ func (g *SketchGraph) Solve() solver.SolveState {
 	}
 	utils.Logger.Info().Msg("Merging with origin and X & Y axes")
 	if len(g.clusters) < 2 {
+		g.updateElements(g.clusters[0])
+		g.addClusterConstraints(g.clusters[0])
 		return g.state
 	}
 	mergeState := g.clusters[0].mergeOne(g.clusters[1], false)
