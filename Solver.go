@@ -384,6 +384,33 @@ func (s *Sketch) resolveCurveRadius(e *Element) (float64, bool) {
 	return 0, false
 }
 
+func (s *Sketch) checkCircleConstraints() {
+	for _, e := range s.Elements {
+		if e.elementType != Circle {
+			continue
+		}
+
+		constraints := s.eToC[e.id]
+		if len(constraints) == 1 && constraints[0].constraintType == Distance &&
+			len(constraints[0].elements) == 1 {
+			// Ignore this constraint because there is nothing else to relate the edge of the circle to
+			constraint := constraints[0]
+			e.constraints = make([]*core.Constraint, 0)
+			s.eToC[e.id] = make([]*Constraint, 0)
+			index := -1
+			for i := range s.constraints {
+				if constraints[i] == constraint {
+					index = i
+					break
+				}
+			}
+			if index >= 0 {
+				s.constraints = append(s.constraints[:index], s.constraints[index+1:]...)
+			}
+		}
+	}
+}
+
 // Solve attempts to solve the sketch by translating and rotating elements until they meet all constraints provided.
 // After a solve, each Element's ConstraintLevel will be defined.
 // It returns an error if one is encountered during the solve.
@@ -410,6 +437,7 @@ func (s *Sketch) Solve() error {
 	// This isn't correct -- should run until everything is solved
 	lastUnsolved := 0
 	lastUnresolved := 0
+	s.checkCircleConstraints()
 	for numUnresolved, numUnsolved := s.resolveConstraints(); numUnsolved > 0 || numUnresolved > 0; numUnresolved, numUnsolved = s.resolveConstraints() {
 		if lastUnsolved == numUnsolved && lastUnresolved == numUnresolved {
 			utils.Logger.Debug().
