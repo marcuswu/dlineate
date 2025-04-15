@@ -87,6 +87,7 @@ github.com/stretchr/testify v1.7.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/
 github.com/stretchr/testify v1.8.0/go.mod h1:yNjHg4UonilssWZ8iaSj1OCr/vHnekPRkoO+kdMU+MU=
 github.com/stretchr/testify v1.8.1 h1:w7B6lhMri9wdJUVmEZPGGhZzrYTPvgJArz7wNPgYKsk=
 github.com/stretchr/testify v1.8.1/go.mod h1:w2LPCIKwWwSfY2zedu0+kehJoqGctiVI29o6fzry7u4=
+github.com/stretchr/testify v1.8.2 h1:+h33VjcLVPDHtOdpUCuF+7gSuG3yGIftsP1YvFihtJ8=
 github.com/stretchr/testify v1.8.2/go.mod h1:w2LPCIKwWwSfY2zedu0+kehJoqGctiVI29o6fzry7u4=
 github.com/tdewolff/canvas v0.0.0-20221018191302-6bed7f464e8f h1:ep4zwjfpzOboIJ424pHbMyWnKWNLybOufXFoULLhn5Y=
 github.com/tdewolff/canvas v0.0.0-20221018191302-6bed7f464e8f/go.mod h1:Sn30WhdB99OdqJcGRsRXLNOzSJs+AVycXVbG+M82ivY=
