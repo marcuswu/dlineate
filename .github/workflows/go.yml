@@ -38,9 +38,9 @@ jobs:
       uses: schneegans/dynamic-badges-action@v1.7.0
       if: github.ref_name == 'main'
       with:
-        auth: ${{ secrets.COVERAGE_GIST_SECRET }}
-        gistID: 788ds7a07299ab2728a33
-        filename: coverage.json
-        label: Go Coverage
+        auth: ${{ secrets.GIST_SECRET }}
+        gistID: c6deee95056a6ef7a82cbff10a6b3e6b
+        filename: dlineate-coverage.json
+        label: dlineate Go Coverage
         message: ${{ steps.coverage.outputs.coverage-pct-1dp }}%
         color: ${{ steps.coverage.outputs.meets-threshold == 'true' && 'green' || 'red' }}

@@ -1,4 +1,7 @@
 # dlineate
+
+![badge](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/marcuswu/c6deee95056a6ef7a82cbff10a6b3e6b/raw/dlineate-coverage.json)
+
 A 2D geometric constraint solver written in Go. Dlineate is written using a graph solution based on The [Electronic Primer on Geometric Constraint Solving](https://www.cs.purdue.edu/homes/cmh/electrobook/intro.html) published by Purdue.
 
 ## Features
