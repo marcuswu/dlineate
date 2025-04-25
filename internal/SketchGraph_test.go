@@ -28,7 +28,7 @@ func TestGraphBasics(t *testing.T) {
 	_, ok = sketch.GetConstraint(c1.GetID())
 	assert.True(t, ok, "Should be able to find constraint c1")
 
-	cList := sketch.FindConstraints(origin.GetID())
+	cList := sketch.constraintAccessor.ConstraintsForElement(origin.GetID())
 	assert.Zero(t, len(cList), "constraint list for origin should be empty")
 
 	c2.Solved = true
@@ -44,7 +44,7 @@ func TestCombinePoints(t *testing.T) {
 	newE := sketch.CombinePoints(e1, e2)
 
 	assert.Equal(t, e2.GetID(), newE.GetID(), "Combining points with origin should keep origin's id")
-	_, ok := sketch.elements[e2.GetID()]
+	_, ok := sketch.elementAccessor.GetElement(-1, e2.GetID())
 	assert.False(t, ok, "The eliminated element should no longer exist in the sketch")
 
 	sketch = NewSketch()
@@ -52,7 +52,7 @@ func TestCombinePoints(t *testing.T) {
 	e3 := sketch.AddPoint(1, 0)
 	newE = sketch.CombinePoints(e2, e3)
 	assert.Equal(t, e2.GetID(), newE.GetID(), "Ensure kept element id")
-	_, ok = sketch.elements[e3.GetID()]
+	_, ok = sketch.elementAccessor.GetElement(-1, e3.GetID())
 	assert.False(t, ok, "The eliminated element should no longer exist in the sketch")
 
 	sketch = NewSketch()
@@ -62,7 +62,7 @@ func TestCombinePoints(t *testing.T) {
 	c2 := sketch.AddConstraint(constraint.Distance, e1, e2, 1)
 	newE = sketch.CombinePoints(e3, e2)
 	assert.Equal(t, e3.GetID(), newE.GetID(), "Ensure kept element id")
-	_, ok = sketch.elements[e2.GetID()]
+	_, ok = sketch.elementAccessor.GetElement(-1, e2.GetID())
 	assert.False(t, ok, "The eliminated element should no longer exist in the sketch")
 	assert.True(t, c1.HasElementID(newE.GetID()), "constraints should be updated with the new element")
 	assert.True(t, c2.HasElementID(newE.GetID()), "constraints should be updated with the new element")
@@ -74,7 +74,7 @@ func TestCombinePoints(t *testing.T) {
 	c2 = sketch.AddConstraint(constraint.Distance, e1, e2, 1)
 	newE = sketch.CombinePoints(e3, e2)
 	assert.Equal(t, e2.GetID(), newE.GetID(), "Ensure kept element id")
-	_, ok = sketch.elements[e2.GetID()]
+	_, ok = sketch.elementAccessor.GetElement(-1, e2.GetID())
 	assert.False(t, ok, "The eliminated element should no longer exist in the sketch")
 	assert.True(t, c1.HasElementID(newE.GetID()), "constraints should be updated with the new element")
 	assert.True(t, c2.HasElementID(newE.GetID()), "constraints should be updated with the new element")
@@ -165,9 +165,9 @@ func TestAddConstraintToCluster(t *testing.T) {
 	cluster := NewGraphCluster(1)
 	sketch.addConstraintToCluster(cluster, c3)
 	sketch.addConstraintToCluster(cluster, c4)
-	_, ok := cluster.constraints[c3.GetID()]
+	ok := cluster.constraints.Contains(c3.GetID())
 	assert.True(t, ok, "Cluster has constraint c3")
-	_, ok = cluster.constraints[c4.GetID()]
+	ok = cluster.constraints.Contains(c4.GetID())
 	assert.True(t, ok, "Cluster has constraint c4")
 }
 
@@ -196,8 +196,8 @@ func TestCreateCluster(t *testing.T) {
 
 	c = sketch.createCluster(0, 0)
 	assert.NotNil(t, c, "Cluster should not be nil")
-	assert.Equal(t, 5, len(c.elements), "Cluster should have 5 elements")
-	assert.Equal(t, 7, len(c.constraints), "Cluster should have 7 constraints")
+	assert.Equal(t, 5, c.elements.Count(), "Cluster should have 5 elements")
+	assert.Equal(t, 7, c.constraints.Count(), "Cluster should have 7 constraints")
 }
 
 func TestCreateBuildResetClusters(t *testing.T) {
@@ -225,37 +225,37 @@ func TestCreateBuildResetClusters(t *testing.T) {
 	sketch.createClusters()
 
 	assert.Equal(t, 4, len(sketch.clusters), "Should have 4 clusters")
-	assert.Equal(t, 2, len(sketch.clusters[0].elements), "cluster 0 should have 2 element, 1 constraints")
-	assert.Equal(t, 1, len(sketch.clusters[0].constraints), "cluster 0 should have 2 element, 1 constraints")
+	assert.Equal(t, 2, sketch.clusters[0].elements.Count(), "cluster 0 should have 2 element, 1 constraints")
+	assert.Equal(t, 1, sketch.clusters[0].constraints.Count(), "cluster 0 should have 2 element, 1 constraints")
 
-	assert.Equal(t, 6, len(sketch.clusters[1].elements), "cluster 1 should have 6 element, 9 constraints")
-	assert.Equal(t, 9, len(sketch.clusters[1].constraints), "cluster 1 should have 6 element, 9 constraints")
+	assert.Equal(t, 6, sketch.clusters[1].elements.Count(), "cluster 1 should have 6 element, 9 constraints")
+	assert.Equal(t, 9, sketch.clusters[1].constraints.Count(), "cluster 1 should have 6 element, 9 constraints")
 
-	assert.Equal(t, 2, len(sketch.clusters[2].elements), "cluster 2 should have 2 element, 1 constraints")
-	assert.Equal(t, 1, len(sketch.clusters[2].constraints), "cluster 2 should have 2 element, 1 constraints")
+	assert.Equal(t, 2, sketch.clusters[2].elements.Count(), "cluster 2 should have 2 element, 1 constraints")
+	assert.Equal(t, 1, sketch.clusters[2].constraints.Count(), "cluster 2 should have 2 element, 1 constraints")
 
-	assert.Equal(t, 2, len(sketch.clusters[3].elements), "cluster 3 should have 2 element, 1 constraints")
-	assert.Equal(t, 1, len(sketch.clusters[3].constraints), "cluster 3 should have 2 element, 1 constraints")
+	assert.Equal(t, 2, sketch.clusters[3].elements.Count(), "cluster 3 should have 2 element, 1 constraints")
+	assert.Equal(t, 1, sketch.clusters[3].constraints.Count(), "cluster 3 should have 2 element, 1 constraints")
 
 	sketch.ResetClusters()
 	assert.Equal(t, 1, len(sketch.clusters), "Should have 1 cluster")
-	assert.Equal(t, 2, len(sketch.clusters[0].elements), "cluster 0 should have 2 element, 1 constraints")
-	assert.Equal(t, 1, len(sketch.clusters[0].constraints), "cluster 0 should have 2 element, 1 constraints")
+	assert.Equal(t, 2, sketch.clusters[0].elements.Count(), "cluster 0 should have 2 element, 1 constraints")
+	assert.Equal(t, 1, sketch.clusters[0].constraints.Count(), "cluster 0 should have 2 element, 1 constraints")
 
 	sketch.BuildClusters()
 
 	assert.Equal(t, 4, len(sketch.clusters), "Should have 4 clusters")
-	assert.Equal(t, 2, len(sketch.clusters[0].elements), "cluster 0 should have 2 element, 1 constraints")
-	assert.Equal(t, 1, len(sketch.clusters[0].constraints), "cluster 0 should have 2 element, 1 constraints")
+	assert.Equal(t, 2, sketch.clusters[0].elements.Count(), "cluster 0 should have 2 element, 1 constraints")
+	assert.Equal(t, 1, sketch.clusters[0].constraints.Count(), "cluster 0 should have 2 element, 1 constraints")
 
-	assert.Equal(t, 6, len(sketch.clusters[1].elements), "cluster 1 should have 6 element, 7 constraints")
-	assert.Equal(t, 9, len(sketch.clusters[1].constraints), "cluster 1 should have 6 element, 9 constraints")
+	assert.Equal(t, 6, sketch.clusters[1].elements.Count(), "cluster 1 should have 6 element, 7 constraints")
+	assert.Equal(t, 9, sketch.clusters[1].constraints.Count(), "cluster 1 should have 6 element, 9 constraints")
 
-	assert.Equal(t, 2, len(sketch.clusters[2].elements), "cluster 2 should have 2 element, 1 constraints")
-	assert.Equal(t, 1, len(sketch.clusters[2].constraints), "cluster 2 should have 2 element, 1 constraints")
+	assert.Equal(t, 2, sketch.clusters[2].elements.Count(), "cluster 2 should have 2 element, 1 constraints")
+	assert.Equal(t, 1, sketch.clusters[2].constraints.Count(), "cluster 2 should have 2 element, 1 constraints")
 
-	assert.Equal(t, 2, len(sketch.clusters[3].elements), "cluster 3 should have 2 element, 1 constraints")
-	assert.Equal(t, 1, len(sketch.clusters[3].constraints), "cluster 3 should have 2 element, 1 constraints")
+	assert.Equal(t, 2, sketch.clusters[3].elements.Count(), "cluster 3 should have 2 element, 1 constraints")
+	assert.Equal(t, 1, sketch.clusters[3].constraints.Count(), "cluster 3 should have 2 element, 1 constraints")
 }
 
 func TestSolve(t *testing.T) {
@@ -309,9 +309,12 @@ func TestSolve(t *testing.T) {
 	assert.Equal(t, solver.Solved, state, "Graph should be solved")
 
 	s.ResetClusters()
-	s.constraints[c1.GetID()].Value = 0
-	s.constraints[c2.GetID()].Value = 1
-	s.constraints[c3.GetID()].Value = 8
+	c, _ := s.constraintAccessor.GetConstraint(c1.GetID())
+	c.Value = 0
+	c, _ = s.constraintAccessor.GetConstraint(c2.GetID())
+	c.Value = 1
+	c, _ = s.constraintAccessor.GetConstraint(c3.GetID())
+	c.Value = 8
 	s.BuildClusters()
 
 	state = s.Solve()
@@ -319,10 +322,13 @@ func TestSolve(t *testing.T) {
 	assert.Equal(t, solver.NonConvergent, state, "Graph should be non-convergent")
 
 	s.ResetClusters()
-	s.constraints[c1.GetID()].Value = 0
-	s.constraints[c2.GetID()].Value = 4
-	s.constraints[c3.GetID()].Value = 4
-	delete(s.constraints, c4.GetID())
+	c, _ = s.constraintAccessor.GetConstraint(c1.GetID())
+	c.Value = 0
+	c, _ = s.constraintAccessor.GetConstraint(c2.GetID())
+	c.Value = 4
+	c, _ = s.constraintAccessor.GetConstraint(c3.GetID())
+	c.Value = 4
+	s.constraintAccessor.RemoveConstraint(c4.GetID())
 	s.BuildClusters()
 
 	state = s.Solve()
@@ -379,9 +385,7 @@ func TestFindMergeForCluster(t *testing.T) {
 	s.BuildClusters()
 
 	for _, c := range s.clusters {
-		c.Solve()
-		s.updateElements(c)
-		s.addClusterConstraints(c)
+		c.Solve(s.elementAccessor, s.constraintAccessor)
 	}
 	a, b := s.findMergeForCluster(s.clusters[3])
 
@@ -424,11 +428,15 @@ func TestGraphToGraphViz(t *testing.T) {
 	e5 := el.NewSketchPoint(7, 1, 1)
 	e6 := el.NewSketchPoint(8, 2, 1)
 	c6 := constraint.NewConstraint(5, constraint.Distance, e5, e6, 1, false)
-	s.elements[e5.GetID()] = e5
-	s.freeNodes.Add(e5.GetID())
-	s.elements[e6.GetID()] = e6
-	s.freeNodes.Add(e6.GetID())
-	s.constraints[c6.GetID()] = c6
+	s.elementAccessor.AddElement(e5)
+	s.elementAccessor.AddElement(e6)
+	// s.elements[e5.GetID()] = e5
+	// s.freeNodes.Add(e5.GetID())
+	// s.elements[e6.GetID()] = e6
+	// s.freeNodes.Add(e6.GetID())
+	// s.constraints[c6.GetID()] = c6
+	s.constraintAccessor.AddConstraint(c6)
+	s.freeEdges.Add(c6.GetID())
 
 	gvString := s.ToGraphViz()
 	assert.Contains(t, gvString, "subgraph cluster_0")

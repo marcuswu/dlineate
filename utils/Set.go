@@ -61,3 +61,32 @@ func (s *Set) Clear() {
 		delete(s.m, value)
 	}
 }
+
+func (s *Set) Intersect(other *Set) *Set {
+	intersect := NewSet()
+	for value := range s.m {
+		if other.Contains(value) {
+			intersect.Add(value)
+		}
+	}
+	return intersect
+}
+
+// A new set with the contents of this set with elements from other removed
+func (s *Set) Difference(other *Set) *Set {
+	difference := NewSet()
+	for value := range s.m {
+		if other.Contains(value) {
+			continue
+		}
+		difference.Add(value)
+	}
+	return difference
+}
+
+func (s *Set) Union(other *Set) *Set {
+	union := NewSet()
+	union.AddSet(s)
+	union.AddSet(other)
+	return union
+}

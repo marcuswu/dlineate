@@ -85,3 +85,9 @@ go get -u github.com/marcuswu/dlineate
 	fmt.Printf("line 4: (%f, %f) to (%f, %f)\n", values[0], values[1], values[2], values[3])
 ```
 > **dlineate** uses [zerolog](https://github.com/rs/zerolog) for logging. To change the logger or change logging level use utils.Logger.
+
+### Visualizing Clusters
+
+```
+dot -Tsvg clustered.dot -o clustered.svg
+```
