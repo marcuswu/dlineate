@@ -18,19 +18,19 @@ func TestAddElement(t *testing.T) {
 	e2 := el.NewSketchPoint(1, 2, 1)
 
 	g := NewGraphCluster(1)
-	g.AddElement(e1)
+	g.AddElement(e1.GetID())
 
 	if g.elements.Count() != 1 {
 		t.Error("expected one element to be added to the cluster, found", g.elements.Count())
 	}
 
-	g.AddElement(e1)
+	g.AddElement(e1.GetID())
 
 	if g.elements.Count() != 1 {
 		t.Error("expected no change to the cluster element length, found", g.elements.Count())
 	}
 
-	g.AddElement(e2)
+	g.AddElement(e2.GetID())
 
 	if g.elements.Count() != 2 {
 		t.Error("expected two elements to be added to the cluster, found", g.elements.Count())

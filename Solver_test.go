@@ -50,7 +50,7 @@ func TestResolveConstraint(t *testing.T) {
 
 	tests[0].constraint.constraintType = 100
 	tests[1].constraint.state = Resolved
-	ic := constraint.NewConstraint(20, constraint.Distance, l1.Start().element, p1.element, 2, false)
+	ic := constraint.NewConstraint(20, constraint.Distance, l1.Start().element.GetID(), p1.element.GetID(), 2, false)
 	tests[2].constraint.constraints = append(tests[2].constraint.constraints, ic)
 
 	s.resolveConstraints()

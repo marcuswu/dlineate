@@ -1,4 +1,4 @@
-package core
+package accessors
 
 import (
 	el "github.com/marcuswu/dlineate/internal/element"
@@ -27,19 +27,17 @@ func (r *ElementRepository) ClearClusters() {
 }
 
 func (r *ElementRepository) GetElement(cId int, eId uint) (el.SketchElement, bool) {
+	topE, topOk := r.elements[eId]
 	if cId < 0 {
-		e, ok := r.elements[eId]
-		return e, ok
+		return topE, topOk
 	}
 	clusterElements, ok := r.clusterElements[cId]
 	if !ok {
-		e, ok := r.elements[eId]
-		return e, ok
+		return topE, topOk
 	}
 	e, ok := clusterElements[eId]
 	if !ok {
-		e, ok := r.elements[eId]
-		return e, ok
+		return topE, topOk
 	}
 	return e, ok
 }
@@ -54,13 +52,14 @@ func (r *ElementRepository) clustersContaining(eId uint) *utils.Set {
 	return set
 }
 
-func (r *ElementRepository) isShared(eId uint) bool {
+func (r *ElementRepository) IsShared(eId uint) bool {
 	set := r.clustersContaining(eId)
 	return set.Count() > 1
 }
 
-func (r *ElementRepository) AddElement(e el.SketchElement) {
+func (r *ElementRepository) AddElement(e el.SketchElement) el.SketchElement {
 	r.elements[e.GetID()] = e
+	return e
 }
 
 func (r *ElementRepository) AddElementToCluster(eId uint, cId int) {
@@ -92,8 +91,8 @@ func (r *ElementRepository) RemoveElement(rem uint) {
 
 func (r *ElementRepository) SharedElements(c1 int, c2 int) *utils.Set {
 	shared := utils.NewSet()
-	c1Shared, _ := r.clusterElements[c1]
-	c2Shared, _ := r.clusterElements[c2]
+	c1Shared := r.clusterElements[c1]
+	c2Shared := r.clusterElements[c2]
 	for eId, _ := range c1Shared {
 		if _, ok := c2Shared[eId]; !ok {
 			continue
@@ -106,8 +105,8 @@ func (r *ElementRepository) SharedElements(c1 int, c2 int) *utils.Set {
 // Merge elements between two clusters
 // Move shared items from c2 to c1 then reevaluate shared items for c1
 func (r *ElementRepository) MergeElements(c1 int, c2 int) {
-	c1Shared, _ := r.clusterElements[c1]
-	c2Shared, _ := r.clusterElements[c2]
+	c1Shared := r.clusterElements[c1]
+	c2Shared := r.clusterElements[c2]
 	toDelete := make([]uint, 0, 2)
 	for eId, e := range c1Shared {
 		if _, ok := c2Shared[eId]; !ok {
@@ -118,11 +117,19 @@ func (r *ElementRepository) MergeElements(c1 int, c2 int) {
 	}
 	for _, eId := range toDelete {
 		delete(c2Shared, eId)
-		if !r.isShared(eId) {
+		if !r.IsShared(eId) {
 			r.elements[eId] = c1Shared[eId]
 			delete(c1Shared, eId)
 		}
 	}
+}
+
+func (r *ElementRepository) MergeToRoot(cluster int) {
+	clusterElements := r.clusterElements[cluster]
+	for eId, e := range clusterElements {
+		r.elements[eId] = e
+	}
+	delete(r.clusterElements, cluster)
 }
 
 func (r *ElementRepository) IdSet() *utils.Set {
@@ -153,10 +160,18 @@ func (r *ElementRepository) ConstraintLevel(eId uint) el.ConstraintLevel {
 	return e.ConstraintLevel()
 }
 
-func (r *ElementRepository) logElements(logger *zerolog.Event) {
-	logger.Msg("Elements: ")
+func (r *ElementRepository) LogElements(level zerolog.Level) {
+	utils.Logger.WithLevel(level).Msg("Elements: ")
 	for _, e := range r.elements {
-		logger.Msgf("%v", e)
+		utils.Logger.WithLevel(level).Msgf("%v", e)
 	}
-	logger.Msg("")
+	utils.Logger.WithLevel(level).Msg("")
+}
+
+func (r *ElementRepository) IsFixed(eId uint) bool {
+	e, ok := r.elements[eId]
+	if !ok {
+		return false
+	}
+	return e.IsFixed()
 }

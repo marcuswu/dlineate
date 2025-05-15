@@ -1,5 +1,7 @@
 package utils
 
+import "fmt"
+
 var exists = struct{}{}
 
 // Set a set of unsigned integers
@@ -89,4 +91,16 @@ func (s *Set) Union(other *Set) *Set {
 	union.AddSet(s)
 	union.AddSet(other)
 	return union
+}
+
+func (s *Set) String() string {
+	output := ""
+	for value := range s.m {
+		if len(output) == 0 {
+			output += fmt.Sprintf("%d", value)
+			continue
+		}
+		output += fmt.Sprintf(", %d", value)
+	}
+	return output
 }

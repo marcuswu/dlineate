@@ -91,3 +91,22 @@ go get -u github.com/marcuswu/dlineate
 ```
 dot -Tsvg clustered.dot -o clustered.svg
 ```
+
+### Visualizing Elements for Debugging
+
+The debug output of the solver includes line and point data such as:
+
+```
+8:53AM INF Line(6) 0.957826x + 0.287348y + -1.000000 = 0
+8:53AM INF Point(10) (0.733781, 1.034165)
+8:53AM INF Line(9) 0.287348x + -0.957826y + 0.779700 = 0
+8:53AM INF Point(13) (-0.224045, 0.746817)
+8:53AM INF Line(12) -0.957826x + -0.287348y + -0.000000 = 0
+8:53AM INF Line(3) 0.287348x + -0.957826y + -0.220300 = 0
+8:53AM INF Point(0) (0.063303, -0.211009)
+8:53AM INF Point(7) (1.021129, 0.076339)
+```
+
+These can be entered into [GeoGebra](https://www.geogebra.org/graphing) to plot lines and points.
+This can significantly help debugging what the result looks like and therefore where problems
+might be arising in the solve.

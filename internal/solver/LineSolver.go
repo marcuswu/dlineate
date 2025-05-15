@@ -3,25 +3,26 @@ package solver
 import (
 	"math"
 
+	"github.com/marcuswu/dlineate/internal/accessors"
 	"github.com/marcuswu/dlineate/internal/constraint"
 	el "github.com/marcuswu/dlineate/internal/element"
 	"github.com/marcuswu/dlineate/utils"
 )
 
-func SolveForLine(c1 *constraint.Constraint, c2 *constraint.Constraint) SolveState {
-	line, solveState := LineResult(c1, c2)
+func SolveForLine(cluster int, ea accessors.ElementAccessor, c1 *constraint.Constraint, c2 *constraint.Constraint) SolveState {
+	line, solveState := LineResult(cluster, ea, c1, c2)
 
 	if line == nil {
 		return solveState
 	}
 
-	c1e, _ := c1.Element(line.GetID())
+	c1e, _ := ea.GetElement(cluster, line.GetID())
 	c1Line := c1e.AsLine()
 	c1Line.SetA(line.GetA())
 	c1Line.SetB(line.GetB())
 	c1Line.SetC(line.GetC())
 
-	c2e, _ := c2.Element(line.GetID())
+	c2e, _ := ea.GetElement(cluster, line.GetID())
 	c2Line := c2e.AsLine()
 	c2Line.SetA(line.GetA())
 	c2Line.SetB(line.GetB())
@@ -30,18 +31,18 @@ func SolveForLine(c1 *constraint.Constraint, c2 *constraint.Constraint) SolveSta
 	return solveState
 }
 
-func LineResult(c1 *constraint.Constraint, c2 *constraint.Constraint) (*el.SketchLine, SolveState) {
+func LineResult(cluster int, ea accessors.ElementAccessor, c1 *constraint.Constraint, c2 *constraint.Constraint) (*el.SketchLine, SolveState) {
 	/*
 		There are only two possibilities:
 		 * two lines and a point: The two lines must have an angle constraint between them
 		 * two points and a line
 	*/
-	_, numLines := typeCounts(c1, c2)
+	_, numLines := typeCounts(c1, c2, ea)
 	// 2 lines, 1 point -> LineFromPointLine
 	var line *el.SketchLine = nil
 	var solveState SolveState = NonConvergent
 	if numLines == 3 {
-		line, solveState = LineFromPointLine(c1, c2)
+		line, solveState = LineFromPointLine(cluster, ea, c1, c2)
 		utils.Logger.Trace().
 			Str("result", solveState.String()).
 			Str("line", line.String()).
@@ -50,7 +51,7 @@ func LineResult(c1 *constraint.Constraint, c2 *constraint.Constraint) (*el.Sketc
 
 	// 1 line, 2 points -> LineFromPoints
 	if numLines == 2 {
-		line, solveState = LineFromPoints(c1, c2)
+		line, solveState = LineFromPoints(cluster, ea, c1, c2)
 		utils.Logger.Trace().
 			Str("result", solveState.String()).
 			Str("line", line.String()).
@@ -66,7 +67,7 @@ func LineResult(c1 *constraint.Constraint, c2 *constraint.Constraint) (*el.Sketc
 }
 
 // MoveLineToPoint solves a constraint between a line and a point where the line needs to move
-func MoveLineToPoint(c *constraint.Constraint) SolveState {
+func MoveLineToPoint(ea accessors.ElementAccessor, c *constraint.Constraint) SolveState {
 	if c.Type != constraint.Distance {
 		utils.Logger.Error().
 			Uint("constraint", c.GetID()).
@@ -76,8 +77,16 @@ func MoveLineToPoint(c *constraint.Constraint) SolveState {
 
 	var point *el.SketchPoint
 	var line *el.SketchLine
-	var e1Type = c.Element1.GetType()
-	var e2Type = c.Element2.GetType()
+	e1, ok := ea.GetElement(-1, c.Element1)
+	if !ok {
+		return NonConvergent
+	}
+	e2, ok := ea.GetElement(-1, c.Element2)
+	if !ok {
+		return NonConvergent
+	}
+	var e1Type = e1.GetType()
+	var e2Type = e2.GetType()
 	if e1Type == e2Type {
 		utils.Logger.Error().
 			Uint("constraint", c.GetID()).
@@ -85,12 +94,12 @@ func MoveLineToPoint(c *constraint.Constraint) SolveState {
 		return NonConvergent
 	}
 	if e1Type == el.Point && e2Type == el.Line {
-		point = c.Element1.(*el.SketchPoint)
-		line = c.Element2.(*el.SketchLine)
+		point = e1.(*el.SketchPoint)
+		line = e2.(*el.SketchLine)
 	}
 	if e2Type == el.Point && e1Type == el.Line {
-		point = c.Element2.(*el.SketchPoint)
-		line = c.Element1.(*el.SketchLine)
+		point = e2.(*el.SketchPoint)
+		line = e1.(*el.SketchLine)
 	}
 
 	// If two points, get distance between them, translate constraint value - distance between
@@ -110,10 +119,18 @@ func MoveLineToPoint(c *constraint.Constraint) SolveState {
 	return Solved
 }
 
-func LineFromPoints(c1 *constraint.Constraint, c2 *constraint.Constraint) (*el.SketchLine, SolveState) {
-	line := c1.First().AsLine()
+func LineFromPoints(cluster int, ea accessors.ElementAccessor, c1 *constraint.Constraint, c2 *constraint.Constraint) (*el.SketchLine, SolveState) {
+	e, ok := ea.GetElement(cluster, c1.First())
+	if !ok {
+		return nil, NonConvergent
+	}
+	line := e.AsLine()
 	if line == nil {
-		line = c1.Second().AsLine()
+		e, ok = ea.GetElement(cluster, c1.Second())
+		if !ok {
+			return nil, NonConvergent
+		}
+		line = e.AsLine()
 	}
 
 	if line == nil {
@@ -126,8 +143,16 @@ func LineFromPoints(c1 *constraint.Constraint, c2 *constraint.Constraint) (*el.S
 
 	p1e, _ := c1.Other(line.GetID())
 	p2e, _ := c2.Other(line.GetID())
-	p1 := p1e.AsPoint()
-	p2 := p2e.AsPoint()
+	e, ok = ea.GetElement(cluster, p1e)
+	if !ok {
+		return nil, NonConvergent
+	}
+	p1 := e.AsPoint()
+	e, ok = ea.GetElement(cluster, p2e)
+	if !ok {
+		return nil, NonConvergent
+	}
+	p2 := e.AsPoint()
 	if p1 == nil || p2 == nil {
 		utils.Logger.Error().
 			Uint("constraint 1", c1.GetID()).
@@ -248,9 +273,9 @@ func LineFromPoints(c1 *constraint.Constraint, c2 *constraint.Constraint) (*el.S
 	return line, Solved
 }
 
-func LineFromPointLine(c1 *constraint.Constraint, c2 *constraint.Constraint) (*el.SketchLine, SolveState) {
-	var targetLine *el.SketchLine
-	var point *el.SketchPoint
+func LineFromPointLine(cluster int, ea accessors.ElementAccessor, c1 *constraint.Constraint, c2 *constraint.Constraint) (*el.SketchLine, SolveState) {
+	var targetLine *el.SketchLine = nil
+	var point *el.SketchPoint = nil
 	distC := c1
 	angleC := c2
 	if c1.Type == constraint.Angle {
@@ -258,15 +283,27 @@ func LineFromPointLine(c1 *constraint.Constraint, c2 *constraint.Constraint) (*e
 		distC = c2
 	}
 
-	targetLine = distC.First().AsLine()
-	point = distC.Second().AsPoint()
+	// The distance constraint with have the point and the shared line
+	e, ok := ea.GetElement(cluster, distC.First())
+	if !ok {
+		return nil, NonConvergent
+	}
+	targetLine = e.AsLine()
 	if targetLine == nil {
-		targetLine = distC.Second().AsLine()
-		point = distC.First().AsPoint()
+		point = e.AsPoint()
+	}
+	e, ok = ea.GetElement(cluster, distC.Second())
+	if !ok {
+		return nil, NonConvergent
+	}
+	if point == nil {
+		point = e.AsPoint()
+	} else {
+		targetLine = e.AsLine()
 	}
 
 	// Solve angle
-	newLine, state := SolveAngleConstraint(angleC, targetLine.GetID())
+	newLine, state := SolveAngleConstraint(cluster, ea, angleC, targetLine.GetID())
 
 	// Translate to distC.Value from the point
 	dist1 := newLine.DistanceTo(point) - distC.Value
@@ -285,7 +322,7 @@ func LineFromPointLine(c1 *constraint.Constraint, c2 *constraint.Constraint) (*e
 }
 
 // SolveAngleConstraint solve an angle constraint between two lines
-func SolveAngleConstraint(c *constraint.Constraint, e uint) (*el.SketchLine, SolveState) {
+func SolveAngleConstraint(cluster int, ea accessors.ElementAccessor, c *constraint.Constraint, e uint) (*el.SketchLine, SolveState) {
 	if c.Type != constraint.Angle {
 		utils.Logger.Error().
 			Uint("constraint", c.GetID()).
@@ -293,8 +330,16 @@ func SolveAngleConstraint(c *constraint.Constraint, e uint) (*el.SketchLine, Sol
 		return nil, NonConvergent
 	}
 
-	l1 := c.Element1.(*el.SketchLine)
-	l2 := c.Element2.(*el.SketchLine)
+	element, ok := ea.GetElement(cluster, c.Element1)
+	if !ok {
+		return nil, NonConvergent
+	}
+	l1 := element.(*el.SketchLine)
+	element, ok = ea.GetElement(cluster, c.Element2)
+	if !ok {
+		return nil, NonConvergent
+	}
+	l2 := element.(*el.SketchLine)
 	desired := c.Value
 	if l1.GetID() == e {
 		l1, l2 = l2, l1

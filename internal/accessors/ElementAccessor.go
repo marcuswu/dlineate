@@ -1,4 +1,4 @@
-package core
+package accessors
 
 import (
 	el "github.com/marcuswu/dlineate/internal/element"
@@ -8,18 +8,20 @@ import (
 
 type ElementAccessor interface {
 	GetElement(cId int, eId uint) (el.SketchElement, bool)
-	isShared(eId uint) bool
-	AddElement(el.SketchElement)
+	IsFixed(eId uint) bool
+	IsShared(eId uint) bool
+	AddElement(el.SketchElement) el.SketchElement
 	AddElementToCluster(uint, int)
 	SetConstraintLevel(uint, el.ConstraintLevel)
 	ConstraintLevel(uint) el.ConstraintLevel
 	RemoveElement(uint)
 	SharedElements(int, int) *utils.Set
 	MergeElements(int, int)
+	MergeToRoot(int)
 	NextId() uint
 	IdSet() *utils.Set
 	Count() int
 	Clear()
 	ClearClusters()
-	logElements(*zerolog.Event)
+	LogElements(zerolog.Level)
 }

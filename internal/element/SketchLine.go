@@ -16,6 +16,7 @@ type SketchLine struct {
 	b               float64
 	c               float64
 	constraintLevel ConstraintLevel
+	fixed           bool
 }
 
 // NewSketchLine creates a new SketchLine
@@ -137,7 +138,7 @@ func (l *SketchLine) TranslatedDistance(dist float64) *SketchLine {
 	if utils.StandardFloatCompare((l.a*l.a)+(l.b*l.b), 0) != 0 {
 		l.Normalize()
 	}
-	return &SketchLine{Line, l.GetID(), l.GetA(), l.GetB(), l.GetC() - dist, l.constraintLevel}
+	return &SketchLine{Line, l.GetID(), l.GetA(), l.GetB(), l.GetC() - dist, l.constraintLevel, l.fixed}
 }
 
 // Translated returns a line translated by an x and y value
@@ -153,7 +154,7 @@ func (l *SketchLine) Translated(tx float64, ty float64) *SketchLine {
 	// and (tx, ty) is a vector to translate the line,
 	// then the dot product of the vectors is the change to C to move the line by tx, ty
 	// newC := l.GetC() + (l.GetA() * tx) + (l.GetB() * ty)
-	return &SketchLine{Line, l.GetID(), l.GetA(), l.GetB(), newC, l.constraintLevel}
+	return &SketchLine{Line, l.GetID(), l.GetA(), l.GetB(), newC, l.constraintLevel, l.fixed}
 }
 
 // Translate translates the location of this line by an x and y distance
@@ -244,7 +245,7 @@ func (l *SketchLine) VectorTo(o SketchElement) *Vector {
 		myPoint = l.NearestPoint(point.GetX(), point.GetY())
 	} else {
 		oline := o.AsLine()
-		if utils.StandardFloatCompare((oline.a*oline.a)+(oline.b*oline.b), 0) != 0 {
+		if utils.StandardFloatCompare((oline.a*oline.a)+(oline.b*oline.b), 1) != 0 {
 			oline.Normalize()
 		}
 		point = NewSketchPoint(0, oline.a*oline.c, oline.b*oline.c)
@@ -274,6 +275,14 @@ func (l *SketchLine) SetConstraintLevel(cl ConstraintLevel) {
 
 func (l *SketchLine) String() string {
 	return fmt.Sprintf("Line(%d) %fx + %fy + %f = 0", l.id, l.a, l.b, l.c)
+}
+
+func (l *SketchLine) SetFixed(fixed bool) {
+	l.fixed = fixed
+}
+
+func (l *SketchLine) IsFixed() bool {
+	return l.fixed
 }
 
 func (l *SketchLine) ToGraphViz(cId int) string {
