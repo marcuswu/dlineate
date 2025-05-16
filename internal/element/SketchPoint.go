@@ -70,8 +70,8 @@ func (p *SketchPoint) SquareDistanceTo(o SketchElement) float64 {
 		d := o.(*SketchLine).DistanceTo(p)
 		return d * d
 	}
-	a := p.X - o.(*SketchPoint).GetX()
-	b := p.Y - o.(*SketchPoint).GetY()
+	a := o.(*SketchPoint).GetX() - p.X
+	b := o.(*SketchPoint).GetY() - p.Y
 
 	return (a * a) + (b * b)
 }

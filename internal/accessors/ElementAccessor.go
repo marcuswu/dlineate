@@ -18,6 +18,7 @@ type ElementAccessor interface {
 	SharedElements(int, int) *utils.Set
 	MergeElements(int, int)
 	MergeToRoot(int)
+	CopyToCluster(int, int, uint)
 	NextId() uint
 	IdSet() *utils.Set
 	Count() int

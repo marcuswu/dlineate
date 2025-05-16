@@ -120,8 +120,11 @@ func SolveDistanceConstraint(cluster int, ea accessors.ElementAccessor, c *const
 		solveElement, other = other, solveElement
 	}
 
-	trans := solveElement.VectorTo(other)
-	dist := trans.Magnitude()
+	direction := other.VectorTo(solveElement)
+	dist := direction.Magnitude()
+	utils.Logger.Trace().
+		Float64("distance", dist).
+		Msg("Calculated current distance")
 
 	if dist == 0 && c.GetValue() > 0 {
 		utils.Logger.Error().Msg("SolveDistanceConstraint: points are coincident, but they shouldn't be. Infinite solutions.")
@@ -133,8 +136,12 @@ func SolveDistanceConstraint(cluster int, ea accessors.ElementAccessor, c *const
 		return Solved
 	}
 
-	trans.Scaled(c.GetValue() / dist)
-	solveElement.Translate(trans.GetX(), trans.GetY())
+	translation, ok := direction.UnitVector()
+	if !ok {
+		return NonConvergent
+	}
+	translation.Scaled(c.GetValue() - dist)
+	solveElement.Translate(-translation.GetX(), -translation.GetY())
 	c.Solved = true
 
 	return Solved

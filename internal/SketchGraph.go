@@ -361,7 +361,7 @@ func (g *SketchGraph) findStartConstraint() uint {
 }
 
 func (g *SketchGraph) createClusters() {
-	id := 1
+	id := 0
 	utils.Logger.Info().
 		Int("unassigned constraints", g.freeEdges.Count()).
 		Msg("Creating clusters")
@@ -499,21 +499,25 @@ func (g *SketchGraph) Solve() solver.SolveState {
 	// Merge clusters
 	utils.Logger.Info().Msg("Starting Cluster Merges")
 	g.mergeClusters()
-	if len(g.clusters) == 1 {
-		// Drop cluster 0's elements into the main graph
-		g.elementAccessor.MergeToRoot(g.clusters[0].GetID())
-	}
 	return g.state
 }
 
 func (g *SketchGraph) mergeClusters() {
-	removeCluster := func(g *SketchGraph, cIndex int) {
+	getClusterIndex := func(cId int) int {
+		for i, c := range g.clusters {
+			if c.GetID() == cId {
+				return i
+			}
+		}
+		return -1
+	}
+	removeCluster := func(g *SketchGraph, cId int) {
+		cIndex := getClusterIndex(cId)
 		last := len(g.clusters) - 1
 		g.clusters[cIndex], g.clusters[last] = g.clusters[last], g.clusters[cIndex]
 		g.clusters = g.clusters[:last]
 	}
-	// TODO: is this the best way? are there problems finding merges this way?
-	for first, second, third := g.findMerge(); first > 0 && second > 0; first, second, third = g.findMerge() {
+	for first, second, third := g.findMerge(); len(g.clusters) > 1 && first >= 0 && g.state == solver.Solved; first, second, third = g.findMerge() {
 		utils.Logger.Debug().
 			Int("first cluster", first).
 			Int("second cluster", second).
@@ -539,43 +543,18 @@ func (g *SketchGraph) mergeClusters() {
 			g.state = mergeState
 		}
 		// Remove second and third clusters
-		// TODO: why remove in a particular order? Perhaps the answer is in removeCluster
-		ordered := []int{second, third}
-		if second < third {
-			ordered[0], ordered[1] = ordered[1], ordered[0]
-		}
-		removeCluster(g, ordered[0])
+		g.elementAccessor.MergeElements(c1.GetID(), c2.GetID())
+		removeCluster(g, c2.GetID())
 		if third > 0 {
-			removeCluster(g, ordered[1])
+			g.elementAccessor.MergeElements(c1.GetID(), c3.GetID())
+			removeCluster(g, c3.GetID())
 		}
 	}
-	utils.Logger.Info().Msg("Merging with origin and X & Y axes")
-	// We should have the fixed cluster and the solved main cluster
-	if len(g.clusters) < 2 {
-		return
+
+	for _, c := range g.clusters {
+		g.elementAccessor.MergeToRoot(c.GetID())
 	}
-	// Merge the elements to the fixed cluster -- aligning the sketch with origin and axes
-	mergeState := solver.Solved
-	if len(g.clusters) < 3 {
-		mergeState = g.clusters[0].mergeOne(g.elementAccessor, g.clusters[1], false)
-	} else {
-		first, second, third := g.findMerge()
-		if second == 0 {
-			first, second = second, first
-		}
-		if third == 0 {
-			_, third = third, first
-		}
-		c1 := g.clusters[second]
-		c2 := g.clusters[third]
-		mergeState = g.clusters[0].solveMerge(g.elementAccessor, g.constraintAccessor, c1, c2)
-	}
-	if g.state != mergeState && mergeState != solver.Solved {
-		utils.Logger.Debug().
-			Str("graph state", mergeState.String()).
-			Msg("Updating state after cluster merge")
-		g.state = mergeState
-	}
+
 	utils.Logger.Debug().
 		Str("graph state", g.state.String()).
 		Msg("Final graph state")
@@ -588,7 +567,7 @@ func (g *SketchGraph) mergeClusters() {
 func (g *SketchGraph) findMergeForCluster(c *GraphCluster) (int, int) {
 	connectedClusters := func(g *SketchGraph, c *GraphCluster) map[int][]uint {
 		connected := make(map[int][]uint)
-		for i, other := range g.clusters {
+		for _, other := range g.clusters {
 			if other.id == c.id {
 				continue
 			}
@@ -596,9 +575,17 @@ func (g *SketchGraph) findMergeForCluster(c *GraphCluster) (int, int) {
 			if len(shared) < 1 {
 				continue
 			}
-			connected[i] = shared
+			connected[other.GetID()] = shared
 		}
 		return connected
+	}
+	getCluster := func(cId int) *GraphCluster {
+		for _, c := range g.clusters {
+			if c.GetID() == cId {
+				return c
+			}
+		}
+		return nil
 	}
 
 	// These are the clusters connected to c
@@ -608,16 +595,17 @@ func (g *SketchGraph) findMergeForCluster(c *GraphCluster) (int, int) {
 	//   and each other by one
 	connected := connectedClusters(g, c)
 	for ci, shared := range connected {
-		if ci == 0 {
+		c2 := getCluster(ci)
+		if c2 == nil {
 			continue
 		}
 		utils.Logger.Debug().
 			Int("cluster 1", c.id).
-			Int("cluster 2", g.clusters[ci].id).
+			Int("cluster 2", ci).
 			Msg("Looking for merge")
 		if len(shared) == 2 {
 			utils.Logger.Debug().
-				Int("cluster", g.clusters[ci].id).
+				Int("cluster", ci).
 				Msg("Found connected cluster for merge")
 			return ci, -1
 		}
@@ -625,20 +613,21 @@ func (g *SketchGraph) findMergeForCluster(c *GraphCluster) (int, int) {
 		if len(shared) == 1 {
 			// Find another cluster in connected that is connected to g.clusters[ci]
 			for oi, oshared := range connected {
-				if oi == 0 || ci == oi || len(oshared) != 1 || oshared[0] == shared[0] {
+				c3 := getCluster(oi)
+				if c3 == nil || ci == oi || len(oshared) != 1 || oshared[0] == shared[0] {
 					continue
 				}
 				utils.Logger.Debug().
 					Int("cluster 0", c.id).
-					Int("cluster 1", g.clusters[ci].id).
-					Int("cluster 2", g.clusters[oi].id).
+					Int("cluster 1", ci).
+					Int("cluster 2", oi).
 					Msg("Testing for valid merge for clusters")
-				ciOiShared := g.clusters[ci].SharedElements(g.clusters[oi])
+				ciOiShared := c2.SharedElements(c3)
 				if ciOiShared.Count() == 1 && !ciOiShared.Contains(shared[0]) && !ciOiShared.Contains(oshared[0]) {
 					utils.Logger.Debug().
 						Int("cluster 0", c.id).
-						Int("cluster 1", g.clusters[ci].id).
-						Int("cluster 2", g.clusters[oi].id).
+						Int("cluster 1", ci).
+						Int("cluster 2", oi).
 						Msg("Found connected clusters for merge")
 					return ci, oi
 				}

@@ -461,6 +461,8 @@ func (g *GraphCluster) solveMerge(ea accessors.ElementAccessor, ca accessors.Con
 		eType := e1.GetType()
 		utils.Logger.Trace().
 			Uint("element", shared).
+			Str("element 1", e1.String()).
+			Str("element 2", e2.String()).
 			Str("type", eType.String()).
 			Msg("Solving for element")
 
@@ -474,22 +476,29 @@ func (g *GraphCluster) solveMerge(ea accessors.ElementAccessor, ca accessors.Con
 			other.RotateCluster(ea, e1.AsLine().PointNearestOrigin(), angle)
 			translation = e1.VectorTo(e2)
 		} else {
-			translation = e2.VectorTo(e1)
+			translation = e1.VectorTo(e2)
 		}
+		utils.Logger.Trace().
+			Float64("X", translation.X).
+			Float64("y", translation.Y).
+			Msg("Cluster translation")
 
 		// translate element into place
 		other.TranslateCluster(ea, translation.X, translation.Y)
+		if utils.StandardFloatCompare(e2.DistanceTo(e1), 0) != 0 {
+			return solver.NonConvergent, eType
+		}
 		return solver.Solved, eType
 	}
 
 	// Solve c1 to g and c2 to g
-	state1, shared1Type := solveOne(ea, g, c1, gc1Shared)
+	state1, _ := solveOne(ea, g, c1, gc1Shared)
 	utils.Logger.Info().Msg("moved c1 to g")
 	utils.Logger.Info().Msg("g:")
 	g.logElements(ea, zerolog.InfoLevel)
 	utils.Logger.Info().Msg("c1:")
 	c1.logElements(ea, zerolog.InfoLevel)
-	state2, shared2Type := solveOne(ea, g, c2, gc2Shared)
+	state2, _ := solveOne(ea, g, c2, gc2Shared)
 	utils.Logger.Info().Msg("moved c2 to g")
 	utils.Logger.Info().Msg("g:")
 	g.logElements(ea, zerolog.InfoLevel)
@@ -498,12 +507,8 @@ func (g *GraphCluster) solveMerge(ea accessors.ElementAccessor, ca accessors.Con
 	if state1 == solver.NonConvergent || state2 == solver.NonConvergent {
 		return solver.NonConvergent
 	}
-
-	// Solve for final element (shared between c1 and c2). Skip if both previously solved elements were lines1
-	if shared1Type == el.Line && shared2Type == el.Line {
-		// TODO: check solution and use solve state based on that
-		return solver.Solved
-	}
+	ea.CopyToCluster(g.GetID(), c1.GetID(), gc1Shared)
+	ea.CopyToCluster(g.GetID(), c2.GetID(), gc2Shared)
 
 	constraintFor := func(ea accessors.ElementAccessor, other *GraphCluster, anchor uint, solveFor uint) *constraint.Constraint {
 		anchorElement, _ := ea.GetElement(other.GetID(), anchor)
@@ -521,9 +526,9 @@ func (g *GraphCluster) solveMerge(ea accessors.ElementAccessor, ca accessors.Con
 		utils.Logger.Trace().
 			Uint("element 1", anchor).
 			Uint("element 2", solveFor).
-			Float64("distance", -dist).
+			Float64("distance", dist).
 			Msg("Creating constraint")
-		return constraint.NewConstraint(0, constraint.Distance, anchor, solveFor, -dist, false)
+		return constraint.NewConstraint(0, constraint.Distance, anchor, solveFor, dist, false)
 	}
 
 	c1Constraint := constraintFor(ea, c1, gc1Shared, c1c2Shared)
@@ -531,7 +536,10 @@ func (g *GraphCluster) solveMerge(ea accessors.ElementAccessor, ca accessors.Con
 	c1Shared, _ := ea.GetElement(c1.GetID(), c1c2Shared)
 	c2Shared, _ := ea.GetElement(c2.GetID(), c1c2Shared)
 
-	newC1C2Shared, state := solver.ConstraintResult(-1, ea, c1Constraint, c2Constraint, c1Shared)
+	newC1C2Shared, state := solver.ConstraintResult(g.GetID(), ea, c1Constraint, c2Constraint, c1Shared)
+	utils.Logger.Trace().
+		Str("shared element", newC1C2Shared.String()).
+		Msg("Desired c1 c2 rotate solve")
 
 	if state != solver.Solved {
 		utils.Logger.Error().Msg("Final element solve failed")
@@ -539,37 +547,40 @@ func (g *GraphCluster) solveMerge(ea accessors.ElementAccessor, ca accessors.Con
 	}
 
 	moveCluster := func(c *GraphCluster, pivot el.SketchElement, from el.SketchElement, to el.SketchElement) {
+		utils.Logger.Trace().
+			Str("pivot", pivot.String()).
+			Str("from", from.String()).
+			Str("to", to.String()).
+			Msg("Move Cluster Params")
 		if pivot.GetType() == el.Line {
 			move := from.VectorTo(to)
 			c.TranslateCluster(ea, -move.X, -move.Y)
 			return
 		}
 
-		current, desired := pivot.VectorTo(from), pivot.VectorTo(to)
-		angle := current.AngleTo(desired)
-		c.RotateCluster(ea, pivot.AsPoint(), angle)
+		// current, desired := pivot.VectorTo(from), pivot.VectorTo(to)
+		current, desired := from.VectorTo(pivot), to.VectorTo(pivot)
+		angle := desired.AngleTo(current)
+		angle2 := current.AngleTo(desired)
+		utils.Logger.Trace().
+			Float64("angle", angle).
+			Float64("angle 2", angle2).
+			Msg("Cluster Rotation")
+		c.RotateCluster(ea, pivot.AsPoint(), angle2)
 	}
 
 	gc1SharedElement, _ := ea.GetElement(c1.GetID(), gc1Shared)
-	utils.Logger.Trace().
-		Uint("pivot", c1Shared.GetID()).
-		Str("from", gc1SharedElement.String()).
-		Str("to", newC1C2Shared.String()).
-		Msg("Pivoting c1")
+	utils.Logger.Trace().Msg("Pivoting c1")
 	moveCluster(c1, gc1SharedElement, c1Shared, newC1C2Shared)
 	utils.Logger.Trace().
-		Str("c1c2 shared element final", c1Shared.String()).
+		Str("c1 shared element final", c1Shared.String()).
 		Msgf("c1c2 shared moved")
 
 	gc2SharedElement, _ := ea.GetElement(c2.GetID(), gc2Shared)
-	utils.Logger.Trace().
-		Uint("pivot", c2Shared.GetID()).
-		Str("from", gc2SharedElement.String()).
-		Str("to", newC1C2Shared.String()).
-		Msg("Pivoting c1")
+	utils.Logger.Trace().Msg("Pivoting c2")
 	moveCluster(c2, gc2SharedElement, c2Shared, newC1C2Shared)
 	utils.Logger.Trace().
-		Str("c1c2 shared element final", c2Shared.String()).
+		Str("c2 shared element final", c2Shared.String()).
 		Msgf("c1c2 shared moved")
 
 	utils.Logger.Info().Msg("Completed cluster merge")
@@ -582,8 +593,16 @@ func (g *GraphCluster) solveMerge(ea accessors.ElementAccessor, ca accessors.Con
 	c2.logElements(ea, zerolog.InfoLevel)
 	utils.Logger.Info().Msg("")
 
-	if !g.SharedElementsEquivalent(ea, c1) || !g.SharedElementsEquivalent(ea, c2) || !c1.SharedElementsEquivalent(ea, c2) {
-		utils.Logger.Info().Msg("Returning Non-convergent due to element inequivalancy after merge")
+	if !g.SharedElementsEquivalent(ea, c1) {
+		utils.Logger.Info().Msg("Returning Non-convergent due to element inequivalancy between g and c1 after merge")
+		return solver.NonConvergent
+	}
+	if !g.SharedElementsEquivalent(ea, c2) {
+		utils.Logger.Info().Msg("Returning Non-convergent due to element inequivalancy between g and c2 after merge")
+		return solver.NonConvergent
+	}
+	if !c1.SharedElementsEquivalent(ea, c2) {
+		utils.Logger.Info().Msg("Returning Non-convergent due to element inequivalancy between c1 and c2 merge")
 		return solver.NonConvergent
 	}
 

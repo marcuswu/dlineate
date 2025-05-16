@@ -105,23 +105,15 @@ func (r *ElementRepository) SharedElements(c1 int, c2 int) *utils.Set {
 // Merge elements between two clusters
 // Move shared items from c2 to c1 then reevaluate shared items for c1
 func (r *ElementRepository) MergeElements(c1 int, c2 int) {
-	c1Shared := r.clusterElements[c1]
-	c2Shared := r.clusterElements[c2]
-	toDelete := make([]uint, 0, 2)
-	for eId, e := range c1Shared {
-		if _, ok := c2Shared[eId]; !ok {
+	c1Elements := r.clusterElements[c1]
+	c2Elements := r.clusterElements[c2]
+	for eId, e := range c2Elements {
+		if _, ok := c1Elements[eId]; ok {
 			continue
 		}
-		toDelete = append(toDelete, eId)
-		r.elements[eId] = e
+		c1Elements[eId] = e
 	}
-	for _, eId := range toDelete {
-		delete(c2Shared, eId)
-		if !r.IsShared(eId) {
-			r.elements[eId] = c1Shared[eId]
-			delete(c1Shared, eId)
-		}
-	}
+	delete(r.clusterElements, c2)
 }
 
 func (r *ElementRepository) MergeToRoot(cluster int) {
@@ -130,6 +122,12 @@ func (r *ElementRepository) MergeToRoot(cluster int) {
 		r.elements[eId] = e
 	}
 	delete(r.clusterElements, cluster)
+}
+
+func (r *ElementRepository) CopyToCluster(to int, from int, eId uint) {
+	fromCluster := r.clusterElements[from]
+	toCluster := r.clusterElements[to]
+	toCluster[eId] = el.CopySketchElement(fromCluster[eId])
 }
 
 func (r *ElementRepository) IdSet() *utils.Set {

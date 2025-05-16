@@ -163,7 +163,7 @@ func LineFromPoints(cluster int, ea accessors.ElementAccessor, c1 *constraint.Co
 	p1Dist := c1.Value
 	p2Dist := c2.Value
 
-	// Special case where distances are both 0
+	// Special case where distances are both 0, calculate a line through the two points
 	if p1Dist == 0 && p2Dist == 0 {
 		la1 := p2.Y - p1.Y                  // y' - y
 		lb1 := p1.X - p2.X                  // x - x'
@@ -189,59 +189,54 @@ func LineFromPoints(cluster int, ea accessors.ElementAccessor, c1 *constraint.Co
 	// Translate line p2Dist so it lies on p2
 	// The line must be tangent to the two circles defined by the two points and their distances
 	// TODO: fix this check -- this is not true for external tangents!
+	externalOnly := false
 	if p1.DistanceTo(p2) < p1Dist+p2Dist {
-		utils.Logger.Error().
-			Uint("constraint 1", c1.GetID()).
-			Uint("constraint 2", c2.GetID()).
-			Msgf("LineFromPoints determined the points were too close together.")
-		return line, NonConvergent
+		externalOnly = true
 	}
 
 	// Math from https://en.wikipedia.org/wiki/Tangent_lines_to_circles#Analytic_geometry
-	deltaR := p2Dist - p1Dist
-	deltaX := p2.X - p1.X
-	deltaY := p2.Y - p1.Y
 	d := p1.DistanceTo(p2)
-	R := deltaR / d
-	X := deltaX / d
-	Y := deltaY / d
-	rSquared := R * R
+	R := (p2Dist - p1Dist) / d
+	X := (p2.X - p1.X) / d
+	Y := (p2.Y - p1.Y) / d
 
+	calcTangent := func(X, Y, R, k float64) (float64, float64, float64) {
+		rSquared := R * R
+
+		a := (R * X) - (k * Y * math.Sqrt(1.0-rSquared))
+		b := (R * Y) + (k * X * math.Sqrt(1.0-rSquared))
+		c := p1Dist - ((a * p1.X) + (b * p1.Y))
+		mag := math.Sqrt((a * a) + (b * b))
+		a = a / mag
+		b = b / mag
+		c = c / mag
+		return a, b, c
+	}
 	// Internal vs external tangents will be handled by positive or negative distance constraint values
 	// Both the same sign will be external, opposing signs will be internal
 	// There will be two options aside from internal or external -- plus or minus k
 	// Use the one closest to the existing line angle (closest slope)
-	var k float64 = 1
-	tanA1 := (R * X) - (k*Y)*math.Sqrt(1.0-rSquared)
-	tanB1 := (R * Y) + (k*X)*math.Sqrt(1.0-rSquared)
-	tanC1 := p1Dist - ((tanA1 * p1.X) + (tanB1 * p1.Y))
+	tanA1, tanB1, tanC1 := calcTangent(X, Y, R, 1)
+	tanA2, tanB2, tanC2 := calcTangent(X, Y, R, -1)
 
-	k = -1
-	tanA2 := (R * X) - (k*Y)*math.Sqrt(1.0-rSquared)
-	tanB2 := (R * Y) + (k*X)*math.Sqrt(1.0-rSquared)
-	tanC2 := p1Dist - ((tanA2 * p1.X) + (tanB2 * p1.Y))
+	tanA3 := tanA1
+	tanB3 := tanB1
+	tanC3 := tanC1
+	tanA4 := tanA2
+	tanB4 := tanB2
+	tanC4 := tanC2
 
-	k = 1
-	R = (-p2Dist - p1Dist) / d
-	rSquared = R * R
-	tanA3 := (R * X) - (k*Y)*math.Sqrt(1.0-rSquared)
-	tanB3 := (R * Y) + (k*X)*math.Sqrt(1.0-rSquared)
-	tanC3 := p1Dist - ((tanA3 * p1.X) + (tanB3 * p1.Y))
-
-	k = -1
-	tanA4 := (R * X) - (k*Y)*math.Sqrt(1.0-rSquared)
-	tanB4 := (R * Y) + (k*X)*math.Sqrt(1.0-rSquared)
-	tanC4 := p1Dist - ((tanA4 * p1.X) + (tanB4 * p1.Y))
+	if !externalOnly {
+		R = (p2Dist + p1Dist) / d
+		tanA3, tanB3, tanC3 = calcTangent(X, Y, R, 1)
+		tanA2, tanB2, tanC2 = calcTangent(X, Y, R, -1)
+	}
 
 	origSlope := line.GetB() / line.GetA()
 	externalSlope := tanB1 / tanA1
 	internalSlope := tanB3 / tanA3
 	externalSlopeDist := math.Abs(externalSlope - origSlope)
 	internalSlopeDist := math.Abs(internalSlope - origSlope)
-	mag1 := math.Sqrt(tanA1*tanA1) + (tanB1 * tanB1)
-	mag2 := math.Sqrt(tanA2*tanA2) + (tanB2 * tanB2)
-	c1Normal := tanC1 / mag1
-	c2Normal := tanC2 / mag2
 	useInternal := externalSlopeDist > internalSlopeDist
 	if useInternal {
 		tanA1 = tanA3
@@ -250,15 +245,11 @@ func LineFromPoints(cluster int, ea accessors.ElementAccessor, c1 *constraint.Co
 		tanA2 = tanA4
 		tanB2 = tanB4
 		tanC2 = tanC4
-		mag1 := math.Sqrt(tanA1*tanA1) + (tanB1 * tanB1)
-		mag2 := math.Sqrt(tanA2*tanA2) + (tanB2 * tanB2)
-		c1Normal = tanC1 / mag1
-		c2Normal = tanC2 / mag2
 	}
 
 	originalOriginDistance := line.GetOriginDistance()
-	originDistance1 := math.Abs(c1Normal - originalOriginDistance)
-	originDistance2 := math.Abs(c2Normal - originalOriginDistance)
+	originDistance1 := math.Abs(tanC1 - originalOriginDistance)
+	originDistance2 := math.Abs(tanC2 - originalOriginDistance)
 	useOption1 := originDistance2 > originDistance1
 
 	line.SetA(tanA1)
