@@ -43,8 +43,7 @@ func (v *Vector) AngleTo(u *Vector) float64 {
 	angle := math.Atan2(u.Y, u.X) - math.Atan2(v.Y, v.X)
 	if angle > math.Pi {
 		angle -= 2 * math.Pi
-	}
-	if angle <= -math.Pi {
+	} else if angle <= -math.Pi {
 		angle += 2 * math.Pi
 	}
 	return angle

@@ -51,7 +51,7 @@ func TestAddCoincidentConstraint(t *testing.T) {
 	assert.Equal(t, s.Origin.element.GetID(), p1.element.GetID(), "Coincident points share id")
 	assert.Nil(t, c2, "Coincident points creates no constraint")
 
-	assert.Equal(t, s.Origin.element.GetID(), c1.constraints[0].Element2.GetID(), "Updated id is reflected in previous constraints")
+	assert.Equal(t, s.Origin.element.GetID(), c1.constraints[0].Element2, "Updated id is reflected in previous constraints")
 }
 
 func TestAddDistanceConstraint(t *testing.T) {

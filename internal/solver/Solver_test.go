@@ -4,6 +4,7 @@ import (
 	"math"
 	"testing"
 
+	"github.com/marcuswu/dlineate/internal/accessors"
 	"github.com/marcuswu/dlineate/internal/constraint"
 	el "github.com/marcuswu/dlineate/internal/element"
 	"github.com/marcuswu/dlineate/utils"
@@ -61,12 +62,16 @@ func TestPointFromPoints(t *testing.T) {
 }
 
 func TestPointFromPointsExt(t *testing.T) {
+	ea := accessors.NewElementRepository()
 	var newP3 *el.SketchPoint = nil
 	p1 := el.NewSketchPoint(0, 1, 1)
 	p2 := el.NewSketchPoint(1, 3, 5)
 	p3 := el.NewSketchPoint(2, 0, 2)
+	ea.AddElement(p1)
+	ea.AddElement(p2)
+	ea.AddElement(p3)
 
-	referenceP3, state := GetPointFromPoints(p1, p2, p3, 1, 5)
+	referenceP3, _ := GetPointFromPoints(p1, p2, p3, 1, 5)
 
 	if utils.StandardFloatCompare(p1.DistanceTo(referenceP3), 1) != 0 {
 		t.Error("Expected newP3 to have distance of 1 to p1, got ", p1.DistanceTo(referenceP3))
@@ -76,11 +81,11 @@ func TestPointFromPointsExt(t *testing.T) {
 		t.Error("Expected newP3 to have distance of 5 to p2, got ", p2.DistanceTo(referenceP3))
 	}
 
-	c1 := constraint.NewConstraint(0, constraint.Distance, p1, p3, 1, false)
+	c1 := constraint.NewConstraint(0, constraint.Distance, p1.GetID(), p3.GetID(), 1, false)
 
-	c2 := constraint.NewConstraint(1, constraint.Distance, p2, p3, 5, false)
+	c2 := constraint.NewConstraint(1, constraint.Distance, p2.GetID(), p3.GetID(), 5, false)
 
-	newP3, state = PointFromPoints(c1, c2)
+	newP3, state := PointFromPoints(-1, ea, c1, c2)
 
 	if state != Solved {
 		t.Error("Expected solved state got ", state)
@@ -94,7 +99,7 @@ func TestPointFromPointsExt(t *testing.T) {
 		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
 	}
 
-	newP3, state = PointFromPoints(c2, c1)
+	newP3, state = PointFromPoints(-1, ea, c2, c1)
 
 	if state != Solved {
 		t.Error("Expected solved state got ", state)
@@ -110,7 +115,7 @@ func TestPointFromPointsExt(t *testing.T) {
 
 	c1.Element1, c1.Element2 = c1.Element2, c1.Element1
 
-	newP3, state = PointFromPoints(c1, c2)
+	newP3, state = PointFromPoints(-1, ea, c1, c2)
 
 	if state != Solved {
 		t.Error("Expected solved state got ", state)
@@ -124,7 +129,7 @@ func TestPointFromPointsExt(t *testing.T) {
 		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
 	}
 
-	newP3, state = PointFromPoints(c2, c1)
+	newP3, _ = PointFromPoints(-1, ea, c2, c1)
 
 	if utils.StandardFloatCompare(newP3.GetX(), referenceP3.GetX()) != 0 {
 		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
@@ -137,7 +142,7 @@ func TestPointFromPointsExt(t *testing.T) {
 	c1.Element1, c1.Element2 = c1.Element2, c1.Element1
 	c2.Element1, c2.Element2 = c2.Element2, c2.Element1
 
-	newP3, state = PointFromPoints(c1, c2)
+	newP3, state = PointFromPoints(-1, ea, c1, c2)
 
 	if state != Solved {
 		t.Error("Expected solved state got ", state)
@@ -151,7 +156,7 @@ func TestPointFromPointsExt(t *testing.T) {
 		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
 	}
 
-	newP3, state = PointFromPoints(c2, c1)
+	newP3, _ = PointFromPoints(-1, ea, c2, c1)
 
 	if utils.StandardFloatCompare(newP3.GetX(), referenceP3.GetX()) != 0 {
 		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
@@ -163,7 +168,7 @@ func TestPointFromPointsExt(t *testing.T) {
 
 	c1.Element1, c1.Element2 = c1.Element2, c1.Element1
 
-	newP3, state = PointFromPoints(c1, c2)
+	newP3, state = PointFromPoints(-1, ea, c1, c2)
 
 	if state != Solved {
 		t.Error("Expected solved state got ", state)
@@ -177,7 +182,7 @@ func TestPointFromPointsExt(t *testing.T) {
 		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
 	}
 
-	newP3, state = PointFromPoints(c2, c1)
+	newP3, _ = PointFromPoints(-1, ea, c2, c1)
 
 	if utils.StandardFloatCompare(newP3.GetX(), referenceP3.GetX()) != 0 {
 		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
@@ -223,11 +228,15 @@ func TestPointFromPointLine(t *testing.T) {
 }
 
 func TestPointFromPointLineExt(t *testing.T) {
+	ea := accessors.NewElementRepository()
 	p1 := el.NewSketchPoint(0, 1, 1)
 	l2 := el.NewSketchLine(1, 1, 1, 2)
 	p3 := el.NewSketchPoint(2, 0, 2)
+	ea.AddElement(p1)
+	ea.AddElement(l2)
+	ea.AddElement(p3)
 
-	referenceP3, state := pointFromPointLine(p1, l2, p3, 1, 2.5)
+	referenceP3, _ := pointFromPointLine(p1, l2, p3, 1, 2.5)
 
 	if utils.StandardFloatCompare(p1.DistanceTo(referenceP3), 1) != 0 {
 		t.Error("Expected newP3 to have distance of 1 to p1, got ", p1.DistanceTo(referenceP3))
@@ -237,11 +246,11 @@ func TestPointFromPointLineExt(t *testing.T) {
 		t.Error("Expected newP3 to have distance of 2.5 to p2, got ", l2.DistanceTo(referenceP3))
 	}
 
-	c1 := constraint.NewConstraint(0, constraint.Distance, p1, p3, 1, false)
+	c1 := constraint.NewConstraint(0, constraint.Distance, p1.GetID(), p3.GetID(), 1, false)
 
-	c2 := constraint.NewConstraint(1, constraint.Distance, l2, p3, 2.5, false)
+	c2 := constraint.NewConstraint(1, constraint.Distance, l2.GetID(), p3.GetID(), 2.5, false)
 
-	newP3, state := PointFromPointLine(c1, c2)
+	newP3, state := PointFromPointLine(-1, ea, c1, c2)
 
 	if state != Solved {
 		t.Error("Expected solved state got ", state)
@@ -255,7 +264,7 @@ func TestPointFromPointLineExt(t *testing.T) {
 		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
 	}
 
-	newP3, state = PointFromPointLine(c2, c1)
+	newP3, state = PointFromPointLine(-1, ea, c2, c1)
 
 	if state != Solved {
 		t.Error("Expected solved state got ", state)
@@ -271,7 +280,7 @@ func TestPointFromPointLineExt(t *testing.T) {
 
 	c1.Element1, c1.Element2 = c1.Element2, c1.Element1
 
-	newP3, state = PointFromPointLine(c1, c2)
+	newP3, state = PointFromPointLine(-1, ea, c1, c2)
 
 	if state != Solved {
 		t.Error("Expected solved state got ", state)
@@ -285,7 +294,7 @@ func TestPointFromPointLineExt(t *testing.T) {
 		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
 	}
 
-	newP3, state = PointFromPointLine(c2, c1)
+	newP3, _ = PointFromPointLine(-1, ea, c2, c1)
 
 	if utils.StandardFloatCompare(newP3.GetX(), referenceP3.GetX()) != 0 {
 		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
@@ -298,7 +307,7 @@ func TestPointFromPointLineExt(t *testing.T) {
 	c1.Element1, c1.Element2 = c1.Element2, c1.Element1
 	c2.Element1, c2.Element2 = c2.Element2, c2.Element1
 
-	newP3, state = PointFromPointLine(c1, c2)
+	newP3, state = PointFromPointLine(-1, ea, c1, c2)
 
 	if state != Solved {
 		t.Error("Expected solved state got ", state)
@@ -312,7 +321,7 @@ func TestPointFromPointLineExt(t *testing.T) {
 		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
 	}
 
-	newP3, state = PointFromPointLine(c2, c1)
+	newP3, _ = PointFromPointLine(-1, ea, c2, c1)
 
 	if utils.StandardFloatCompare(newP3.GetX(), referenceP3.GetX()) != 0 {
 		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
@@ -324,7 +333,7 @@ func TestPointFromPointLineExt(t *testing.T) {
 
 	c1.Element1, c1.Element2 = c1.Element2, c1.Element1
 
-	newP3, state = PointFromPointLine(c1, c2)
+	newP3, state = PointFromPointLine(-1, ea, c1, c2)
 
 	if state != Solved {
 		t.Error("Expected solved state got ", state)
@@ -338,7 +347,7 @@ func TestPointFromPointLineExt(t *testing.T) {
 		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
 	}
 
-	newP3, state = PointFromPointLine(c2, c1)
+	newP3, _ = PointFromPointLine(-1, ea, c2, c1)
 
 	if utils.StandardFloatCompare(newP3.GetX(), referenceP3.GetX()) != 0 {
 		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
@@ -426,9 +435,13 @@ func TestPointFromLineLine(t *testing.T) {
 	}
 }
 func TestPointFromLineLineExt(t *testing.T) {
+	ea := accessors.NewElementRepository()
 	l1 := el.NewSketchLine(0, 1, 1, -1)
 	l2 := el.NewSketchLine(1, -1, 1, 1)
 	p3 := el.NewSketchPoint(2, 0.7, 1)
+	ea.AddElement(l1)
+	ea.AddElement(l2)
+	ea.AddElement(p3)
 
 	referenceP3, _ := pointFromLineLine(l1, l2, p3, 1, 2)
 
@@ -440,11 +453,11 @@ func TestPointFromLineLineExt(t *testing.T) {
 		t.Error("Expected newP3 to have distance of 2 to l2, got ", l2.DistanceTo(referenceP3))
 	}
 
-	c1 := constraint.NewConstraint(0, constraint.Distance, l1, p3, 1, false)
+	c1 := constraint.NewConstraint(0, constraint.Distance, l1.GetID(), p3.GetID(), 1, false)
 
-	c2 := constraint.NewConstraint(1, constraint.Distance, l2, p3, 2, false)
+	c2 := constraint.NewConstraint(1, constraint.Distance, l2.GetID(), p3.GetID(), 2, false)
 
-	newP3, state := PointFromLineLine(c1, c2)
+	newP3, state := PointFromLineLine(-1, ea, c1, c2)
 
 	if state != Solved {
 		t.Error("Expected solved state got ", state)
@@ -458,7 +471,7 @@ func TestPointFromLineLineExt(t *testing.T) {
 		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
 	}
 
-	newP3, state = PointFromLineLine(c2, c1)
+	newP3, state = PointFromLineLine(-1, ea, c2, c1)
 
 	if state != Solved {
 		t.Error("Expected solved state got ", state)
@@ -474,7 +487,7 @@ func TestPointFromLineLineExt(t *testing.T) {
 
 	c1.Element1, c1.Element2 = c1.Element2, c1.Element1
 
-	newP3, state = PointFromLineLine(c1, c2)
+	newP3, state = PointFromLineLine(-1, ea, c1, c2)
 
 	if state != Solved {
 		t.Error("Expected solved state got ", state)
@@ -488,7 +501,7 @@ func TestPointFromLineLineExt(t *testing.T) {
 		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
 	}
 
-	newP3, state = PointFromLineLine(c2, c1)
+	newP3, _ = PointFromLineLine(-1, ea, c2, c1)
 
 	if utils.StandardFloatCompare(newP3.GetX(), referenceP3.GetX()) != 0 {
 		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
@@ -501,7 +514,7 @@ func TestPointFromLineLineExt(t *testing.T) {
 	c1.Element1, c1.Element2 = c1.Element2, c1.Element1
 	c2.Element1, c2.Element2 = c2.Element2, c2.Element1
 
-	newP3, state = PointFromLineLine(c1, c2)
+	newP3, state = PointFromLineLine(-1, ea, c1, c2)
 
 	if state != Solved {
 		t.Error("Expected solved state got ", state)
@@ -515,7 +528,7 @@ func TestPointFromLineLineExt(t *testing.T) {
 		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
 	}
 
-	newP3, state = PointFromLineLine(c2, c1)
+	newP3, _ = PointFromLineLine(-1, ea, c2, c1)
 
 	if utils.StandardFloatCompare(newP3.GetX(), referenceP3.GetX()) != 0 {
 		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
@@ -527,7 +540,7 @@ func TestPointFromLineLineExt(t *testing.T) {
 
 	c1.Element1, c1.Element2 = c1.Element2, c1.Element1
 
-	newP3, state = PointFromLineLine(c1, c2)
+	newP3, state = PointFromLineLine(-1, ea, c1, c2)
 
 	if state != Solved {
 		t.Error("Expected solved state got ", state)
@@ -541,7 +554,7 @@ func TestPointFromLineLineExt(t *testing.T) {
 		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
 	}
 
-	newP3, state = PointFromLineLine(c2, c1)
+	newP3, _ = PointFromLineLine(-1, ea, c2, c1)
 
 	if utils.StandardFloatCompare(newP3.GetX(), referenceP3.GetX()) != 0 {
 		t.Errorf("Expected newP3 to to be equivalent to the reference, got reference %v, newP3 %v\n", referenceP3, newP3)
@@ -553,6 +566,22 @@ func TestPointFromLineLineExt(t *testing.T) {
 }
 
 func TestSolveConstraints(t *testing.T) {
+	ea := accessors.NewElementRepository()
+	ca := accessors.NewConstraintRepository()
+	ea.AddElement(el.NewSketchLine(0, 0, 1, -1.1))
+	ea.AddElement(el.NewSketchPoint(1, 0.1, 1))
+	ea.AddElement(el.NewSketchPoint(2, 1, 1.1))
+	ea.AddElement(el.NewSketchLine(3, 1.5, 0.3, 0.1))
+	ea.AddElement(el.NewSketchLine(4, 0.3, 1.5, -0.1))
+	ea.AddElement(el.NewSketchPoint(5, 1, 1))
+	c0 := constraint.NewConstraint(0, constraint.Distance, 1, 2, 1, false)
+	c1 := constraint.NewConstraint(1, constraint.Distance, 1, 0, 0, false)
+	c2 := constraint.NewConstraint(2, constraint.Angle, 3, 4, (70.0/180.0)*math.Pi, false)
+	c3 := constraint.NewConstraint(3, constraint.Distance, 5, 4, 1, false)
+	ca.AddConstraint(c0)
+	ca.AddConstraint(c1)
+	ca.AddConstraint(c2)
+	ca.AddConstraint(c3)
 	tests := []struct {
 		name     string
 		c1       *constraint.Constraint
@@ -560,77 +589,65 @@ func TestSolveConstraints(t *testing.T) {
 		solveFor el.SketchElement
 		state    SolveState
 	}{
-		{
-			"Test Solve For Point",
-			constraint.NewConstraint(0, constraint.Distance, el.NewSketchPoint(2, 0.1, 1), el.NewSketchPoint(3, 1, 1.1), 1, false),
-			constraint.NewConstraint(1, constraint.Distance, el.NewSketchPoint(2, 0.1, 1), el.NewSketchLine(0, 0, 1, -1.1), 0, false),
-			el.NewSketchPoint(2, 0.1, 1),
-			Solved,
-		},
-		{
-			"Test Solve For Line",
-			constraint.NewConstraint(0, constraint.Angle, el.NewSketchLine(0, 1.5, 0.3, 0.1), el.NewSketchLine(1, 0.3, 1.5, -0.1), (70.0/180.0)*math.Pi, false),
-			constraint.NewConstraint(0, constraint.Distance, el.NewSketchPoint(2, 1, 1), el.NewSketchLine(1, 0.3, 1.5, -0.1), 1, false),
-			el.NewSketchLine(1, 0.151089, 0.988520, -0.139610),
-			Solved,
-		},
+		{"Test Solve For Point", c0, c1, el.NewSketchPoint(1, 0.1, 1), Solved},
+		{"Test Solve For Line", c2, c3, el.NewSketchLine(4, 0.151089, 0.988520, -0.139610), Solved},
 	}
 	for _, tt := range tests {
-		solved := SolveConstraints(tt.c1, tt.c2, tt.solveFor)
+		solved := SolveConstraints(-1, ea, tt.c1, tt.c2, tt.solveFor)
 		assert.Equal(t, tt.state, solved, tt.name)
-		assert.True(t, tt.c1.IsMet(), tt.name)
-		assert.True(t, tt.c2.IsMet(), tt.name)
+		assert.True(t, ca.IsMet(tt.c1.GetID(), -1, ea), tt.name)
+		assert.True(t, ca.IsMet(tt.c2.GetID(), -1, ea), tt.name)
 	}
 }
 
 func TestSolveDistanceConstraint(t *testing.T) {
+	ea := accessors.NewElementRepository()
+	ca := accessors.NewConstraintRepository()
+	ea.AddElement(el.NewSketchLine(0, 1, 1, 1))
+	ea.AddElement(el.NewSketchLine(1, 2, 2, 2))
+	ea.AddElement(el.NewSketchPoint(2, 1, 1))
+	ea.AddElement(el.NewSketchPoint(3, 1, 1))
+	ea.AddElement(el.NewSketchPoint(4, 1, 1))
+	ea.AddElement(el.NewSketchPoint(5, 1, 1))
+	ea.AddElement(el.NewSketchPoint(6, 1, 1))
+	ea.AddElement(el.NewSketchPoint(7, 1, 2))
+	ea.AddElement(el.NewSketchLine(8, 0, 1, 1))
+	ea.AddElement(el.NewSketchPoint(9, 1, 2))
+	c0 := constraint.NewConstraint(0, constraint.Angle, 0, 1, 1, false)
+	c1 := constraint.NewConstraint(1, constraint.Distance, 2, 3, 1, false)
+	c2 := constraint.NewConstraint(2, constraint.Distance, 4, 5, 0, false)
+	c3 := constraint.NewConstraint(3, constraint.Distance, 6, 7, 2, false)
+	c4 := constraint.NewConstraint(4, constraint.Distance, 8, 9, 2, false)
+	ca.AddConstraint(c0)
+	ca.AddConstraint(c1)
+	ca.AddConstraint(c2)
+	ca.AddConstraint(c3)
+	ca.AddConstraint(c4)
+
 	tests := []struct {
 		name    string
 		c1      *constraint.Constraint
 		desired *el.SketchPoint
 		state   SolveState
 	}{
-		{
-			"Angle constraint passed",
-			constraint.NewConstraint(0, constraint.Angle, el.NewSketchLine(0, 1, 1, 1), el.NewSketchLine(1, 2, 2, 2), 1, false),
-			nil,
-			NonConvergent,
-		},
-		{
-			"Coincident point values with constraint value > 0",
-			constraint.NewConstraint(0, constraint.Distance, el.NewSketchPoint(0, 1, 1), el.NewSketchPoint(1, 1, 1), 1, false),
-			nil,
-			NonConvergent,
-		},
-		{
-			"Coincident point values already solved",
-			constraint.NewConstraint(0, constraint.Distance, el.NewSketchPoint(0, 1, 1), el.NewSketchPoint(1, 1, 1), 0, false),
-			el.NewSketchPoint(0, 1, 1),
-			Solved,
-		},
-		{
-			"Test 1",
-			constraint.NewConstraint(0, constraint.Distance, el.NewSketchPoint(0, 1, 1), el.NewSketchPoint(1, 1, 2), 2, false),
-			el.NewSketchPoint(0, 1, 0),
-			Solved,
-		},
-		{
-			"Test 2",
-			constraint.NewConstraint(0, constraint.Distance, el.NewSketchLine(0, 0, 1, 1), el.NewSketchPoint(1, 1, 2), 2, false),
-			el.NewSketchPoint(1, 1, 1),
-			Solved,
-		},
+		{"Angle constraint passed", c0, nil, NonConvergent},
+		{"Coincident point values with constraint value > 0", c1, nil, NonConvergent},
+		{"Coincident point values already solved", c2, el.NewSketchPoint(4, 1, 1), Solved},
+		{"Test 1", c3, el.NewSketchPoint(6, 1, 0), Solved},
+		{"Test 2", c4, el.NewSketchPoint(9, 1, 2), Solved},
 	}
 	for _, tt := range tests {
-		state := SolveDistanceConstraint(tt.c1)
+		state := SolveDistanceConstraint(-1, ea, tt.c1)
 		assert.Equal(t, tt.state, state, tt.name)
 		if tt.state != Solved {
 			continue
 		}
-		assert.True(t, tt.c1.IsMet(), tt.name)
-		newPoint := tt.c1.Element1.AsPoint()
+		assert.True(t, ca.IsMet(tt.c1.GetID(), -1, ea), tt.name)
+		e, _ := ea.GetElement(-1, tt.c1.Element1)
+		newPoint := e.AsPoint()
 		if newPoint == nil {
-			newPoint = tt.c1.Element2.AsPoint()
+			e, _ := ea.GetElement(-1, tt.c1.Element2)
+			newPoint = e.AsPoint()
 		}
 		assert.Equal(t, tt.desired.GetID(), newPoint.GetID(), tt.name)
 		assert.InDelta(t, tt.desired.GetX(), newPoint.GetX(), utils.StandardCompare, tt.name)
@@ -639,6 +656,22 @@ func TestSolveDistanceConstraint(t *testing.T) {
 }
 
 func TestPointResult(t *testing.T) {
+	ea := accessors.NewElementRepository()
+	ca := accessors.NewConstraintRepository()
+	ea.AddElement(el.NewSketchPoint(0, 1.5, 0.3))
+	ea.AddElement(el.NewSketchPoint(1, 0.25, 0))
+	ea.AddElement(el.NewSketchPoint(2, 1, 1))
+	ea.AddElement(el.NewSketchLine(3, 1.5, 0.3, 0.1))
+	ea.AddElement(el.NewSketchLine(4, 0.151089, 0.988520, -0.139610))
+	ea.AddElement(el.NewSketchPoint(5, 1, 1))
+	c0 := constraint.NewConstraint(0, constraint.Distance, 0, 1, 1, false)
+	c1 := constraint.NewConstraint(1, constraint.Distance, 2, 1, 1, false)
+	c2 := constraint.NewConstraint(2, constraint.Distance, 5, 3, 1, false)
+	c3 := constraint.NewConstraint(3, constraint.Distance, 5, 4, 1, false)
+	ca.AddConstraint(c0)
+	ca.AddConstraint(c1)
+	ca.AddConstraint(c2)
+	ca.AddConstraint(c3)
 	tests := []struct {
 		name    string
 		c1      *constraint.Constraint
@@ -646,35 +679,21 @@ func TestPointResult(t *testing.T) {
 		desired *el.SketchPoint
 		state   SolveState
 	}{
-		{
-			"Test PointFromPoints",
-			constraint.NewConstraint(0, constraint.Distance, el.NewSketchPoint(0, 1.5, 0.3), el.NewSketchPoint(1, 0.25, 0), 1, false),
-			constraint.NewConstraint(0, constraint.Distance, el.NewSketchPoint(2, 1, 1), el.NewSketchPoint(1, 0.25, 0), 1, false),
-			el.NewSketchPoint(1, 0.515383, 0.125274),
-			Solved,
-		},
-		{
-			"Test PointFromLineLine",
-			constraint.NewConstraint(0, constraint.Distance, el.NewSketchPoint(2, 1, 1), el.NewSketchLine(0, 1.5, 0.3, 0.1), 1, false),
-			constraint.NewConstraint(0, constraint.Distance, el.NewSketchPoint(2, 1, 1), el.NewSketchLine(1, 0.151089, 0.988520, -0.139610), 1, false),
-			el.NewSketchPoint(2, 0.745353, 1.038922),
-			Solved,
-		},
+		{"Test PointFromPoints", c0, c1, el.NewSketchPoint(1, 0.515383, 0.125274), Solved},
+		{"Test PointFromLineLine", c2, c3, el.NewSketchPoint(5, 0.745353, 1.038922), Solved},
 	}
 	for _, tt := range tests {
-		newPoint, state := PointResult(tt.c1, tt.c2)
+		newPoint, state := PointResult(-1, ea, tt.c1, tt.c2)
 		assert.Equal(t, state, tt.state, tt.name)
-		shared, _ := tt.c1.Shared(tt.c2)
+		e, _ := tt.c1.Shared(tt.c2)
+		shared, _ := ea.GetElement(-1, e)
 		if shared == nil || tt.state == NonConvergent {
 			continue
 		}
 		shared.AsPoint().X = newPoint.X
 		shared.AsPoint().Y = newPoint.Y
-		shared, _ = tt.c2.Element(shared.GetID())
-		shared.AsPoint().X = newPoint.X
-		shared.AsPoint().Y = newPoint.Y
-		assert.True(t, tt.c1.IsMet(), tt.name)
-		assert.True(t, tt.c2.IsMet(), tt.name)
+		assert.True(t, ca.IsMet(tt.c1.GetID(), -1, ea), tt.name)
+		assert.True(t, ca.IsMet(tt.c2.GetID(), -1, ea), tt.name)
 		assert.Equal(t, tt.desired.GetID(), shared.GetID(), tt.name)
 		assert.InDelta(t, tt.desired.X, shared.AsPoint().X, utils.StandardCompare, tt.name)
 		assert.InDelta(t, tt.desired.Y, shared.AsPoint().Y, utils.StandardCompare, tt.name)
@@ -682,6 +701,12 @@ func TestPointResult(t *testing.T) {
 }
 
 func TestSolveForPoint(t *testing.T) {
+	ea := accessors.NewElementRepository()
+	ea.AddElement(el.NewSketchLine(0, 1.5, 0.3, 0.1))
+	ea.AddElement(el.NewSketchLine(1, 0.151089, 0.988520, -0.139610))
+	ea.AddElement(el.NewSketchLine(2, 1, 1, 0))
+	c0 := constraint.NewConstraint(0, constraint.Angle, 2, 0, 1, false)
+	c1 := constraint.NewConstraint(1, constraint.Angle, 2, 1, 1, false)
 	tests := []struct {
 		name    string
 		c1      *constraint.Constraint
@@ -689,21 +714,31 @@ func TestSolveForPoint(t *testing.T) {
 		desired *el.SketchPoint
 		state   SolveState
 	}{
-		{
-			"Test Nonconvergent",
-			constraint.NewConstraint(0, constraint.Angle, el.NewSketchLine(2, 1, 1, 0), el.NewSketchLine(0, 1.5, 0.3, 0.1), 1, false),
-			constraint.NewConstraint(0, constraint.Angle, el.NewSketchLine(2, 1, 1, 0), el.NewSketchLine(1, 0.151089, 0.988520, -0.139610), 1, false),
-			nil,
-			NonConvergent,
-		},
+		{"Test Nonconvergent", c0, c1, nil, NonConvergent},
 	}
 	for _, tt := range tests {
-		state := SolveForPoint(tt.c1, tt.c2)
+		state := SolveForPoint(-1, ea, tt.c1, tt.c2)
 		assert.Equal(t, state, tt.state, tt.name)
 	}
 }
 
 func TestConstraintResult(t *testing.T) {
+	ea := accessors.NewElementRepository()
+	ca := accessors.NewConstraintRepository()
+	ea.AddElement(el.NewSketchPoint(0, 1.5, 0.3))
+	ea.AddElement(el.NewSketchPoint(1, 0.25, 0))
+	ea.AddElement(el.NewSketchPoint(2, 1, 1))
+	ea.AddElement(el.NewSketchLine(3, 1.5, 0.3, 0.1))
+	ea.AddElement(el.NewSketchLine(4, 0.3, 1.5, -0.1))
+	ea.AddElement(el.NewSketchPoint(5, 1, 1))
+	c0 := constraint.NewConstraint(0, constraint.Distance, 0, 1, 1, false)
+	c1 := constraint.NewConstraint(1, constraint.Distance, 2, 1, 1, false)
+	c2 := constraint.NewConstraint(2, constraint.Angle, 3, 4, (70.0/180.0)*math.Pi, false)
+	c3 := constraint.NewConstraint(3, constraint.Distance, 5, 4, 1, false)
+	ca.AddConstraint(c0)
+	ca.AddConstraint(c1)
+	ca.AddConstraint(c2)
+	ca.AddConstraint(c3)
 	tests := []struct {
 		name    string
 		c1      *constraint.Constraint
@@ -711,28 +746,16 @@ func TestConstraintResult(t *testing.T) {
 		desired el.SketchElement
 		state   SolveState
 	}{
-		{
-			"Test Point Solve",
-			constraint.NewConstraint(0, constraint.Distance, el.NewSketchPoint(0, 1.5, 0.3), el.NewSketchPoint(1, 0.25, 0), 1, false),
-			constraint.NewConstraint(0, constraint.Distance, el.NewSketchPoint(2, 1, 1), el.NewSketchPoint(1, 0.25, 0), 1, false),
-			el.NewSketchPoint(1, 0.515383, 0.125274),
-			Solved,
-		},
-		{
-			"Test Line Solve",
-			constraint.NewConstraint(0, constraint.Angle, el.NewSketchLine(0, 1.5, 0.3, 0.1), el.NewSketchLine(1, 0.3, 1.5, -0.1), (70.0/180.0)*math.Pi, false),
-			constraint.NewConstraint(0, constraint.Distance, el.NewSketchPoint(2, 1, 1), el.NewSketchLine(1, 0.3, 1.5, -0.1), 1, false),
-			el.NewSketchLine(1, 0.151089, 0.988520, -0.139610),
-			Solved,
-		},
+		{"Test Point Solve", c0, c1, el.NewSketchPoint(1, 0.515383, 0.125274), Solved},
+		{"Test Line Solve", c2, c3, el.NewSketchLine(4, 0.151089, 0.988520, -0.139610), Solved},
 	}
 	for _, tt := range tests {
-		result, state := ConstraintResult(tt.c1, tt.c2, tt.desired)
+		result, state := ConstraintResult(-1, ea, tt.c1, tt.c2, tt.desired)
 		assert.Equal(t, state, tt.state, tt.name)
 		if tt.state == NonConvergent {
 			continue
 		}
-		c1e, _ := tt.c1.Element(tt.desired.GetID())
+		c1e, _ := ea.GetElement(-1, tt.desired.GetID())
 		if c1p := c1e.AsPoint(); c1p != nil {
 			c1p.X = result.AsPoint().X
 			c1p.Y = result.AsPoint().Y
@@ -742,7 +765,7 @@ func TestConstraintResult(t *testing.T) {
 			c1l.SetB(result.AsLine().GetB())
 			c1l.SetC(result.AsLine().GetC())
 		}
-		c2e, _ := tt.c2.Element(tt.desired.GetID())
+		c2e, _ := ea.GetElement(-1, tt.desired.GetID())
 		if c2p := c2e.AsPoint(); c2p != nil {
 			c2p.X = result.AsPoint().X
 			c2p.Y = result.AsPoint().Y
@@ -752,32 +775,34 @@ func TestConstraintResult(t *testing.T) {
 			c2l.SetB(result.AsLine().GetB())
 			c2l.SetC(result.AsLine().GetC())
 		}
-		assert.True(t, tt.c1.IsMet(), tt.name)
-		assert.True(t, tt.c2.IsMet(), tt.name)
+		assert.True(t, ca.IsMet(tt.c1.GetID(), -1, ea), tt.name)
+		assert.True(t, ca.IsMet(tt.c2.GetID(), -1, ea), tt.name)
 	}
 
 }
 
 func TestSolveConstraint(t *testing.T) {
+	ea := accessors.NewElementRepository()
+	ca := accessors.NewConstraintRepository()
+	ea.AddElement(el.NewSketchLine(0, 0.98, 0, 1))
+	ea.AddElement(el.NewSketchLine(1, 0, 0.98, 0))
+	ea.AddElement(el.NewSketchPoint(2, 1, 0))
+	ea.AddElement(el.NewSketchPoint(3, 1, 1))
+	c0 := constraint.NewConstraint(0, constraint.Angle, 0, 1, math.Pi/2, false)
+	c1 := constraint.NewConstraint(1, constraint.Distance, 2, 3, 1.2, false)
+	ca.AddConstraint(c0)
+	ca.AddConstraint(c1)
 	tests := []struct {
 		name  string
 		c1    *constraint.Constraint
 		state SolveState
 	}{
-		{
-			"Solve Angle Constraint",
-			constraint.NewConstraint(0, constraint.Angle, el.NewSketchLine(0, 0.98, 0, 1), el.NewSketchLine(1, 0, 0.98, 0), math.Pi/2, false),
-			Solved,
-		},
-		{
-			"Solve Distance Constraint",
-			constraint.NewConstraint(1, constraint.Distance, el.NewSketchPoint(0, 1, 0), el.NewSketchPoint(0, 1, 1), 1.2, false),
-			Solved,
-		},
+		{"Solve Angle Constraint", c0, Solved},
+		{"Solve Distance Constraint", c1, Solved},
 	}
 	for _, tt := range tests {
-		state := SolveConstraint(tt.c1)
+		state := SolveConstraint(-1, ea, tt.c1)
 		assert.Equal(t, tt.state, state, tt.name)
-		assert.True(t, tt.c1.IsMet(), tt.name)
+		assert.True(t, ca.IsMet(tt.c1.GetID(), -1, ea), tt.name)
 	}
 }

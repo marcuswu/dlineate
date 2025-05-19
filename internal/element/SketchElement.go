@@ -63,6 +63,8 @@ type SketchElement interface {
 	ConstraintLevel() ConstraintLevel
 	SetConstraintLevel(ConstraintLevel)
 	ToGraphViz(cId int) string
+	IsFixed() bool
+	SetFixed(bool)
 }
 
 // List is a list of SketchElements

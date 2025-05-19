@@ -54,8 +54,8 @@ type Constraint struct {
 	id       uint
 	Type     Type
 	Value    float64
-	Element1 el.SketchElement
-	Element2 el.SketchElement
+	Element1 uint
+	Element2 uint
 	Solved   bool
 }
 
@@ -77,12 +77,12 @@ func (c *Constraint) UpdateValue(v float64) {
 // HasElementID returns whether an element with the passed ID
 // exists in this constraint
 func (c *Constraint) HasElementID(eID uint) bool {
-	return c.Element1.GetID() == eID || c.Element2.GetID() == eID
+	return c.Element1 == eID || c.Element2 == eID
 }
 
 func (c *Constraint) HasElements(ids ...uint) bool {
 	for _, id := range ids {
-		if id != c.Element1.GetID() && id != c.Element2.GetID() {
+		if id != c.Element1 && id != c.Element2 {
 			return false
 		}
 	}
@@ -91,56 +91,52 @@ func (c *Constraint) HasElements(ids ...uint) bool {
 }
 
 // First returns the first element in the constraint
-func (c *Constraint) First() el.SketchElement {
+func (c *Constraint) First() uint {
 	return c.Element1
 }
 
 // Second returns the second element in the constraint
-func (c *Constraint) Second() el.SketchElement {
+func (c *Constraint) Second() uint {
 	return c.Element2
 }
 
 func (c *Constraint) ElementIDs() []uint {
-	return []uint{c.Element1.GetID(), c.Element2.GetID()}
+	return []uint{c.Element1, c.Element2}
 }
 
-func (c *Constraint) Element(this uint) (el.SketchElement, bool) {
-	if this == c.Element1.GetID() {
-		return c.Element1, true
+/*func (c *Constraint) Element(this uint, ea accessors.ElementAccessor) (el.SketchElement, bool) {
+	if this == c.Element1 {
+		return c.First(-1, ea), true
 	}
-	return c.Element2, this == c.Element2.GetID()
-}
+	return c.Second(-1, ea), this == c.Element2
+}*/
 
-func (c *Constraint) Other(this uint) (el.SketchElement, bool) {
-	if this == c.Element1.GetID() {
+func (c *Constraint) Other(this uint) (uint, bool) {
+	if this == c.Element1 {
 		return c.Element2, true
 	}
-	return c.Element1, this == c.Element2.GetID()
+	return c.Element1, this == c.Element2
 }
 
-func (c *Constraint) Shared(o *Constraint) (el.SketchElement, bool) {
-	if o.HasElementID(c.Element1.GetID()) {
+func (c *Constraint) Shared(o *Constraint) (uint, bool) {
+	if o.HasElementID(c.Element1) {
 		return c.Element1, true
 	}
-	if o.HasElementID(c.Element2.GetID()) {
+	if o.HasElementID(c.Element2) {
 		return c.Element2, true
 	}
 
-	return nil, false
+	return 0, false
 }
 
-func (c *Constraint) IsMet() bool {
-	current := c.Element1.DistanceTo(c.Element2)
+func (c *Constraint) IsMet(e1 el.SketchElement, e2 el.SketchElement) bool {
+	current := e1.DistanceTo(e2)
 	if c.Type == Angle {
-		current = c.Element1.AsLine().AngleToLine(c.Element2.AsLine())
+		current = e1.AsLine().AngleToLine(e2.AsLine())
 	}
 
 	comparison := utils.StandardFloatCompare(math.Abs(current), math.Abs(c.Value))
 	if comparison != 0 {
-		utils.Logger.Trace().
-			Float64("value 1", math.Abs(current)).
-			Float64("value 2", math.Abs(c.Value)).
-			Msgf("Comparing values")
 		c.Solved = false
 	} else {
 		c.Solved = true
@@ -154,14 +150,14 @@ func (c *Constraint) String() string {
 	if c.Type == Angle {
 		units = " rad"
 	}
-	return fmt.Sprintf("Constraint(%d) type: %v, e1: %d, e2: %d, v: %f%s", c.GetID(), c.Type, c.Element1.GetID(), c.Element2.GetID(), c.Value, units)
+	return fmt.Sprintf("Constraint(%d) type: %v, e1: %d, e2: %d, v: %f%s", c.GetID(), c.Type, c.Element1, c.Element2, c.Value, units)
 }
 
 func (c *Constraint) ToGraphViz(cId int) string {
 	if cId < 0 {
-		return fmt.Sprintf("\t%d -- %d [label=\"%v (%d)\"]\n", c.Element1.GetID(), c.Element2.GetID(), c.Type, c.id)
+		return fmt.Sprintf("\t%d -- %d [label=\"%v (%d)\"]\n", c.Element1, c.Element2, c.Type, c.id)
 	}
-	return fmt.Sprintf("\t\"%d-%d\" -- \"%d-%d\" [label=\"%v (%d)\"]\n", cId, c.Element1.GetID(), cId, c.Element2.GetID(), c.Type, c.id)
+	return fmt.Sprintf("\t\"%d-%d\" -- \"%d-%d\" [label=\"%v (%d)\"]\n", cId, c.Element1, cId, c.Element2, c.Type, c.id)
 }
 
 // Equals returns whether two constraints are equal
@@ -170,7 +166,7 @@ func (c *Constraint) Equals(o Constraint) bool {
 }
 
 // NewConstraint creates a new constraint
-func NewConstraint(id uint, constraintType Type, a el.SketchElement, b el.SketchElement, v float64, solved bool) *Constraint {
+func NewConstraint(id uint, constraintType Type, a uint, b uint, v float64, solved bool) *Constraint {
 	return &Constraint{
 		id:       id,
 		Type:     constraintType,
@@ -186,8 +182,8 @@ func CopyConstraint(c *Constraint) *Constraint {
 	return NewConstraint(
 		c.GetID(),
 		c.Type,
-		el.CopySketchElement(c.Element1),
-		el.CopySketchElement(c.Element2),
+		c.Element1,
+		c.Element2,
 		c.Value,
 		c.Solved,
 	)

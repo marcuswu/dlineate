@@ -11,6 +11,7 @@ import (
 	"github.com/tdewolff/canvas/renderers/svg"
 
 	core "github.com/marcuswu/dlineate/internal"
+	"github.com/marcuswu/dlineate/internal/constraint"
 	"github.com/marcuswu/dlineate/internal/solver"
 	"github.com/marcuswu/dlineate/utils"
 )
@@ -394,12 +395,12 @@ func (s *Sketch) checkCircleConstraints() {
 		if len(constraints) == 1 && constraints[0].constraintType == Distance &&
 			len(constraints[0].elements) == 1 {
 			// Ignore this constraint because there is nothing else to relate the edge of the circle to
-			constraint := constraints[0]
-			e.constraints = make([]*core.Constraint, 0)
+			c := constraints[0]
+			e.constraints = make([]*constraint.Constraint, 0)
 			s.eToC[e.id] = make([]*Constraint, 0)
 			index := -1
 			for i := range s.constraints {
-				if constraints[i] == constraint {
+				if constraints[i] == c {
 					index = i
 					break
 				}
@@ -435,10 +436,11 @@ func (s *Sketch) Solve() error {
 		Msg("Initial constraint state.")
 
 	// This isn't correct -- should run until everything is solved
-	lastUnsolved := 0
-	lastUnresolved := 0
+	// lastUnsolved := 0
+	// lastUnresolved := 0
 	s.checkCircleConstraints()
-	for numUnresolved, numUnsolved := s.resolveConstraints(); numUnsolved > 0 || numUnresolved > 0; numUnresolved, numUnsolved = s.resolveConstraints() {
+	lastUnresolved, lastUnsolved := s.resolveConstraints()
+	for numUnresolved, numUnsolved := lastUnresolved+1, lastUnresolved; /*numUnsolved > 0 ||*/ numUnresolved > 0; numUnresolved, numUnsolved = s.resolveConstraints() {
 		if lastUnsolved == numUnsolved && lastUnresolved == numUnresolved {
 			utils.Logger.Debug().
 				Int("last unsolved", lastUnsolved).
@@ -458,6 +460,7 @@ func (s *Sketch) Solve() error {
 		// Rebuild cluster 0
 		s.sketch.BuildClusters() // TODO: this probably needs a reset between passes!
 		if utils.LogLevel() <= zerolog.DebugLevel {
+			utils.Logger.Info().Msgf("Writing clustered.dot")
 			s.ExportGraphViz("clustered.dot")
 		}
 		solveState = s.sketch.Solve()

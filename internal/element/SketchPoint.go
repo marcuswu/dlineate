@@ -11,6 +11,7 @@ type SketchPoint struct {
 	elementType     Type
 	id              uint
 	constraintLevel ConstraintLevel
+	fixed           bool
 }
 
 // SetID sets the id of the element
@@ -69,8 +70,8 @@ func (p *SketchPoint) SquareDistanceTo(o SketchElement) float64 {
 		d := o.(*SketchLine).DistanceTo(p)
 		return d * d
 	}
-	a := p.X - o.(*SketchPoint).GetX()
-	b := p.Y - o.(*SketchPoint).GetY()
+	a := o.(*SketchPoint).GetX() - p.X
+	b := o.(*SketchPoint).GetY() - p.Y
 
 	return (a * a) + (b * b)
 }
@@ -133,6 +134,14 @@ func (p *SketchPoint) SetConstraintLevel(cl ConstraintLevel) {
 
 func (p *SketchPoint) String() string {
 	return fmt.Sprintf("Point(%d) (%f, %f)", p.GetID(), p.X, p.Y)
+}
+
+func (p *SketchPoint) SetFixed(fixed bool) {
+	p.fixed = fixed
+}
+
+func (p *SketchPoint) IsFixed() bool {
+	return p.fixed
 }
 
 func (p *SketchPoint) ToGraphViz(cId int) string {

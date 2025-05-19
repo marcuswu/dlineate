@@ -53,19 +53,19 @@ func TestGetCircleRadius(t *testing.T) {
 	l := s.AddLine(0, 0, 1, 1)
 	o := s.AddPoint(1, 1)
 	c1 := s.AddDistanceConstraint(l, o, 1)
-	_, err := l.getCircleRadius(c1)
+	_, err := l.getCircleRadius(s, c1)
 	assert.NotNil(t, err, "Should get an error looking for circle radius on a line")
 
 	c := s.AddCircle(0, 0, 2)
 	c2 := s.AddDistanceConstraint(c, nil, 3)
-	dist, err := c.getCircleRadius(c2)
+	dist, err := c.getCircleRadius(s, c2)
 	assert.Nil(t, err, "Should have no error looking for a circle radius on a circle")
 	assert.Equal(t, 3.0, dist, "Should find circle distance")
 
 	c = s.AddCircle(1, 0, 2)
 	c3 := s.AddCoincidentConstraint(c, o)
 	c3.constraints = append(c3.constraints, s.sketch.AddConstraint(constraint.Distance, c.Center().element, o.element, 1.0))
-	dist, err = c.getCircleRadius(c3)
+	dist, err = c.getCircleRadius(s, c3)
 	assert.Nil(t, err, "Should have no error looking for a circle")
 	assert.Equal(t, 1.0, dist, "Should find circle distance")
 }
