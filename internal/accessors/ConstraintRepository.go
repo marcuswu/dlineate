@@ -1,8 +1,6 @@
 package accessors
 
 import (
-	"math"
-
 	"github.com/marcuswu/dlineate/internal/constraint"
 	"github.com/marcuswu/dlineate/utils"
 	"github.com/rs/zerolog"
@@ -115,30 +113,5 @@ func (r *ConstraintRepository) IsMet(constr uint, cluster int, ea ElementAccesso
 	if !ok {
 		return false
 	}
-	current := e1.DistanceTo(e2)
-	if c.GetID() == 1 {
-		utils.Logger.Debug().
-			Float64("distance", math.Abs(current)).
-			Str("element 1", e1.String()).
-			Str("element 2", e2.String()).
-			Uint("Constraint Id", c.GetID()).
-			Msgf("Checking distance")
-	}
-	if c.Type == constraint.Angle {
-		current = e1.AsLine().AngleToLine(e2.AsLine())
-	}
-
-	comparison := utils.StandardFloatCompare(math.Abs(current), math.Abs(c.Value))
-	if comparison != 0 {
-		utils.Logger.Debug().
-			Float64("value 1", math.Abs(current)).
-			Float64("value 2", math.Abs(c.Value)).
-			Uint("Constraint Id", c.GetID()).
-			Msgf("Comparing values")
-		c.Solved = false
-	} else {
-		c.Solved = true
-	}
-
-	return c.Solved
+	return c.IsMet(e1, e2)
 }

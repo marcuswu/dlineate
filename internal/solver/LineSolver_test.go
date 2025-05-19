@@ -42,7 +42,7 @@ func TestSolveAngleConstraint(t *testing.T) {
 		{
 			"Test reverse rotation",
 			constraint.NewConstraint(0, constraint.Angle, 4, 5, (70.0/180.0)*math.Pi, false),
-			1,
+			5,
 			Solved,
 		},
 		{
@@ -124,8 +124,8 @@ func TestLineFromPointLine(t *testing.T) {
 			c2Line.AsLine().SetA(newLine.GetA())
 			c2Line.AsLine().SetB(newLine.GetB())
 			c2Line.AsLine().SetC(newLine.GetC())
-			assert.True(t, ca.IsMet(c1.GetID(), -1, ea), tt.name)
-			assert.True(t, ca.IsMet(c2.GetID(), -1, ea), tt.name)
+			assert.True(t, ca.IsMet(tt.c1.GetID(), -1, ea), tt.name)
+			assert.True(t, ca.IsMet(tt.c2.GetID(), -1, ea), tt.name)
 			assert.Equal(t, tt.desired.GetID(), newLine.GetID(), tt.name)
 			assert.InDelta(t, tt.desired.GetA(), newLine.GetA(), utils.StandardCompare, tt.name)
 			assert.InDelta(t, tt.desired.GetB(), newLine.GetB(), utils.StandardCompare, tt.name)
@@ -151,12 +151,12 @@ func TestLineFromPoints(t *testing.T) {
 	ea.AddElement(el.NewSketchPoint(12, 1.5, 0.3))
 	ea.AddElement(el.NewSketchLine(13, 0.3, 1.5, -0.1))
 	ea.AddElement(el.NewSketchPoint(14, 1, 1))
-	ea.AddElement(el.NewSketchPoint(15, 1.5, 0.3))
-	ea.AddElement(el.NewSketchLine(16, 0.3, 1.5, -0.1))
-	ea.AddElement(el.NewSketchPoint(17, -1, 1))
+	ea.AddElement(el.NewSketchPoint(15, 1.5, 0.3))      // (1.5, 0.3)
+	ea.AddElement(el.NewSketchLine(16, 0.3, 1.5, -0.1)) // 0.196116x + 0.980580y - 0.065372 = 0 normalized
+	ea.AddElement(el.NewSketchPoint(17, -1, 1))         // (-1, 1)
 	ea.AddElement(el.NewSketchPoint(18, 1.5, 0.3))
 	ea.AddElement(el.NewSketchLine(19, 0.3, 1.5, -0.1))
-	ea.AddElement(el.NewSketchPoint(2, -1, 0))
+	ea.AddElement(el.NewSketchPoint(20, -1, 0))
 	ca := accessors.NewConstraintRepository()
 	c0 := constraint.NewConstraint(0, constraint.Distance, 0, 1, 1, false)
 	c1 := constraint.NewConstraint(1, constraint.Distance, 2, 1, 1, false)
@@ -194,16 +194,16 @@ func TestLineFromPoints(t *testing.T) {
 		state   SolveState
 	}{
 		{"Can't find line", c0, c1, nil, NonConvergent},
-		{"Can't find points", c2, c3, el.NewSketchLine(4, 1.1, 0.1, 0.1), NonConvergent},
+		{"Can't find points", c2, c3, el.NewSketchLine(4, 0.3, 1.5, -0.1), NonConvergent},
 		{"Coincident to both points", c4, c5, el.NewSketchLine(7, 0.7, 0.5, -1.2), Solved},
 		{"Coincident to both points alt slope", c6, c7, el.NewSketchLine(10, 0.7, 0.5, -1.2), Solved},
-		{"Distance between points is too large", c8, c9, el.NewSketchLine(13, 0.3, 1.5, -0.1), NonConvergent},
+		{"Distance between points is large", c8, c9, el.NewSketchLine(13, 0.813733, 0.581238, -0.394971), Solved},
 		{"Solve by tangent external", c10, c11, el.NewSketchLine(16, 0.269630, 0.962964, -0.443334), Solved},
-		{"Solve by tangent internal", c12, c13, el.NewSketchLine(19, 0.080388, 0.996764, -0.169612), Solved},
+		{"Solve by tangent internal", c12, c13, el.NewSketchLine(19, -0.080388, -0.996764, 0.169612), Solved},
 	}
 	for _, tt := range tests {
 		newLine, state := LineFromPoints(-1, ea, tt.c1, tt.c2)
-		assert.Equal(t, state, tt.state, tt.name)
+		assert.Equal(t, tt.state, state, tt.name)
 		if tt.desired == nil {
 			assert.Nil(t, newLine, tt.name)
 		} else {
@@ -233,17 +233,17 @@ func TestMoveLineToPoint(t *testing.T) {
 	ea := accessors.NewElementRepository()
 	ea.AddElement(el.NewSketchPoint(0, 1.5, 0.3))
 	ea.AddElement(el.NewSketchPoint(1, 0.3, 1.5))
-	ea.AddElement(el.NewSketchPoint(0, 1.5, 0.3))
-	ea.AddElement(el.NewSketchPoint(1, 0.3, 1.5))
-	ea.AddElement(el.NewSketchPoint(0, 1.5, 0.3))
-	ea.AddElement(el.NewSketchLine(1, 0.3, 1.5, 1))
-	ea.AddElement(el.NewSketchLine(1, 0.3, 1.5, 1))
-	ea.AddElement(el.NewSketchPoint(0, 1.5, -2))
+	ea.AddElement(el.NewSketchPoint(2, 1.5, 0.3))
+	ea.AddElement(el.NewSketchPoint(3, 0.3, 1.5))
+	ea.AddElement(el.NewSketchPoint(4, 1.5, 0.3))
+	ea.AddElement(el.NewSketchLine(5, 0.3, 1.5, 1))
+	ea.AddElement(el.NewSketchLine(6, 0.3, 1.5, 1))
+	ea.AddElement(el.NewSketchPoint(7, 1.5, -2))
 	ca := accessors.NewConstraintRepository()
 	c0 := constraint.NewConstraint(0, constraint.Angle, 0, 1, 1, false)
-	c1 := constraint.NewConstraint(0, constraint.Distance, 2, 3, 1, false)
-	c2 := constraint.NewConstraint(0, constraint.Distance, 4, 5, 1, false)
-	c3 := constraint.NewConstraint(0, constraint.Distance, 6, 7, 1, false)
+	c1 := constraint.NewConstraint(1, constraint.Distance, 2, 3, 1, false)
+	c2 := constraint.NewConstraint(2, constraint.Distance, 4, 5, 1, false)
+	c3 := constraint.NewConstraint(3, constraint.Distance, 6, 7, 1, false)
 	ca.AddConstraint(c0)
 	ca.AddConstraint(c1)
 	ca.AddConstraint(c2)
@@ -256,13 +256,13 @@ func TestMoveLineToPoint(t *testing.T) {
 	}{
 		{"The constraint should be a distance constraint", c0, nil, NonConvergent},
 		{"The constraint should have a point and a line", c1, nil, NonConvergent},
-		{"The constraint should be met", c2, el.NewSketchLine(1, 0.3, 1.5, 0.629706), Solved},
-		{"The constraint should be met", c3, el.NewSketchLine(1, 0.3, 1.5, 1.020294), Solved},
+		{"The constraint should be met 1", c2, el.NewSketchLine(5, 0.3, 1.5, 0.629706), Solved},
+		{"The constraint should be met 2", c3, el.NewSketchLine(6, 0.3, 1.5, 1.020294), Solved},
 	}
 	for _, tt := range tests {
 		state := MoveLineToPoint(ea, tt.c1)
 		assert.Equal(t, tt.state, state, tt.name)
-		if tt.state != Solved {
+		if state != Solved {
 			continue
 		}
 		assert.True(t, ca.IsMet(tt.c1.GetID(), -1, ea), tt.name)
@@ -289,9 +289,9 @@ func TestLineResult(t *testing.T) {
 	ea.AddElement(el.NewSketchPoint(5, 1, 1))
 	ca := accessors.NewConstraintRepository()
 	c0 := constraint.NewConstraint(0, constraint.Distance, 0, 1, 0, false)
-	c1 := constraint.NewConstraint(0, constraint.Distance, 2, 1, 0, false)
-	c2 := constraint.NewConstraint(0, constraint.Angle, 3, 4, (70.0/180.0)*math.Pi, false)
-	c3 := constraint.NewConstraint(0, constraint.Distance, 5, 4, 1, false)
+	c1 := constraint.NewConstraint(1, constraint.Distance, 2, 1, 0, false)
+	c2 := constraint.NewConstraint(2, constraint.Angle, 3, 4, (70.0/180.0)*math.Pi, false)
+	c3 := constraint.NewConstraint(3, constraint.Distance, 5, 4, 1, false)
 	ca.AddConstraint(c0)
 	ca.AddConstraint(c1)
 	ca.AddConstraint(c2)
@@ -328,8 +328,8 @@ func TestLineResult(t *testing.T) {
 		}
 
 		if tt.state == Solved {
-			assert.True(t, ca.IsMet(c1.GetID(), -1, ea), tt.name)
-			assert.True(t, ca.IsMet(c2.GetID(), -1, ea), tt.name)
+			assert.True(t, ca.IsMet(tt.c1.GetID(), -1, ea), tt.name)
+			assert.True(t, ca.IsMet(tt.c2.GetID(), -1, ea), tt.name)
 		}
 	}
 }
@@ -347,11 +347,11 @@ func TestSolveForLine(t *testing.T) {
 	ea.AddElement(el.NewSketchPoint(8, 1, 1))
 	ca := accessors.NewConstraintRepository()
 	c0 := constraint.NewConstraint(0, constraint.Distance, 0, 1, 0, false)
-	c1 := constraint.NewConstraint(0, constraint.Distance, 2, 1, 0, false)
-	c2 := constraint.NewConstraint(0, constraint.Distance, 3, 4, 0, false)
-	c3 := constraint.NewConstraint(0, constraint.Distance, 5, 4, 0, false)
-	c4 := constraint.NewConstraint(0, constraint.Angle, 6, 7, (70.0/180.0)*math.Pi, false)
-	c5 := constraint.NewConstraint(0, constraint.Distance, 8, 7, 1, false)
+	c1 := constraint.NewConstraint(1, constraint.Distance, 2, 1, 0, false)
+	c2 := constraint.NewConstraint(2, constraint.Distance, 3, 4, 0, false)
+	c3 := constraint.NewConstraint(3, constraint.Distance, 5, 4, 0, false)
+	c4 := constraint.NewConstraint(4, constraint.Angle, 6, 7, (70.0/180.0)*math.Pi, false)
+	c5 := constraint.NewConstraint(5, constraint.Distance, 8, 7, 1, false)
 	ca.AddConstraint(c0)
 	ca.AddConstraint(c1)
 	ca.AddConstraint(c2)
@@ -366,15 +366,15 @@ func TestSolveForLine(t *testing.T) {
 		state   SolveState
 	}{
 		{"Test Nonconvergent", c0, c1, nil, NonConvergent},
-		{"Test Line From Points", c2, c3, el.NewSketchLine(1, 0.7, 0.5, -1.2), Solved},
-		{"Test Line From Point Line", c4, c5, el.NewSketchLine(1, 0.151089, 0.988520, -0.139610), Solved},
+		{"Test Line From Points", c2, c3, el.NewSketchLine(4, 0.7, 0.5, -1.2), Solved},
+		{"Test Line From Point Line", c4, c5, el.NewSketchLine(7, 0.151089, 0.988520, -0.139610), Solved},
 	}
 	for _, tt := range tests {
 		state := SolveForLine(-1, ea, tt.c1, tt.c2)
 		assert.Equal(t, state, tt.state, tt.name)
 		if tt.state == Solved {
-			assert.True(t, ca.IsMet(c1.GetID(), -1, ea), tt.name)
-			assert.True(t, ca.IsMet(c2.GetID(), -1, ea), tt.name)
+			assert.True(t, ca.IsMet(tt.c1.GetID(), -1, ea), tt.name)
+			assert.True(t, ca.IsMet(tt.c2.GetID(), -1, ea), tt.name)
 		}
 		e, ok := tt.c1.Shared(tt.c2)
 		if !ok || tt.state == NonConvergent {

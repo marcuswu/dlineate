@@ -33,7 +33,8 @@ func SolveForLine(cluster int, ea accessors.ElementAccessor, c1 *constraint.Cons
 
 func LineResult(cluster int, ea accessors.ElementAccessor, c1 *constraint.Constraint, c2 *constraint.Constraint) (*el.SketchLine, SolveState) {
 	/*
-		There are only two possibilities:
+		There are three possibilities:
+		 * three lines -- only possible during a merge and should already be solved
 		 * two lines and a point: The two lines must have an angle constraint between them
 		 * two points and a line
 	*/
@@ -41,21 +42,59 @@ func LineResult(cluster int, ea accessors.ElementAccessor, c1 *constraint.Constr
 	// 2 lines, 1 point -> LineFromPointLine
 	var line *el.SketchLine = nil
 	var solveState SolveState = NonConvergent
+
+	// If all are lines, this is coming from a merge and it's successful if the shared line is already solved
+	if numLines == 4 {
+		lineId, ok := c1.Shared(c2)
+		if !ok {
+			return nil, NonConvergent
+		}
+		lineEl, ok := ea.GetElement(cluster, lineId)
+		if !ok {
+			return nil, NonConvergent
+		}
+		line = lineEl.AsLine()
+		c1OtherId, ok := c1.Other(lineId)
+		if !ok {
+			return line, NonConvergent
+		}
+		c1Other, ok := ea.GetElement(cluster, c1OtherId)
+		if !ok {
+			return line, NonConvergent
+		}
+		c2OtherId, ok := c2.Other(lineId)
+		if !ok {
+			return line, NonConvergent
+		}
+		c2Other, ok := ea.GetElement(cluster, c2OtherId)
+		if !ok {
+			return line, NonConvergent
+		}
+		if !c1.IsMet(line, c1Other) || !c2.IsMet(line, c2Other) {
+			return line, NonConvergent
+		}
+		return line, Solved
+	}
+
 	if numLines == 3 {
 		line, solveState = LineFromPointLine(cluster, ea, c1, c2)
-		utils.Logger.Trace().
-			Str("result", solveState.String()).
-			Str("line", line.String()).
-			Msg("LineFromPointLine result")
+		if line != nil {
+			utils.Logger.Trace().
+				Str("result", solveState.String()).
+				Str("line", line.String()).
+				Msg("LineFromPointLine result")
+		}
 	}
 
 	// 1 line, 2 points -> LineFromPoints
 	if numLines == 2 {
 		line, solveState = LineFromPoints(cluster, ea, c1, c2)
-		utils.Logger.Trace().
-			Str("result", solveState.String()).
-			Str("line", line.String()).
-			Msgf("LineFromPoints result")
+		if line != nil {
+			utils.Logger.Trace().
+				Str("result", solveState.String()).
+				Str("line", line.String()).
+				Msgf("LineFromPoints result")
+		}
 	}
 
 	if solveState == Solved {
@@ -120,18 +159,15 @@ func MoveLineToPoint(ea accessors.ElementAccessor, c *constraint.Constraint) Sol
 }
 
 func LineFromPoints(cluster int, ea accessors.ElementAccessor, c1 *constraint.Constraint, c2 *constraint.Constraint) (*el.SketchLine, SolveState) {
-	e, ok := ea.GetElement(cluster, c1.First())
+	l, ok := c1.Shared(c2)
+	if !ok {
+		return nil, NonConvergent
+	}
+	e, ok := ea.GetElement(cluster, l)
 	if !ok {
 		return nil, NonConvergent
 	}
 	line := e.AsLine()
-	if line == nil {
-		e, ok = ea.GetElement(cluster, c1.Second())
-		if !ok {
-			return nil, NonConvergent
-		}
-		line = e.AsLine()
-	}
 
 	if line == nil {
 		utils.Logger.Error().
@@ -144,13 +180,13 @@ func LineFromPoints(cluster int, ea accessors.ElementAccessor, c1 *constraint.Co
 	p1e, _ := c1.Other(line.GetID())
 	p2e, _ := c2.Other(line.GetID())
 	e, ok = ea.GetElement(cluster, p1e)
-	if !ok {
-		return nil, NonConvergent
+	if !ok || e.GetType() != el.Point {
+		return line, NonConvergent
 	}
 	p1 := e.AsPoint()
 	e, ok = ea.GetElement(cluster, p2e)
-	if !ok {
-		return nil, NonConvergent
+	if !ok || e.GetType() != el.Point {
+		return line, NonConvergent
 	}
 	p2 := e.AsPoint()
 	if p1 == nil || p2 == nil {
@@ -200,12 +236,15 @@ func LineFromPoints(cluster int, ea accessors.ElementAccessor, c1 *constraint.Co
 	X := (p2.X - p1.X) / d
 	Y := (p2.Y - p1.Y) / d
 
-	calcTangent := func(X, Y, R, k float64) (float64, float64, float64) {
+	calcTangent := func(X, Y, R, k float64, external bool) (float64, float64, float64) {
 		rSquared := R * R
 
 		a := (R * X) - (k * Y * math.Sqrt(1.0-rSquared))
 		b := (R * Y) + (k * X * math.Sqrt(1.0-rSquared))
 		c := p1Dist - ((a * p1.X) + (b * p1.Y))
+		if !external {
+			c = p2Dist - ((a * p2.X) + (b * p2.Y))
+		}
 		mag := math.Sqrt((a * a) + (b * b))
 		a = a / mag
 		b = b / mag
@@ -216,50 +255,43 @@ func LineFromPoints(cluster int, ea accessors.ElementAccessor, c1 *constraint.Co
 	// Both the same sign will be external, opposing signs will be internal
 	// There will be two options aside from internal or external -- plus or minus k
 	// Use the one closest to the existing line angle (closest slope)
-	tanA1, tanB1, tanC1 := calcTangent(X, Y, R, 1)
-	tanA2, tanB2, tanC2 := calcTangent(X, Y, R, -1)
+	tanA := make([]float64, 4)
+	tanB := make([]float64, 4)
+	tanC := make([]float64, 4)
+	a, b, c := calcTangent(X, Y, R, 1, true)
+	tanA[0], tanB[0], tanC[0] = a, b, c
+	a, b, c = calcTangent(X, Y, R, -1, true)
+	tanA[1], tanB[1], tanC[1] = a, b, c
 
-	tanA3 := tanA1
-	tanB3 := tanB1
-	tanC3 := tanC1
-	tanA4 := tanA2
-	tanB4 := tanB2
-	tanC4 := tanC2
+	tanA[2], tanB[2], tanC[2] = tanA[0], tanB[0], tanC[0]
+	tanA[3], tanB[3], tanC[3] = tanA[1], tanB[1], tanC[1]
 
 	if !externalOnly {
 		R = (p2Dist + p1Dist) / d
-		tanA3, tanB3, tanC3 = calcTangent(X, Y, R, 1)
-		tanA2, tanB2, tanC2 = calcTangent(X, Y, R, -1)
+		a, b, c = calcTangent(X, Y, R, 1, false)
+		tanA[2], tanB[2], tanC[2] = a, b, c
+		a, b, c = calcTangent(X, Y, R, -1, false)
+		tanA[3], tanB[3], tanC[3] = a, b, c
 	}
 
-	origSlope := line.GetB() / line.GetA()
-	externalSlope := tanB1 / tanA1
-	internalSlope := tanB3 / tanA3
-	externalSlopeDist := math.Abs(externalSlope - origSlope)
-	internalSlopeDist := math.Abs(internalSlope - origSlope)
-	useInternal := externalSlopeDist > internalSlopeDist
-	if useInternal {
-		tanA1 = tanA3
-		tanB1 = tanB3
-		tanC1 = tanC3
-		tanA2 = tanA4
-		tanB2 = tanB4
-		tanC2 = tanC4
+	// Look for the closest combination of slope and origin distance
+	minDifference := math.MaxFloat64
+	chosenA, chosenB, chosenC := tanA[0], tanB[0], tanC[0]
+	for i, _ := range tanA {
+		originalSlope := line.GetB() / line.GetA()
+		a, b, c = tanA[i], tanB[i], tanC[i]
+		tangentSlope := b / a
+		slopeDifference := math.Abs(tangentSlope - originalSlope)
+		originDistanceDifference := math.Abs(c - line.GetC())
+		averageDifference := (slopeDifference + originDistanceDifference) / 2
+		if averageDifference < minDifference {
+			minDifference = averageDifference
+			chosenA, chosenB, chosenC = a, b, c
+		}
 	}
-
-	originalOriginDistance := line.GetOriginDistance()
-	originDistance1 := math.Abs(tanC1 - originalOriginDistance)
-	originDistance2 := math.Abs(tanC2 - originalOriginDistance)
-	useOption1 := originDistance2 > originDistance1
-
-	line.SetA(tanA1)
-	line.SetB(tanB1)
-	line.SetC(tanC1)
-	if !useOption1 {
-		line.SetA(tanA2)
-		line.SetB(tanB2)
-		line.SetC(tanC2)
-	}
+	line.SetA(chosenA)
+	line.SetB(chosenB)
+	line.SetC(chosenC)
 
 	return line, Solved
 }
@@ -295,6 +327,10 @@ func LineFromPointLine(cluster int, ea accessors.ElementAccessor, c1 *constraint
 
 	// Solve angle
 	newLine, state := SolveAngleConstraint(cluster, ea, angleC, targetLine.GetID())
+
+	if state != Solved {
+		return newLine, state
+	}
 
 	// Translate to distC.Value from the point
 	dist1 := newLine.DistanceTo(point) - distC.Value

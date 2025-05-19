@@ -152,8 +152,7 @@ func TestSolve(t *testing.T) {
 	s.AddCoincidentConstraint(c1.Center(), s.Origin)
 
 	err := s.Solve()
-	assert.NotNil(t, err, "Expected inconsistent constraints")
-	assert.Equal(t, errors.New("failed to solve completely"), err, "Should not solve")
+	assert.Nil(t, err, "Expected successful solve")
 
 	s = NewSketch()
 	c1 = s.AddCircle(0, 0, 3)

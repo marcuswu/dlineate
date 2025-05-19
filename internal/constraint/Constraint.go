@@ -2,7 +2,10 @@ package constraint
 
 import (
 	"fmt"
+	"math"
 
+	el "github.com/marcuswu/dlineate/internal/element"
+	"github.com/marcuswu/dlineate/utils"
 	"github.com/rs/zerolog"
 )
 
@@ -124,6 +127,22 @@ func (c *Constraint) Shared(o *Constraint) (uint, bool) {
 	}
 
 	return 0, false
+}
+
+func (c *Constraint) IsMet(e1 el.SketchElement, e2 el.SketchElement) bool {
+	current := e1.DistanceTo(e2)
+	if c.Type == Angle {
+		current = e1.AsLine().AngleToLine(e2.AsLine())
+	}
+
+	comparison := utils.StandardFloatCompare(math.Abs(current), math.Abs(c.Value))
+	if comparison != 0 {
+		c.Solved = false
+	} else {
+		c.Solved = true
+	}
+
+	return c.Solved
 }
 
 func (c *Constraint) String() string {

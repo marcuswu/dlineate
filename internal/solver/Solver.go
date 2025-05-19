@@ -34,6 +34,15 @@ func SolveConstraint(cluster int, ea accessors.ElementAccessor, c *constraint.Co
 }
 
 func SolveConstraints(cluster int, ea accessors.ElementAccessor, c1 *constraint.Constraint, c2 *constraint.Constraint, solveFor el.SketchElement) SolveState {
+	uniqueElements := utils.NewSet()
+	uniqueElements.Add(c1.Element1)
+	uniqueElements.Add(c1.Element2)
+	uniqueElements.Add(c2.Element1)
+	uniqueElements.Add(c2.Element2)
+	if uniqueElements.Count() != 3 {
+		return OverConstrained
+	}
+
 	if solveFor.GetType() == el.Point {
 		return SolveForPoint(cluster, ea, c1, c2)
 	}

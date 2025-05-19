@@ -139,7 +139,7 @@ func (g *GraphCluster) logElements(ea accessors.ElementAccessor, level zerolog.L
 	for _, e := range g.elements.Contents() {
 		element, ok := ea.GetElement(g.GetID(), e)
 		if !ok {
-			utils.Logger.WithLevel(level).Msgf("Could not log element with id ", e)
+			utils.Logger.WithLevel(level).Msgf("Could not log element with id %d", e)
 			continue
 		}
 		g.logElement(element, level)
@@ -156,7 +156,7 @@ func (c *GraphCluster) ToGraphViz(ea accessors.ElementAccessor, ca accessors.Con
 	for _, cId := range c.constraints {
 		constraint, ok := ca.GetConstraint(cId)
 		if !ok {
-			utils.Logger.WithLevel(zerolog.ErrorLevel).Msgf("Could not create graphviz node for constraint with id ", cId)
+			utils.Logger.WithLevel(zerolog.ErrorLevel).Msgf("Could not create graphviz node for constraint with id %d", cId)
 			continue
 		}
 		edges = edges + constraint.ToGraphViz(c.id)
@@ -183,7 +183,12 @@ func (c *GraphCluster) ToGraphViz(ea accessors.ElementAccessor, ca accessors.Con
 func (g *GraphCluster) Solve(ea accessors.ElementAccessor, ca accessors.ConstraintAccessor) solver.SolveState {
 	// constraints are sorted by solve order
 	constraints := make([]uint, 0, len(g.constraints))
-	constraints = append(constraints, g.constraints...)
+	for _, c := range g.constraints {
+		if g.solved.Contains(c) {
+			continue
+		}
+		constraints = append(constraints, c)
+	}
 	c := make(constraint.ConstraintList, 2)
 
 	g.logElements(ea, zerolog.InfoLevel)
@@ -237,6 +242,13 @@ func (g *GraphCluster) Solve(ea accessors.ElementAccessor, ca accessors.Constrai
 		utils.Logger.Debug().
 			Str("constraints", fmt.Sprintf("%v", constraints)).
 			Msg("Solve Order")
+
+		if len(constraints) < 2 {
+			utils.Logger.Error().
+				Msg("Incorrect solve graph (odd number of constraints after solving first)")
+			return solver.NonConvergent
+		}
+
 		c1, ok := ca.GetConstraint(constraints[0])
 		if !ok {
 			utils.Logger.Error().
@@ -434,19 +446,19 @@ func (g *GraphCluster) solveMerge(ea accessors.ElementAccessor, ca accessors.Con
 	c2.logElements(ea, zerolog.DebugLevel)
 
 	sharedSet := ea.SharedElements(g.GetID(), c1.GetID())
-	if sharedSet.Count() > 1 {
+	if sharedSet.Count() != 1 {
 		return solver.NonConvergent
 	}
 	gc1Shared := sharedSet.Contents()[0]
 
 	sharedSet = ea.SharedElements(g.GetID(), c2.GetID())
-	if sharedSet.Count() > 1 {
+	if sharedSet.Count() != 1 {
 		return solver.NonConvergent
 	}
 	gc2Shared := sharedSet.Contents()[0]
 
 	sharedSet = ea.SharedElements(c1.GetID(), c2.GetID())
-	if sharedSet.Count() > 1 {
+	if sharedSet.Count() != 1 {
 		return solver.NonConvergent
 	}
 	c1c2Shared := sharedSet.Contents()[0]
@@ -537,9 +549,11 @@ func (g *GraphCluster) solveMerge(ea accessors.ElementAccessor, ca accessors.Con
 	c2Shared, _ := ea.GetElement(c2.GetID(), c1c2Shared)
 
 	newC1C2Shared, state := solver.ConstraintResult(g.GetID(), ea, c1Constraint, c2Constraint, c1Shared)
-	utils.Logger.Trace().
-		Str("shared element", newC1C2Shared.String()).
-		Msg("Desired c1 c2 rotate solve")
+	if state == solver.Solved {
+		utils.Logger.Trace().
+			Str("shared element", newC1C2Shared.String()).
+			Msg("Desired c1 c2 rotate solve")
+	}
 
 	if state != solver.Solved {
 		utils.Logger.Error().Msg("Final element solve failed")

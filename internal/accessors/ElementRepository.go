@@ -86,7 +86,26 @@ func (r *ElementRepository) AddElementToCluster(eId uint, cId int) {
 }
 
 func (r *ElementRepository) RemoveElement(rem uint) {
+	for _, cMap := range r.clusterElements {
+		delete(cMap, rem)
+	}
 	delete(r.elements, rem)
+}
+
+func (r *ElementRepository) ReplaceElement(cId int, eId uint, e el.SketchElement) {
+	replaceAll := cId < 0
+	noMatch := true
+	for id, cMap := range r.clusterElements {
+		clusterMatch := replaceAll || cId == id
+		if _, ok := cMap[eId]; !clusterMatch || !ok {
+			continue
+		}
+		noMatch = false
+		cMap[eId] = e
+	}
+	if replaceAll || noMatch {
+		r.elements[eId] = e
+	}
 }
 
 func (r *ElementRepository) SharedElements(c1 int, c2 int) *utils.Set {

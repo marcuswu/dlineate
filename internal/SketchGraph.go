@@ -254,7 +254,10 @@ func (g *SketchGraph) findConstraints(c *GraphCluster) ([]uint, uint, bool) {
 	// First, find free constraints connected to the cluster, grouped by an element not in the cluster
 	constraints := make(map[uint]*utils.Set)
 	for _, cId := range g.freeEdges.Contents() {
-		constraint, _ := g.constraintAccessor.GetConstraint(cId)
+		constraint, ok := g.constraintAccessor.GetConstraint(cId)
+		if !ok {
+			continue
+		}
 		if c.HasConstraint(constraint.GetID()) {
 			continue
 		}
@@ -319,7 +322,10 @@ func (g *SketchGraph) findConstraints(c *GraphCluster) ([]uint, uint, bool) {
 func (g *SketchGraph) findStartConstraint() uint {
 	constraints := make([]uint, 0)
 	for _, constraintId := range g.freeEdges.Contents() {
-		constraint, _ := g.constraintAccessor.GetConstraint(constraintId)
+		constraint, ok := g.constraintAccessor.GetConstraint(constraintId)
+		if !ok {
+			continue
+		}
 		// If the constraint's elements are both fixed, use this as a start
 		if g.elementAccessor.IsFixed(constraint.Element1) && g.elementAccessor.IsFixed(constraint.Element2) {
 			return constraintId
@@ -339,7 +345,7 @@ func (g *SketchGraph) findStartConstraint() uint {
 	}
 
 	// Check unused elements in constraints for highest constraint count
-	var retVal uint
+	var retVal uint = 0
 	ccount := 0
 	sort.Sort(iutils.IdList(constraints))
 	for _, constraintId := range constraints {
@@ -356,6 +362,11 @@ func (g *SketchGraph) findStartConstraint() uint {
 		retVal = constraintId
 		ccount = len(g.constraintAccessor.ConstraintsForElement(eId))
 	}
+	if retVal == 0 && (len(constraints) == 0 || constraints[0] > 0) {
+		if g.freeEdges.Count() > 0 {
+			return g.freeEdges.Contents()[0]
+		}
+	}
 
 	return retVal
 }
@@ -366,7 +377,11 @@ func (g *SketchGraph) createClusters() {
 		Int("unassigned constraints", g.freeEdges.Count()).
 		Msg("Creating clusters")
 	for g.freeEdges.Count() > 0 {
-		g.createCluster(g.findStartConstraint(), id)
+		cluster := g.createCluster(g.findStartConstraint(), id)
+		if cluster == nil {
+			g.state = solver.NonConvergent
+			break
+		}
 		id++
 		utils.Logger.Info().Str("free constraints", g.freeEdges.String()).Msgf("%d unassigned constraints left\n", g.freeEdges.Count())
 		utils.Logger.Debug().Msgf("Total of %d nodes", g.elementAccessor.Count())

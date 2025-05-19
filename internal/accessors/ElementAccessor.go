@@ -14,6 +14,7 @@ type ElementAccessor interface {
 	AddElementToCluster(uint, int)
 	SetConstraintLevel(uint, el.ConstraintLevel)
 	ConstraintLevel(uint) el.ConstraintLevel
+	ReplaceElement(int, uint, el.SketchElement)
 	RemoveElement(uint)
 	SharedElements(int, int) *utils.Set
 	MergeElements(int, int)

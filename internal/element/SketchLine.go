@@ -130,7 +130,8 @@ func (l *SketchLine) PointNearestOrigin() *SketchPoint {
 // TranslateDistance translates the line by a distance along its normal
 func (l *SketchLine) TranslateDistance(dist float64) {
 	// find point nearest to origin
-	l.c = l.TranslatedDistance(dist).GetC()
+	newC := l.TranslatedDistance(dist).GetC()
+	l.c = newC
 }
 
 // TranslatedDistance returns the line translated by a distance along its normal

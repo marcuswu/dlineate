@@ -107,6 +107,6 @@ The debug output of the solver includes line and point data such as:
 8:53AM INF Point(7) (1.021129, 0.076339)
 ```
 
-These can be entered into [GeoGebra](https://www.geogebra.org/graphing) to plot lines and points.
+These can be entered into [GeoGebra](https://www.geogebra.org/geometry) to plot lines and points.
 This can significantly help debugging what the result looks like and therefore where problems
 might be arising in the solve.

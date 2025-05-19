@@ -3,13 +3,14 @@ package core
 import (
 	"fmt"
 	"math"
-	"sort"
 	"testing"
 
+	"github.com/marcuswu/dlineate/internal/accessors"
 	"github.com/marcuswu/dlineate/internal/constraint"
 	el "github.com/marcuswu/dlineate/internal/element"
 	"github.com/marcuswu/dlineate/internal/solver"
 	"github.com/marcuswu/dlineate/utils"
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -41,8 +42,8 @@ func TestAddConstraint(t *testing.T) {
 	e1 := el.NewSketchPoint(0, 0, 1)
 	e2 := el.NewSketchPoint(1, 2, 1)
 	e3 := el.NewSketchLine(2, 2, 1, -1)
-	c1 := constraint.NewConstraint(0, constraint.Distance, e1, e2, 5, false)
-	c2 := constraint.NewConstraint(1, constraint.Distance, e2, e3, 7, false)
+	c1 := constraint.NewConstraint(0, constraint.Distance, e1.GetID(), e2.GetID(), 5, false)
+	c2 := constraint.NewConstraint(1, constraint.Distance, e2.GetID(), e3.GetID(), 7, false)
 
 	g := NewGraphCluster(0)
 	g.AddConstraint(c1)
@@ -51,8 +52,8 @@ func TestAddConstraint(t *testing.T) {
 		t.Error("expected cluster id to be 0")
 	}
 
-	if g.constraints.Count() != 1 {
-		t.Error("expected graph cluster to have one constraint, found", g.constraints.Count())
+	if len(g.constraints) != 1 {
+		t.Error("expected graph cluster to have one constraint, found", len(g.constraints))
 	}
 	if g.elements.Count() != 2 {
 		t.Error("expected graph cluster to have 2 elements, found", g.elements.Count())
@@ -60,7 +61,7 @@ func TestAddConstraint(t *testing.T) {
 
 	c1.Solved = true
 	g.AddConstraint(c1)
-	if g.constraints.Count() != 1 {
+	if len(g.constraints) != 1 {
 		t.Error("expected no change to cluster constraints after adding the same constraint twice")
 	}
 	if g.elements.Count() != 2 {
@@ -69,8 +70,8 @@ func TestAddConstraint(t *testing.T) {
 
 	g.AddConstraint(c2)
 
-	if g.constraints.Count() != 2 {
-		t.Error("expected graph cluster to have two constraint, found", g.constraints.Count())
+	if len(g.constraints) != 2 {
+		t.Error("expected graph cluster to have two constraint, found", len(g.constraints))
 	}
 	if g.elements.Count() != 3 {
 		t.Error("expected graph cluster to have 3 elements, found", g.elements.Count())
@@ -82,9 +83,9 @@ func TestHasElementID(t *testing.T) {
 	e2 := el.NewSketchPoint(1, 2, 1)
 	e3 := el.NewSketchLine(2, 2, 1, -1)
 	e4 := el.NewSketchLine(3, 2, 2, -0)
-	c1 := constraint.NewConstraint(0, constraint.Distance, e1, e2, 5, false)
-	c2 := constraint.NewConstraint(1, constraint.Distance, e2, e3, 7, false)
-	c3 := constraint.NewConstraint(2, constraint.Distance, e3, e4, 2, false)
+	c1 := constraint.NewConstraint(0, constraint.Distance, e1.GetID(), e2.GetID(), 5, false)
+	c2 := constraint.NewConstraint(1, constraint.Distance, e2.GetID(), e3.GetID(), 7, false)
+	c3 := constraint.NewConstraint(2, constraint.Distance, e3.GetID(), e4.GetID(), 2, false)
 
 	g := NewGraphCluster(0)
 	g.AddConstraint(c1)
@@ -115,9 +116,9 @@ func TestHasElement(t *testing.T) {
 	e2 := el.NewSketchPoint(1, 2, 1)
 	e3 := el.NewSketchLine(2, 2, 1, -1)
 	e4 := el.NewSketchLine(3, 2, 2, -0)
-	c1 := constraint.NewConstraint(0, constraint.Distance, e1, e2, 5, false)
-	c2 := constraint.NewConstraint(1, constraint.Distance, e2, e3, 7, false)
-	c3 := constraint.NewConstraint(2, constraint.Distance, e3, e4, 2, false)
+	c1 := constraint.NewConstraint(0, constraint.Distance, e1.GetID(), e2.GetID(), 5, false)
+	c2 := constraint.NewConstraint(1, constraint.Distance, e2.GetID(), e3.GetID(), 7, false)
+	c3 := constraint.NewConstraint(2, constraint.Distance, e3.GetID(), e4.GetID(), 2, false)
 
 	g := NewGraphCluster(0)
 	g.AddConstraint(c1)
@@ -144,9 +145,9 @@ func TestSharedElements(t *testing.T) {
 	e2 := el.NewSketchPoint(1, 2, 1)
 	e3 := el.NewSketchLine(2, 2, 1, -1)
 	e4 := el.NewSketchLine(3, 2, 2, -0)
-	c1 := constraint.NewConstraint(0, constraint.Distance, e1, e2, 5, false)
-	c2 := constraint.NewConstraint(1, constraint.Distance, e2, e3, 7, false)
-	c3 := constraint.NewConstraint(2, constraint.Distance, e3, e4, 2, false)
+	c1 := constraint.NewConstraint(0, constraint.Distance, e1.GetID(), e2.GetID(), 5, false)
+	c2 := constraint.NewConstraint(1, constraint.Distance, e2.GetID(), e3.GetID(), 7, false)
+	c3 := constraint.NewConstraint(2, constraint.Distance, e3.GetID(), e4.GetID(), 2, false)
 
 	g := NewGraphCluster(0) // 0, 1, 2
 	g.AddConstraint(c1)
@@ -159,8 +160,8 @@ func TestSharedElements(t *testing.T) {
 	g3 := NewGraphCluster(3)
 	e5 := el.NewSketchPoint(4, 0, 1)
 	e6 := el.NewSketchPoint(5, 1, 2)
-	c4 := constraint.NewConstraint(3, constraint.Distance, e4, e5, 12, false)
-	c5 := constraint.NewConstraint(3, constraint.Distance, e5, e6, 12, false)
+	c4 := constraint.NewConstraint(3, constraint.Distance, e4.GetID(), e5.GetID(), 12, false)
+	c5 := constraint.NewConstraint(3, constraint.Distance, e5.GetID(), e6.GetID(), 12, false)
 	g2.AddConstraint(c4) // 3, 4
 	g3.AddConstraint(c5) // 4, 5
 
@@ -192,8 +193,8 @@ func TestSharedElements(t *testing.T) {
 }
 
 func TestTranslate(t *testing.T) {
-	ea := NewElementRepository()
-	ca := NewConstraintRepository()
+	ea := accessors.NewElementRepository()
+	ca := accessors.NewConstraintRepository()
 	e1 := el.NewSketchPoint(0, 0, 1)
 	e2 := el.NewSketchPoint(1, 2, 1)
 	e3 := el.NewSketchLine(2, 2, 1, -1)
@@ -204,8 +205,8 @@ func TestTranslate(t *testing.T) {
 	ea.AddElementToCluster(e2.GetID(), 0)
 	ea.AddElementToCluster(e3.GetID(), 0)
 	originalPointNearest := e3.PointNearestOrigin()
-	c1 := constraint.NewConstraint(0, constraint.Distance, e1, e2, 5, false)
-	c2 := constraint.NewConstraint(1, constraint.Distance, e2, e3, 7, false)
+	c1 := constraint.NewConstraint(0, constraint.Distance, e1.GetID(), e2.GetID(), 5, false)
+	c2 := constraint.NewConstraint(1, constraint.Distance, e2.GetID(), e3.GetID(), 7, false)
 	ca.AddConstraint(c1)
 	ca.AddConstraint(c2)
 
@@ -240,8 +241,8 @@ func TestTranslate(t *testing.T) {
 }
 
 func TestRotate(t *testing.T) {
-	ea := NewElementRepository()
-	ca := NewConstraintRepository()
+	ea := accessors.NewElementRepository()
+	ca := accessors.NewConstraintRepository()
 	e1 := el.NewSketchPoint(0, 0, 1)
 	e2 := el.NewSketchPoint(1, 2, 1)
 	e3 := el.NewSketchLine(2, 2, 1, -1)
@@ -254,8 +255,8 @@ func TestRotate(t *testing.T) {
 	ea.AddElementToCluster(e2.GetID(), 0)
 	ea.AddElementToCluster(e3.GetID(), 0)
 	ea.AddElementToCluster(o.GetID(), 0)
-	c1 := constraint.NewConstraint(0, constraint.Distance, e1, e2, 5, false)
-	c2 := constraint.NewConstraint(1, constraint.Distance, e2, e3, 7, false)
+	c1 := constraint.NewConstraint(0, constraint.Distance, e1.GetID(), e2.GetID(), 5, false)
+	c2 := constraint.NewConstraint(1, constraint.Distance, e2.GetID(), e3.GetID(), 7, false)
 	ca.AddConstraint(c1)
 	ca.AddConstraint(c2)
 
@@ -293,8 +294,8 @@ func TestRotate(t *testing.T) {
 }
 
 func TestSolve0(t *testing.T) {
-	ea := NewElementRepository()
-	ca := NewConstraintRepository()
+	ea := accessors.NewElementRepository()
+	ca := accessors.NewConstraintRepository()
 	g := NewGraphCluster(0)
 	/*
 		GraphCluster 0 (from test)
@@ -309,24 +310,24 @@ func TestSolve0(t *testing.T) {
 	ea.AddElement(l1)
 	ea.AddElement(p1)
 	ea.AddElement(p2)
-	g.AddElement(l1)
-	g.AddElement(p1)
-	g.AddElement(p2)
-	c1 := constraint.NewConstraint(0, constraint.Distance, p2, p1, 4, false)
+	g.AddElement(l1.GetID())
+	g.AddElement(p1.GetID())
+	g.AddElement(p2.GetID())
+	c1 := constraint.NewConstraint(0, constraint.Distance, p2.GetID(), p1.GetID(), 4, false)
 	g.AddConstraint(c1)
 	ca.AddConstraint(c1)
-	c2 := constraint.NewConstraint(1, constraint.Distance, p1, l1, 0, false)
+	c2 := constraint.NewConstraint(1, constraint.Distance, p1.GetID(), l1.GetID(), 0, false)
 	g.AddConstraint(c2)
 	ca.AddConstraint(c2)
-	c3 := constraint.NewConstraint(2, constraint.Distance, p2, l1, 0, false)
+	c3 := constraint.NewConstraint(2, constraint.Distance, p2.GetID(), l1.GetID(), 0, false)
 	g.AddConstraint(c3)
 	ca.AddConstraint(c3)
 
 	state := g.Solve(ea, ca)
 
-	c1 = ca.constraints[0]
-	c2 = ca.constraints[1]
-	c3 = ca.constraints[2]
+	c1, _ = ca.GetConstraint(0)
+	c2, _ = ca.GetConstraint(1)
+	c3, _ = ca.GetConstraint(2)
 
 	if state != solver.Solved {
 		t.Error("Expected solved state(4), got", state)
@@ -342,25 +343,31 @@ func TestSolve0(t *testing.T) {
 		p2.GetX(), p2.GetY(),
 	)
 
-	cValue := c1.Element1.DistanceTo(c1.Element2)
+	e1, _ := ea.GetElement(-1, c1.Element1)
+	e2, _ := ea.GetElement(-1, c1.Element2)
+	cValue := e1.DistanceTo(e2)
 	if utils.StandardFloatCompare(cValue, c1.Value) != 0 {
 		t.Error("Expected point p1 to be distance", c1.Value, "from point p2, distance is", cValue)
 	}
 
-	cValue = c2.Element1.DistanceTo(c2.Element2)
+	e1, _ = ea.GetElement(-1, c2.Element1)
+	e2, _ = ea.GetElement(-1, c2.Element2)
+	cValue = e1.DistanceTo(e2)
 	if utils.StandardFloatCompare(cValue, c2.Value) != 0 {
 		t.Error("Expected point p1 to be on line l1, distance is", cValue)
 	}
 
-	cValue = c3.Element1.DistanceTo(c3.Element2)
+	e1, _ = ea.GetElement(-1, c3.Element1)
+	e2, _ = ea.GetElement(-1, c3.Element2)
+	cValue = e1.DistanceTo(e2)
 	if utils.StandardFloatCompare(cValue, c3.Value) != 0 {
 		t.Error("Expected point p2 to be on line l1, distance is", cValue)
 	}
 }
 
 func TestSolve1(t *testing.T) {
-	ea := NewElementRepository()
-	ca := NewConstraintRepository()
+	ea := accessors.NewElementRepository()
+	ca := accessors.NewConstraintRepository()
 	g := NewGraphCluster(0)
 
 	/*
@@ -379,23 +386,23 @@ func TestSolve1(t *testing.T) {
 	ea.AddElement(l2)
 	ea.AddElement(p3)
 	ea.AddElement(l3)
-	g.AddElement(p2)
-	g.AddElement(l2)
-	g.AddElement(p3)
-	g.AddElement(l3)
-	c1 := constraint.NewConstraint(0, constraint.Distance, p2, p3, 4, false)
+	g.AddElement(p2.GetID())
+	g.AddElement(l2.GetID())
+	g.AddElement(p3.GetID())
+	g.AddElement(l3.GetID())
+	c1 := constraint.NewConstraint(0, constraint.Distance, p2.GetID(), p3.GetID(), 4, false)
 	ca.AddConstraint(c1)
 	g.AddConstraint(c1)
-	c2 := constraint.NewConstraint(1, constraint.Distance, p2, l2, 0, false)
+	c2 := constraint.NewConstraint(1, constraint.Distance, p2.GetID(), l2.GetID(), 0, false)
 	ca.AddConstraint(c2)
 	g.AddConstraint(c2)
-	c3 := constraint.NewConstraint(2, constraint.Distance, p3, l2, 0, false)
+	c3 := constraint.NewConstraint(2, constraint.Distance, p3.GetID(), l2.GetID(), 0, false)
 	ca.AddConstraint(c3)
 	g.AddConstraint(c3)
-	c4 := constraint.NewConstraint(3, constraint.Distance, p3, l3, 0, false)
+	c4 := constraint.NewConstraint(3, constraint.Distance, p3.GetID(), l3.GetID(), 0, false)
 	ca.AddConstraint(c4)
 	g.AddConstraint(c4)
-	c5 := constraint.NewConstraint(4, constraint.Angle, l2, l3, -(108.0/180.0)*math.Pi, false)
+	c5 := constraint.NewConstraint(4, constraint.Angle, l2.GetID(), l3.GetID(), -(108.0/180.0)*math.Pi, false)
 	ca.AddConstraint(c5)
 	g.AddConstraint(c5)
 
@@ -405,11 +412,11 @@ func TestSolve1(t *testing.T) {
 	// 2. Finally p1 to p2 and l1
 	state := g.Solve(ea, ca)
 
-	c1 = ca.constraints[0]
-	c2 = ca.constraints[1]
-	c3 = ca.constraints[2]
-	c4 = ca.constraints[3]
-	c5 = ca.constraints[4]
+	c1, _ = ca.GetConstraint(0)
+	c2, _ = ca.GetConstraint(1)
+	c3, _ = ca.GetConstraint(2)
+	c4, _ = ca.GetConstraint(3)
+	c5, _ = ca.GetConstraint(4)
 
 	if state != solver.Solved {
 		t.Error("Expected solved state(4), got", state)
@@ -427,35 +434,45 @@ func TestSolve1(t *testing.T) {
 		p3.GetX(), p3.GetY(),
 	)
 
-	cValue := c1.Element1.DistanceTo(c1.Element2)
+	e1, _ := ea.GetElement(-1, c1.Element1)
+	e2, _ := ea.GetElement(-1, c1.Element2)
+	cValue := e1.DistanceTo(e2)
 	if utils.StandardFloatCompare(cValue, c1.Value) != 0 {
 		t.Error("Expected point p1 to distance", c1.Value, "from point p2, distance is", cValue)
 	}
 
-	cValue = c2.Element1.DistanceTo(c2.Element2)
+	e1, _ = ea.GetElement(-1, c2.Element1)
+	e2, _ = ea.GetElement(-1, c2.Element2)
+	cValue = e1.DistanceTo(e2)
 	if utils.StandardFloatCompare(cValue, c2.Value) != 0 {
 		t.Error("Expected point p1 to be on line l1, distance is", cValue)
 	}
 
-	cValue = c3.Element1.DistanceTo(c3.Element2)
+	e1, _ = ea.GetElement(-1, c3.Element1)
+	e2, _ = ea.GetElement(-1, c3.Element2)
+	cValue = e1.DistanceTo(e2)
 	if utils.StandardFloatCompare(cValue, c3.Value) != 0 {
 		t.Error("Expected point p2 to be on line l1, distance is", cValue)
 	}
 
-	cValue = c4.Element1.DistanceTo(c4.Element2)
+	e1, _ = ea.GetElement(-1, c4.Element1)
+	e2, _ = ea.GetElement(-1, c4.Element2)
+	cValue = e1.DistanceTo(e2)
 	if utils.StandardFloatCompare(cValue, c4.Value) != 0 {
 		t.Error("Expected point p2 to be on line l2, distance is", cValue)
 	}
 
-	angle := c5.Element1.(*el.SketchLine).AngleToLine(c5.Element2.(*el.SketchLine))
+	e1, _ = ea.GetElement(-1, c5.Element1)
+	e2, _ = ea.GetElement(-1, c5.Element2)
+	angle := e1.(*el.SketchLine).AngleToLine(e2.(*el.SketchLine))
 	if utils.StandardFloatCompare(angle, c5.Value) != 0 {
 		t.Error("Expected line l2 to be", c5.Value, "radians from line l2, angle is", angle)
 	}
 }
 
 func TestSolve2(t *testing.T) {
-	ea := NewElementRepository()
-	ca := NewConstraintRepository()
+	ea := accessors.NewElementRepository()
+	ca := accessors.NewConstraintRepository()
 	g := NewGraphCluster(0)
 
 	/*
@@ -497,51 +514,57 @@ func TestSolve2(t *testing.T) {
 	ea.AddElement(p5)
 	ea.AddElement(l5)
 	ea.AddElement(p1)
-	g.AddElement(l3)
-	g.AddElement(p4)
-	g.AddElement(l4)
-	g.AddElement(p5)
-	g.AddElement(l5)
-	g.AddElement(p1)
-	c1 := constraint.NewConstraint(0, constraint.Distance, p4, l3, 0, false)
+	g.AddElement(l3.GetID())
+	g.AddElement(p4.GetID())
+	g.AddElement(l4.GetID())
+	g.AddElement(p5.GetID())
+	g.AddElement(l5.GetID())
+	g.AddElement(p1.GetID())
+	ea.AddElementToCluster(l3.GetID(), g.GetID())
+	ea.AddElementToCluster(p4.GetID(), g.GetID())
+	ea.AddElementToCluster(l4.GetID(), g.GetID())
+	ea.AddElementToCluster(p5.GetID(), g.GetID())
+	ea.AddElementToCluster(l5.GetID(), g.GetID())
+	ea.AddElementToCluster(p1.GetID(), g.GetID())
+	c1 := constraint.NewConstraint(0, constraint.Distance, p4.GetID(), l3.GetID(), 0, false)
 	ca.AddConstraint(c1)
 	g.AddConstraint(c1)
-	c2 := constraint.NewConstraint(1, constraint.Angle, l3, l4, -(108.0/180.0)*math.Pi, false)
+	c2 := constraint.NewConstraint(1, constraint.Angle, l3.GetID(), l4.GetID(), -(108.0/180.0)*math.Pi, false)
 	ca.AddConstraint(c2)
 	g.AddConstraint(c2)
-	c3 := constraint.NewConstraint(2, constraint.Distance, p4, l4, 0, false)
+	c3 := constraint.NewConstraint(2, constraint.Distance, p4.GetID(), l4.GetID(), 0, false)
 	ca.AddConstraint(c3)
 	g.AddConstraint(c3)
-	c4 := constraint.NewConstraint(3, constraint.Distance, p5, l4, 0, false)
+	c4 := constraint.NewConstraint(3, constraint.Distance, p5.GetID(), l4.GetID(), 0, false)
 	ca.AddConstraint(c4)
 	g.AddConstraint(c4)
-	c5 := constraint.NewConstraint(4, constraint.Distance, p4, p5, 4, false)
+	c5 := constraint.NewConstraint(4, constraint.Distance, p4.GetID(), p5.GetID(), 4, false)
 	ca.AddConstraint(c5)
 	g.AddConstraint(c5)
-	c6 := constraint.NewConstraint(5, constraint.Angle, l4, l5, -(108.0/180.0)*math.Pi, false)
+	c6 := constraint.NewConstraint(5, constraint.Angle, l4.GetID(), l5.GetID(), -(108.0/180.0)*math.Pi, false)
 	ca.AddConstraint(c6)
 	g.AddConstraint(c6)
-	c7 := constraint.NewConstraint(6, constraint.Distance, p5, l5, 0, false)
+	c7 := constraint.NewConstraint(6, constraint.Distance, p5.GetID(), l5.GetID(), 0, false)
 	ca.AddConstraint(c7)
 	g.AddConstraint(c7)
-	c8 := constraint.NewConstraint(7, constraint.Distance, p1, p5, 4, false)
+	c8 := constraint.NewConstraint(7, constraint.Distance, p1.GetID(), p5.GetID(), 4, false)
 	ca.AddConstraint(c8)
 	g.AddConstraint(c8)
-	c9 := constraint.NewConstraint(8, constraint.Distance, p1, l5, 0, false)
+	c9 := constraint.NewConstraint(8, constraint.Distance, p1.GetID(), l5.GetID(), 0, false)
 	ca.AddConstraint(c9)
 	g.AddConstraint(c9)
 
 	state := g.Solve(ea, ca)
 
-	c1 = ca.constraints[0]
-	c2 = ca.constraints[1]
-	c3 = ca.constraints[2]
-	c4 = ca.constraints[3]
-	c5 = ca.constraints[4]
-	c6 = ca.constraints[5]
-	c7 = ca.constraints[6]
-	c8 = ca.constraints[7]
-	c9 = ca.constraints[8]
+	c1, _ = ca.GetConstraint(0)
+	c2, _ = ca.GetConstraint(1)
+	c3, _ = ca.GetConstraint(2)
+	c4, _ = ca.GetConstraint(3)
+	c5, _ = ca.GetConstraint(4)
+	c6, _ = ca.GetConstraint(5)
+	c7, _ = ca.GetConstraint(6)
+	c8, _ = ca.GetConstraint(7)
+	c9, _ = ca.GetConstraint(8)
 
 	if state != solver.Solved {
 		t.Error("Expected solved state(4), got", state)
@@ -563,173 +586,170 @@ func TestSolve2(t *testing.T) {
 		p5.GetX(), p5.GetY(),
 	)
 
-	cValue := c1.Element1.DistanceTo(c1.Element2)
+	e1, _ := ea.GetElement(-1, c1.Element1)
+	e2, _ := ea.GetElement(-1, c1.Element2)
+	cValue := e1.DistanceTo(e2)
 	if utils.StandardFloatCompare(cValue, c1.Value) != 0 {
 		t.Error("Expected point p1 to distance", c1.Value, "from point p5, distance is", cValue)
 	}
 
-	cValue = c7.Element1.DistanceTo(c7.Element2)
+	e1, _ = ea.GetElement(-1, c7.Element1)
+	e2, _ = ea.GetElement(-1, c7.Element2)
+	cValue = e1.DistanceTo(e2)
 	if utils.StandardFloatCompare(cValue, c7.Value) != 0 {
 		t.Error("Expected point p4 to distance", c7.Value, "from point p5, distance is", cValue)
 	}
 
-	cValue = c9.Element1.DistanceTo(c9.Element2)
+	e1, _ = ea.GetElement(-1, c9.Element1)
+	e2, _ = ea.GetElement(-1, c9.Element2)
+	cValue = e1.DistanceTo(e2)
 	if utils.StandardFloatCompare(cValue, c9.Value) != 0 {
 		t.Error("Expected point p1 to be on line l5, distance is", cValue)
 	}
 
-	cValue = c4.Element1.DistanceTo(c4.Element2)
+	e1, _ = ea.GetElement(-1, c4.Element1)
+	e2, _ = ea.GetElement(-1, c4.Element2)
+	cValue = e1.DistanceTo(e2)
 	if utils.StandardFloatCompare(cValue, c4.Value) != 0 {
 		t.Error("Expected point p5 to be on line l4, distance is", cValue)
 	}
 
-	cValue = c5.Element1.DistanceTo(c5.Element2)
+	e1, _ = ea.GetElement(-1, c5.Element1)
+	e2, _ = ea.GetElement(-1, c5.Element2)
+	cValue = e1.DistanceTo(e2)
 	if utils.StandardFloatCompare(cValue, c5.Value) != 0 {
 		t.Error("Expected point p5 to be on line l5, distance is", cValue)
 	}
 
-	cValue = c8.Element1.DistanceTo(c8.Element2)
+	e1, _ = ea.GetElement(-1, c8.Element1)
+	e2, _ = ea.GetElement(-1, c8.Element2)
+	cValue = e1.DistanceTo(e2)
 	if utils.StandardFloatCompare(cValue, c8.Value) != 0 {
 		t.Error("Expected point p4 to be on line l3, distance is", cValue)
 	}
 
-	cValue = c3.Element1.DistanceTo(c3.Element2)
+	e1, _ = ea.GetElement(-1, c3.Element1)
+	e2, _ = ea.GetElement(-1, c3.Element2)
+	cValue = e1.DistanceTo(e2)
 	if utils.StandardFloatCompare(cValue, c3.Value) != 0 {
 		t.Error("Expected point p4 to be on line l4, distance is", cValue)
 	}
 
-	angle := c2.Element1.AsLine().AngleToLine(c2.Element2.AsLine())
+	e1, _ = ea.GetElement(-1, c2.Element1)
+	e2, _ = ea.GetElement(-1, c2.Element2)
+	angle := e1.AsLine().AngleToLine(e2.AsLine())
 	assert.InDelta(t, math.Abs(angle), math.Abs(c2.Value), utils.StandardCompare, "Expected line l5 angle to be correct")
 
-	angle = c6.Element1.AsLine().AngleToLine(c6.Element2.AsLine())
+	e1, _ = ea.GetElement(-1, c6.Element1)
+	e2, _ = ea.GetElement(-1, c6.Element2)
+	angle = e1.AsLine().AngleToLine(e2.AsLine())
 	assert.InDelta(t, math.Abs(angle), math.Abs(c6.Value), utils.StandardCompare, "Expected line l3 angle to be correct")
 }
 
 func TestSolveMerge(t *testing.T) {
+	utils.Logger.Level(zerolog.DebugLevel)
 	/*
 		GraphCluster 0 (from test)
-			l1: 0.000000x + 1.000000y + 0.000000 = 0
-			p1: (0.000000, 0.000000)
-			p2: (4.000000, 0.000000)
+			p0: (0.000000, 0.000000)
+			l1: 0.000000x + -1.000000y + 0.000000 = 0
+			l2: 1.000000x + 0.000000y + 0.000000 = 0
+			l3: 0.000000x + -1.000000y + 0.000000 = 0
+			p5: (4.000000, 0.000000)
 
 		GraphCluster 1 (from test)
-			l2: -0.748682x + 0.662930y + 2.341692 = 0
-			l3: 0.861839x + 0.507182y + -5.071811 = 0
-			p2: (2.132349, -1.124164)
-			p3: (4.784067, 1.870563)
+			p0: (0.000000, 0.000000)
+			l15: -3.839516x + -1.121656y + 0.000000 = 0
+			l12: -0.563309x + 0.826247y + -3.804226 = 0
+			p11: (2.183330, 6.092751)
+			l9: 0.611735x + 0.791063y + -6.155367 = 0
+			p14: (-1.121656, 3.839516)
 
-		GraphCluster 2 (fron test)
-			l3: 0.650573x + 0.759444y + -5.071811 = 0
-			l4: 0.521236x + -0.853412y + 3.696525 = 0
-			l5: -0.972714x + -0.232006y + -1.016993 = 0
-			p1: (-0.886306, -0.667527)
-			p4: (1.599320, 5.308275)
-			p5: (-1.814330, 3.223330)
+		GraphCluster 2 (from test)
+			p5: (2.488281, -0.724727)
+			p8: (5.140000, 2.270000)
+			l6: 2.994727x + -2.651719y + -9.373495 = 0
+			l9: 0.861839x + 0.507182y + -5.581155 = 0
 
 		Each cluster shares one element with another:
-			GraphCluster 0 and 1 share p2
-			GraphCluster 0 and 2 share p1
-			GraphCluster 1 and 2 share l3
+			GraphCluster 0 and 1 share p0
+			GraphCluster 0 and 2 share p5
+			GraphCluster 1 and 2 share l9
 
 		solveMerge should merge the three clusters into a single solved graph
 	*/
-	ea := NewElementRepository()
-	ca := NewConstraintRepository()
+	ea := accessors.NewElementRepository()
+	ca := accessors.NewConstraintRepository()
 	g0 := NewGraphCluster(0)
 
-	l1 := el.NewSketchLine(0, 0, 1, 0)
+	p0 := el.NewSketchPoint(0, 0.0, 0.0)
+	ea.AddElement(p0)
+	g0.AddElement(p0.GetID())
+	ea.AddElementToCluster(p0.GetID(), g0.GetID())
+	l1 := el.NewSketchLine(1, 0, -1, 0)
 	ea.AddElement(l1)
-	ea.AddElementToCluster(0, 0)
-	p1 := el.NewSketchPoint(1, 0.0, 0.0)
-	ea.AddElement(p1)
-	ea.AddElementToCluster(1, 0)
-	p2 := el.NewSketchPoint(2, 4.0, 0)
-	ea.AddElement(p2)
-	ea.AddElementToCluster(2, 0)
-	c1 := constraint.NewConstraint(0, constraint.Distance, p1, p2, 4, false)
-	ca.AddConstraint(c1)
-	g0.AddConstraint(c1)
-	c2 := constraint.NewConstraint(1, constraint.Distance, p1, l1, 0, false)
-	ca.AddConstraint(c2)
-	g0.AddConstraint(c2)
-	c3 := constraint.NewConstraint(2, constraint.Distance, p2, l1, 0, false)
-	ca.AddConstraint(c3)
-	g0.AddConstraint(c3)
+	g0.AddElement(l1.GetID())
+	ea.AddElementToCluster(l1.GetID(), g0.GetID())
+	l2 := el.NewSketchLine(2, 1, 0, 0)
+	ea.AddElement(l2)
+	g0.AddElement(l2.GetID())
+	ea.AddElementToCluster(l2.GetID(), g0.GetID())
+	l3 := el.NewSketchLine(3, 0, -1, 0)
+	ea.AddElement(l3)
+	g0.AddElement(l3.GetID())
+	ea.AddElementToCluster(l3.GetID(), g0.GetID())
+	p5 := el.NewSketchPoint(5, 4.0, 0.0)
+	ea.AddElement(p5)
+	g0.AddElement(p5.GetID())
+	ea.AddElementToCluster(p5.GetID(), g0.GetID())
 
 	g1 := NewGraphCluster(1)
 
-	l2 := el.NewSketchLine(3, -0.748682, 0.662930, 2.341692)
-	ea.AddElement(l2)
-	ea.AddElementToCluster(3, 1)
-	l3 := el.NewSketchLine(4, 0.861839, 0.507182, -5.071811)
-	ea.AddElement(l3)
-	ea.AddElementToCluster(4, 1)
-	p2 = el.NewSketchPoint(2, 2.132349, -1.124164)
-	ea.AddElementToCluster(2, 1)
-	p3 := el.NewSketchPoint(5, 4.784067, 1.870563)
-	ea.AddElement(p3)
-	ea.AddElementToCluster(5, 1)
-	c4 := constraint.NewConstraint(3, constraint.Distance, p2, p3, 4, false)
-	ca.AddConstraint(c4)
-	g1.AddConstraint(c4)
-	c5 := constraint.NewConstraint(4, constraint.Distance, p2, l2, 0, false)
-	ca.AddConstraint(c5)
-	g1.AddConstraint(c5)
-	c6 := constraint.NewConstraint(5, constraint.Distance, p3, l2, 0, false)
-	ca.AddConstraint(c6)
-	g1.AddConstraint(c6)
-	c7 := constraint.NewConstraint(6, constraint.Distance, p3, l3, 0, false)
-	ca.AddConstraint(c7)
-	g1.AddConstraint(c7)
-	c8 := constraint.NewConstraint(7, constraint.Angle, l3, l2, (108.0/180.0)*math.Pi, false)
-	ca.AddConstraint(c8)
-	g1.AddConstraint(c8)
+	ea.AddElementToCluster(p0.GetID(), g1.GetID())
+	g1.AddElement(p0.GetID())
+	l15 := el.NewSketchLine(15, -3.839516, -1.121656, 0.000000)
+	ea.AddElement(l15)
+	g1.AddElement(l15.GetID())
+	ea.AddElementToCluster(l15.GetID(), g1.GetID())
+	l12 := el.NewSketchLine(12, -0.563309, 0.826247, -3.804226)
+	ea.AddElement(l12)
+	g1.AddElement(l12.GetID())
+	ea.AddElementToCluster(l12.GetID(), g1.GetID())
+	p11 := el.NewSketchPoint(11, 2.183330, 6.092751)
+	ea.AddElement(p11)
+	g1.AddElement(p11.GetID())
+	ea.AddElementToCluster(p11.GetID(), g1.GetID())
+	l9 := el.NewSketchLine(9, 0.611735, 0.791063, -6.155367)
+	ea.AddElement(l9)
+	g1.AddElement(l9.GetID())
+	ea.AddElementToCluster(l9.GetID(), g1.GetID())
+	p14 := el.NewSketchPoint(14, -1.121656, 3.839516)
+	ea.AddElement(p14)
+	g1.AddElement(p14.GetID())
+	ea.AddElementToCluster(p14.GetID(), g1.GetID())
 
 	g2 := NewGraphCluster(2)
 
-	l3 = el.NewSketchLine(4, 0.650573, 0.759444, -5.071811)
-	ea.AddElementToCluster(4, 2)
-	l4 := el.NewSketchLine(6, 0.521236, -0.853412, 3.696525)
-	ea.AddElement(l4)
-	ea.AddElementToCluster(6, 1)
-	l5 := el.NewSketchLine(7, -0.972714, -0.232006, -1.016993)
-	ea.AddElement(l5)
-	ea.AddElementToCluster(7, 1)
-	p1 = el.NewSketchPoint(1, -0.886306, -0.667527)
-	ea.AddElementToCluster(1, 2)
-	p4 := el.NewSketchPoint(8, 1.599320, 5.308275)
-	ea.AddElement(p4)
-	ea.AddElementToCluster(8, 1)
-	p5 := el.NewSketchPoint(9, -1.814330, 3.223330)
-	ea.AddElement(p5)
-	ea.AddElementToCluster(9, 1)
-	c9 := constraint.NewConstraint(8, constraint.Distance, p1, p5, 4, false)
-	ca.AddConstraint(c9)
-	g2.AddConstraint(c9)
-	c10 := constraint.NewConstraint(9, constraint.Distance, p4, p5, 4, false)
-	ca.AddConstraint(c10)
-	g2.AddConstraint(c10)
-	c11 := constraint.NewConstraint(10, constraint.Distance, p1, l5, 0, false)
-	ca.AddConstraint(c11)
-	g2.AddConstraint(c11)
-	c12 := constraint.NewConstraint(11, constraint.Distance, p5, l4, 0, false)
-	ca.AddConstraint(c12)
-	g2.AddConstraint(c12)
-	c13 := constraint.NewConstraint(12, constraint.Distance, p5, l5, 0, false)
-	ca.AddConstraint(c13)
-	g2.AddConstraint(c13)
-	c14 := constraint.NewConstraint(13, constraint.Distance, p4, l3, 0, false)
-	ca.AddConstraint(c14)
-	g2.AddConstraint(c14)
-	c15 := constraint.NewConstraint(14, constraint.Distance, p4, l4, 0, false)
-	ca.AddConstraint(c15)
-	g2.AddConstraint(c15)
-	c16 := constraint.NewConstraint(15, constraint.Angle, l5, l4, (108.0/180.0)*math.Pi, false)
-	ca.AddConstraint(c16)
-	g2.AddConstraint(c16)
-	c17 := constraint.NewConstraint(16, constraint.Angle, l3, l4, (108.0/180.0)*math.Pi, false)
-	ca.AddConstraint(c17)
-	g2.AddConstraint(c17)
+	ea.AddElementToCluster(p5.GetID(), g2.GetID())
+	g2.AddElement(p5.GetID())
+	e, _ := ea.GetElement(g2.GetID(), p5.GetID())
+	p5 = e.AsPoint()
+	p5.X = 2.488281
+	p5.Y = -0.724727
+	p8 := el.NewSketchPoint(8, 5.140000, 2.270000)
+	ea.AddElement(p8)
+	g2.AddElement(p8.GetID())
+	ea.AddElementToCluster(p8.GetID(), g2.GetID())
+	l6 := el.NewSketchLine(6, 2.994727, -2.651719, -9.373495)
+	ea.AddElement(l6)
+	g2.AddElement(l6.GetID())
+	ea.AddElementToCluster(l6.GetID(), g2.GetID())
+	ea.AddElementToCluster(l9.GetID(), g2.GetID())
+	g2.AddElement(l9.GetID())
+	e, _ = ea.GetElement(g2.GetID(), l9.GetID())
+	l9 = e.AsLine()
+	l9.SetA(0.861839)
+	l9.SetB(0.507182)
+	l9.SetC(-5.581155)
 
 	state := g0.solveMerge(ea, ca, g1, g2)
 
@@ -738,183 +758,135 @@ func TestSolveMerge(t *testing.T) {
 	}
 
 	t.Logf("g0 elements length %d\n", g0.elements.Count())
-	t.Logf("all elements count %d\n", len(ea.elements))
-	t.Logf("element %d type %v\n", 0, ea.elements[0].GetType())
-	l1 = ea.elements[0].AsLine()
-	t.Logf("element %d type %v\n", 1, ea.elements[1].GetType())
-	p1 = ea.elements[1].AsPoint()
-	t.Logf("element %d type %v\n", 2, ea.elements[2].GetType())
-	p2 = ea.elements[2].AsPoint()
-	t.Logf("element %d type %v\n", 3, ea.elements[3].GetType())
-	l2 = ea.elements[3].AsLine()
-	t.Logf("element %d type %v\n", 4, ea.elements[4].GetType())
-	l3 = ea.elements[4].AsLine()
-	t.Logf("element %d type %v\n", 5, ea.elements[5].GetType())
-	p3 = ea.elements[5].AsPoint()
-	t.Logf("element %d type %v\n", 6, ea.elements[6].GetType())
-	l4 = ea.elements[6].AsLine()
-	t.Logf("element %d type %v\n", 7, ea.elements[7].GetType())
-	l5 = ea.elements[7].AsLine()
-	t.Logf("element %d type %v\n", 8, ea.elements[8].GetType())
-	p4 = ea.elements[8].AsPoint()
-	t.Logf("element %d type %v\n", 9, ea.elements[9].GetType())
-	p5 = ea.elements[9].AsPoint()
+	t.Logf("all elements count %d\n", len(ea.IdSet().Contents()))
+
+	e, _ = ea.GetElement(g0.GetID(), 0)
+	p0 = e.AsPoint()
+	e, _ = ea.GetElement(g0.GetID(), 3)
+	l3 = e.AsLine()
+	e, _ = ea.GetElement(g0.GetID(), 5)
+	p5 = e.AsPoint()
+	e, _ = ea.GetElement(g0.GetID(), 6)
+	l6 = e.AsLine()
+	e, _ = ea.GetElement(g0.GetID(), 8)
+	p8 = e.AsPoint()
+	e, _ = ea.GetElement(g0.GetID(), 9)
+	l9 = e.AsLine()
+	e, _ = ea.GetElement(g0.GetID(), 11)
+	p11 = e.AsPoint()
+	e, _ = ea.GetElement(g0.GetID(), 12)
+	l12 = e.AsLine()
+	e, _ = ea.GetElement(g0.GetID(), 14)
+	p14 = e.AsPoint()
+	e, _ = ea.GetElement(g0.GetID(), 15)
+	l15 = e.AsLine()
 
 	rad2Deg := func(rad float64) float64 { return (rad / math.Pi) * 180 }
 	deg2Rad := func(deg float64) float64 { return (deg / 180.0) * math.Pi }
 	desired := deg2Rad(72)
-	angle := l1.AngleToLine(l2)
-	if utils.StandardFloatCompare(angle, desired) != 0 {
-		t.Error("Expected l1 to l2 to be", 72, "degrees, got", rad2Deg(angle))
+	// All angles should be 108 or 72 degrees
+	angle := l9.AngleToLine(l6)
+	if utils.StandardFloatCompare(math.Abs(angle), desired) != 0 {
+		t.Error("Expected l9 to l6 to be", 72, "degrees, got", rad2Deg(math.Abs(angle)))
 	}
-	desired = deg2Rad(-108)
-	angle = l2.AngleToLine(l3)
-	if utils.StandardFloatCompare(angle, desired) != 0 {
-		t.Error("Expected l2 to l3 to be", -108, "degrees, got", rad2Deg(angle))
+	angle = l6.AngleToLine(l3)
+	if utils.StandardFloatCompare(math.Abs(angle), desired) != 0 {
+		t.Error("Expected l6 to l3 to be", 72, "degrees, got", rad2Deg(math.Abs(angle)))
 	}
-	desired = deg2Rad(-108)
-	angle = l3.AngleToLine(l4)
-	if utils.StandardFloatCompare(angle, desired) != 0 {
-		t.Error("Expected l3 to l4 to be", -108, "degrees, got", rad2Deg(angle))
+	angle = l3.AngleToLine(l15)
+	if utils.StandardFloatCompare(math.Abs(angle), desired) != 0 {
+		t.Error("Expected l3 to l15 to be", 72, "degrees, got", rad2Deg(math.Abs(angle)))
 	}
-	desired = deg2Rad(-108)
-	angle = l4.AngleToLine(l5)
-	if utils.StandardFloatCompare(angle, desired) != 0 {
-		t.Error("Expected l4 to l5 to be", -108, "degrees, got", rad2Deg(angle))
+	angle = l15.AngleToLine(l12)
+	if utils.StandardFloatCompare(math.Abs(angle), desired) != 0 {
+		t.Error("Expected l12 to l15 to be", 72, "degrees, got", rad2Deg(math.Abs(angle)))
 	}
-	desired = deg2Rad(-108)
-	angle = l5.AngleToLine(l1)
-	if utils.StandardFloatCompare(angle, desired) != 0 {
-		t.Error("Expected l5 to l1 to be", -108, "degrees, got", rad2Deg(angle))
+	angle = l12.AngleToLine(l9)
+	if utils.StandardFloatCompare(math.Abs(angle), desired) != 0 {
+		t.Error("Expected l12 to l9 to be", 72, "degrees, got", rad2Deg(math.Abs(angle)))
 	}
 
 	desired = 4.0
-	measured := p1.DistanceTo(p2)
+	measured := p0.DistanceTo(p5)
 	if utils.StandardFloatCompare(measured, desired) != 0 {
-		t.Error("Expected p1 to p2 to be", desired, ", got", measured)
+		t.Error("Expected p0 to p5 to be", desired, ", got", measured)
 	}
-	measured = p2.DistanceTo(p3)
+	measured = p5.DistanceTo(p8)
 	if utils.StandardFloatCompare(measured, desired) != 0 {
-		t.Error("Expected p2 to p3 to be", desired, ", got", measured)
+		t.Error("Expected p5 to p8 to be", desired, ", got", measured)
 	}
-	measured = p3.DistanceTo(p4)
+	measured = p8.DistanceTo(p11)
 	if utils.StandardFloatCompare(measured, desired) != 0 {
-		t.Error("Expected p3 to p4 to be", desired, ", got", measured)
+		t.Error("Expected p8 to p11 to be", desired, ", got", measured)
 	}
-	measured = p4.DistanceTo(p5)
+	measured = p11.DistanceTo(p14)
 	if utils.StandardFloatCompare(measured, desired) != 0 {
-		t.Error("Expected p4 to p5 to be", desired, ", got", measured)
+		t.Error("Expected p11 to p14 to be", desired, ", got", measured)
 	}
-	measured = p5.DistanceTo(p1)
+	measured = p14.DistanceTo(p0)
 	if utils.StandardFloatCompare(measured, desired) != 0 {
-		t.Error("Expected p5 to p1 to be", desired, ", got", measured)
+		t.Error("Expected p14 to p0 to be", desired, ", got", measured)
 	}
 
-	t.Logf(`elements after solve: 
-	l1: %fx + %fy + %f = 0
-	l2: %fx + %fy + %f = 0
+	t.Logf(`elements after solve:
 	l3: %fx + %fy + %f = 0
-	l4: %fx + %fy + %f = 0
-	l5: %fx + %fy + %f = 0
-	p1: (%f, %f)
-	p2: (%f, %f)
-	p3: (%f, %f)
-	p4: (%f, %f)
+	l6: %fx + %fy + %f = 0
+	l9: %fx + %fy + %f = 0
+	l12: %fx + %fy + %f = 0
+	l15: %fx + %fy + %f = 0
+	p0: (%f, %f)
 	p5: (%f, %f)
+	p8: (%f, %f)
+	p11: (%f, %f)
+	p14: (%f, %f)
 	`,
-		l1.GetA(), l1.GetB(), l1.GetC(),
-		l2.GetA(), l2.GetB(), l2.GetC(),
 		l3.GetA(), l3.GetB(), l3.GetC(),
-		l4.GetA(), l4.GetB(), l4.GetC(),
-		l5.GetA(), l5.GetB(), l5.GetC(),
-		p1.GetX(), p1.GetY(),
-		p2.GetX(), p2.GetY(),
-		p3.GetX(), p3.GetY(),
-		p4.GetX(), p4.GetY(),
+		l6.GetA(), l6.GetB(), l6.GetC(),
+		l9.GetA(), l9.GetB(), l9.GetC(),
+		l12.GetA(), l12.GetB(), l12.GetC(),
+		l15.GetA(), l15.GetB(), l15.GetC(),
+		p0.GetX(), p0.GetY(),
 		p5.GetX(), p5.GetY(),
+		p8.GetX(), p8.GetY(),
+		p11.GetX(), p11.GetY(),
+		p14.GetX(), p14.GetY(),
 	)
 }
 
-func TestSolvedUnsolvedConstraintsFor(t *testing.T) {
-	ca := NewConstraintRepository()
-	e1 := el.NewSketchPoint(0, 0, 1)
-	e2 := el.NewSketchPoint(1, 2, 1)
-	e3 := el.NewSketchLine(2, 2, 1, -1)
-	e4 := el.NewSketchLine(3, 2, 2, -0)
-	c1 := constraint.NewConstraint(0, constraint.Distance, e1, e2, 5, false)
-	c2 := constraint.NewConstraint(1, constraint.Distance, e2, e3, 7, false)
-	c3 := constraint.NewConstraint(2, constraint.Distance, e3, e4, 2, false)
-
-	g := NewGraphCluster(0)
-	ca.AddConstraint(c1)
-	ca.AddConstraint(c2)
-	ca.AddConstraint(c3)
-	g.AddConstraint(c1)
-	g.AddConstraint(c2)
-	g.AddConstraint(c3)
-	g.solved.Add(c1.GetID())
-	g.solved.Add(c3.GetID())
-
-	tests := []struct {
-		name     string
-		eId      uint
-		solved   []uint
-		unsolved []uint
-	}{
-		// Keep these lists sorted
-		{"constraints for element 0", 0, []uint{0}, []uint{}},
-		{"constraints for element 1", 1, []uint{0}, []uint{1}},
-		{"constraints for element 2", 2, []uint{2}, []uint{1}},
-		{"constraints for element 3", 3, []uint{2}, []uint{}},
-	}
-	for _, tt := range tests {
-		var solved constraint.ConstraintList = g.solvedConstraintsFor(ca, tt.eId)
-		var unsolved constraint.ConstraintList = g.unsolvedConstraintsFor(ca, tt.eId)
-		sort.Sort(solved)
-		sort.Sort(unsolved)
-		assert.Equal(t, len(tt.solved), len(solved), tt.name)
-		assert.Equal(t, len(tt.unsolved), len(unsolved), tt.name)
-		for i, c := range solved {
-			assert.Equal(t, tt.solved[i], c.GetID())
-		}
-		for i, c := range unsolved {
-			assert.Equal(t, tt.unsolved[i], c.GetID())
-		}
-	}
-}
-
 func TestSolveEdgeCases(t *testing.T) {
-	ea := NewElementRepository()
-	ca := NewConstraintRepository()
+	ea := accessors.NewElementRepository()
+	ca := accessors.NewConstraintRepository()
 	e3 := el.NewSketchLine(2, 2, 1, -1)
 	ea.AddElement(e3)
 	ea.AddElementToCluster(2, 1)
 	e4 := el.NewSketchLine(3, 2, 2, -0)
 	ea.AddElement(e4)
 	ea.AddElementToCluster(3, 1)
-	c3 := constraint.NewConstraint(2, constraint.Distance, e3, e4, 2, false)
+	c3 := constraint.NewConstraint(2, constraint.Distance, e3.GetID(), e4.GetID(), 2, false)
 	ca.AddConstraint(c3)
 
 	o := NewGraphCluster(1)
 	o.AddConstraint(c3)
 
 	state := o.Solve(ea, ca)
-	assert.Equal(t, solver.NonConvergent, state, "Test local solve with solveorder < 2")
+	assert.Equal(t, solver.Solved, state, "Test local solve with solveorder < 2")
 
+	o.solved = utils.NewSet()
 	e1 := el.NewSketchPoint(0, 0, 1)
 	ea.AddElement(e1)
 	ea.AddElementToCluster(0, 1)
 	e2 := el.NewSketchPoint(1, 2, 1)
 	ea.AddElement(e2)
 	ea.AddElementToCluster(1, 1)
-	c1 := constraint.NewConstraint(0, constraint.Distance, e1, e2, 5, false)
+	c1 := constraint.NewConstraint(0, constraint.Distance, e1.GetID(), e2.GetID(), 5, false)
 	ca.AddConstraint(c1)
 	o.AddConstraint(c1)
 
+	t.Log(o.ToGraphViz(ea, ca))
 	state = o.Solve(ea, ca)
 	assert.Equal(t, solver.NonConvergent, state, "Test local solve without enough constraints to solve desired element")
 
-	c2 := constraint.NewConstraint(1, constraint.Distance, e2, e3, 7, false)
+	c2 := constraint.NewConstraint(1, constraint.Distance, e2.GetID(), e3.GetID(), 7, false)
 	ca.AddConstraint(c2)
 	g := NewGraphCluster(0)
 	g.AddConstraint(c1)
@@ -928,8 +900,8 @@ func TestSolveEdgeCases(t *testing.T) {
 }
 
 func TestMergeOne(t *testing.T) {
-	ea := NewElementRepository()
-	ca := NewConstraintRepository()
+	ea := accessors.NewElementRepository()
+	ca := accessors.NewConstraintRepository()
 	// Create fixed element cluster
 	// Create cluster w/ square
 	// merge the two -- use solveMerge instead of mergeOne
@@ -937,21 +909,21 @@ func TestMergeOne(t *testing.T) {
 	var e el.SketchElement = el.NewSketchPoint(0, 0, 0)
 	ea.AddElement(e)
 	ea.AddElementToCluster(e.GetID(), g.GetID())
-	g.AddElement(e)
+	g.AddElement(e.GetID())
 	e = el.NewSketchLine(1, 0, 1, 0)
 	ea.AddElement(e)
 	ea.AddElementToCluster(e.GetID(), g.GetID())
-	g.AddElement(e)
+	g.AddElement(e.GetID())
 	e = el.NewSketchLine(2, 1, 0, 0)
 	ea.AddElement(e)
 	ea.AddElementToCluster(e.GetID(), g.GetID())
-	g.AddElement(e)
+	g.AddElement(e.GetID())
 
 	o := NewGraphCluster(1)
 	e = el.NewSketchLine(1, -0.029929, -0.999552, 0)
 	ea.AddElement(e)
 	ea.AddElementToCluster(e.GetID(), o.GetID())
-	o.AddElement(e)
+	o.AddElement(e.GetID())
 
 	state := g.solveMerge(ea, ca, o, nil)
 	assert.Equal(t, solver.NonConvergent, state, "Merge containing only one shared element should fail to solve")
@@ -959,7 +931,7 @@ func TestMergeOne(t *testing.T) {
 	e = el.NewSketchLine(2, 0.999552, -0.029929, 0)
 	ea.AddElement(e)
 	ea.AddElementToCluster(e.GetID(), o.GetID())
-	o.AddElement(e)
+	o.AddElement(e.GetID())
 
 	state = g.solveMerge(ea, ca, o, nil)
 	assert.Equal(t, solver.NonConvergent, state, "Merge where shared elements are both lines should fail to solve")
@@ -968,51 +940,51 @@ func TestMergeOne(t *testing.T) {
 	e = el.NewSketchPoint(0, 0, 0)
 	ea.AddElement(e)
 	ea.AddElementToCluster(e.GetID(), o.GetID())
-	o.AddElement(e)
+	o.AddElement(e.GetID())
 	e = el.NewSketchPoint(5, 3.998208, -0.119717)
 	ea.AddElement(e)
 	ea.AddElementToCluster(e.GetID(), o.GetID())
-	o.AddElement(e)
+	o.AddElement(e.GetID())
 	e = el.NewSketchLine(12, -0.563309, 0.826247, -3.804226)
 	ea.AddElement(e)
 	ea.AddElementToCluster(e.GetID(), o.GetID())
-	o.AddElement(e)
+	o.AddElement(e.GetID())
 	e = el.NewSketchPoint(11, 2.183330, 6.092751)
 	ea.AddElement(e)
 	ea.AddElementToCluster(e.GetID(), o.GetID())
-	o.AddElement(e)
+	o.AddElement(e.GetID())
 	e = el.NewSketchLine(9, 0.611735, 0.791063, -6.155367)
 	ea.AddElement(e)
 	ea.AddElementToCluster(e.GetID(), o.GetID())
-	o.AddElement(e)
+	o.AddElement(e.GetID())
 	e = el.NewSketchPoint(8, 5.347580, 3.645810)
 	ea.AddElement(e)
 	ea.AddElementToCluster(e.GetID(), o.GetID())
-	o.AddElement(e)
+	o.AddElement(e.GetID())
 	e = el.NewSketchLine(1, -0.029929, -0.999552, 0)
 	ea.AddElement(e)
 	ea.AddElementToCluster(e.GetID(), o.GetID())
-	o.AddElement(e)
+	o.AddElement(e.GetID())
 	e = el.NewSketchLine(2, 0.999552, -0.029929, 0)
 	ea.AddElement(e)
 	ea.AddElementToCluster(e.GetID(), o.GetID())
-	o.AddElement(e)
+	o.AddElement(e.GetID())
 	e = el.NewSketchLine(15, -0.959879, -0.280414, 0)
 	ea.AddElement(e)
 	ea.AddElementToCluster(e.GetID(), o.GetID())
-	o.AddElement(e)
+	o.AddElement(e.GetID())
 	e = el.NewSketchPoint(14, -1.121656, 3.839516)
 	ea.AddElement(e)
 	ea.AddElementToCluster(e.GetID(), o.GetID())
-	o.AddElement(e)
+	o.AddElement(e.GetID())
 	e = el.NewSketchLine(6, 0.941382, -0.337343, -3.804226)
 	ea.AddElement(e)
 	ea.AddElementToCluster(e.GetID(), o.GetID())
-	o.AddElement(e)
+	o.AddElement(e.GetID())
 	e = el.NewSketchLine(3, -0.029929, -0.999552, 0)
 	ea.AddElement(e)
 	ea.AddElementToCluster(e.GetID(), o.GetID())
-	o.AddElement(e)
+	o.AddElement(e.GetID())
 	state = g.solveMerge(ea, ca, o, nil)
 	assert.Equal(t, solver.Solved, state, "Merge should solve successfully")
 
@@ -1020,34 +992,34 @@ func TestMergeOne(t *testing.T) {
 	e = el.NewSketchPoint(0, 0, 0)
 	ea.AddElement(e)
 	ea.AddElementToCluster(e.GetID(), g.GetID())
-	g.AddElement(e)
+	g.AddElement(e.GetID())
 	e = el.NewSketchLine(100, 0, 1, 0)
 	ea.AddElement(e)
 	ea.AddElementToCluster(e.GetID(), g.GetID())
-	g.AddElement(e)
+	g.AddElement(e.GetID())
 	e = el.NewSketchPoint(5, 4, 0)
 	ea.AddElement(e)
 	ea.AddElementToCluster(e.GetID(), g.GetID())
-	g.AddElement(e)
+	g.AddElement(e.GetID())
 
 	state = g.solveMerge(ea, ca, o, nil)
 	assert.Equal(t, solver.Solved, state, "Merge with two shared points should solve successfully")
 }
 
 func TestSolveMergeEdgeCases(t *testing.T) {
-	ea := NewElementRepository()
-	ca := NewConstraintRepository()
+	ea := accessors.NewElementRepository()
+	ca := accessors.NewConstraintRepository()
 	g := NewGraphCluster(0)
 	var e el.SketchElement = el.NewSketchPoint(0, 0, 0)
 	ea.AddElement(e)
 	ea.AddElementToCluster(e.GetID(), g.GetID())
-	g.AddElement(e)
+	g.AddElement(e.GetID())
 	e = el.NewSketchLine(1, 0, 1, 0)
-	g.AddElement(e)
+	g.AddElement(e.GetID())
 	ea.AddElement(e)
 	ea.AddElementToCluster(e.GetID(), g.GetID())
 	e = el.NewSketchLine(2, 1, 0, 0)
-	g.AddElement(e)
+	g.AddElement(e.GetID())
 	ea.AddElement(e)
 	ea.AddElementToCluster(e.GetID(), g.GetID())
 
@@ -1055,41 +1027,41 @@ func TestSolveMergeEdgeCases(t *testing.T) {
 	e = el.NewSketchPoint(0, 0, 0)
 	ea.AddElement(e)
 	ea.AddElementToCluster(e.GetID(), o1.GetID())
-	o1.AddElement(e)
+	o1.AddElement(e.GetID())
 	e = el.NewSketchPoint(5, 3.998208, -0.119717)
 	ea.AddElement(e)
 	ea.AddElementToCluster(e.GetID(), o1.GetID())
-	o1.AddElement(e)
+	o1.AddElement(e.GetID())
 	e = el.NewSketchLine(12, -0.563309, 0.826247, -3.804226)
 	ea.AddElement(e)
 	ea.AddElementToCluster(e.GetID(), o1.GetID())
-	o1.AddElement(e)
+	o1.AddElement(e.GetID())
 	e = el.NewSketchPoint(11, 2.183330, 6.092751)
 	ea.AddElement(e)
 	ea.AddElementToCluster(e.GetID(), o1.GetID())
-	o1.AddElement(e)
+	o1.AddElement(e.GetID())
 	e = el.NewSketchLine(9, 0.611735, 0.791063, -6.155367)
 	ea.AddElement(e)
 	ea.AddElementToCluster(e.GetID(), o1.GetID())
-	o1.AddElement(e)
+	o1.AddElement(e.GetID())
 
 	o2 := NewGraphCluster(2)
 	e = el.NewSketchLine(15, -0.959879, -0.280414, 0)
 	ea.AddElement(e)
 	ea.AddElementToCluster(e.GetID(), o2.GetID())
-	o2.AddElement(e)
+	o2.AddElement(e.GetID())
 	e = el.NewSketchPoint(5, -1.121656, 3.839516)
 	ea.AddElement(e)
 	ea.AddElementToCluster(e.GetID(), o2.GetID())
-	o2.AddElement(e)
+	o2.AddElement(e.GetID())
 	e = el.NewSketchLine(6, 0.941382, -0.337343, -3.804226)
 	ea.AddElement(e)
 	ea.AddElementToCluster(e.GetID(), o2.GetID())
-	o2.AddElement(e)
+	o2.AddElement(e.GetID())
 	e = el.NewSketchLine(3, -0.029929, -0.999552, 0)
 	ea.AddElement(e)
 	ea.AddElementToCluster(e.GetID(), o2.GetID())
-	o2.AddElement(e)
+	o2.AddElement(e.GetID())
 
 	state := g.solveMerge(ea, ca, o1, o2)
 	assert.Equal(t, solver.NonConvergent, state, "Three cluster solve with only two shared elements should fail")
@@ -1100,140 +1072,141 @@ func TestSolveMergeEdgeCases(t *testing.T) {
 	e = el.NewSketchPoint(0, 0, 0)
 	ea.AddElement(e)
 	ea.AddElementToCluster(e.GetID(), g.GetID())
-	g.AddElement(e)
+	g.AddElement(e.GetID())
 	e = el.NewSketchLine(9, 0.611735, 0.791063, -6.155367)
 	ea.AddElement(e)
 	ea.AddElementToCluster(e.GetID(), g.GetID())
-	g.AddElement(e)
+	g.AddElement(e.GetID())
 	e = el.NewSketchLine(1, 0, 1, 0)
 	ea.AddElement(e)
 	ea.AddElementToCluster(e.GetID(), g.GetID())
-	g.AddElement(e)
+	g.AddElement(e.GetID())
 
 	o1 = NewGraphCluster(1)
 	e = el.NewSketchPoint(7, 0, 1)
 	ea.AddElement(e)
 	ea.AddElementToCluster(e.GetID(), o1.GetID())
-	o1.AddElement(e)
+	o1.AddElement(e.GetID())
 	e = el.NewSketchPoint(5, 3.998208, -0.119717)
 	ea.AddElement(e)
 	ea.AddElementToCluster(e.GetID(), o1.GetID())
-	o1.AddElement(e)
+	o1.AddElement(e.GetID())
 	e = el.NewSketchPoint(11, 2.183330, 6.092751)
 	ea.AddElement(e)
 	ea.AddElementToCluster(e.GetID(), o1.GetID())
-	o1.AddElement(e)
+	o1.AddElement(e.GetID())
 	e = el.NewSketchLine(9, 0.611735, 0.791063, -6.155367)
 	ea.AddElement(e)
 	ea.AddElementToCluster(e.GetID(), o1.GetID())
-	o1.AddElement(e)
+	o1.AddElement(e.GetID())
 	e = el.NewSketchLine(2, 1, 0, 0)
 	ea.AddElement(e)
 	ea.AddElementToCluster(e.GetID(), o1.GetID())
-	o1.AddElement(e)
+	o1.AddElement(e.GetID())
 
 	o2 = NewGraphCluster(2)
 	e = el.NewSketchLine(15, -0.959879, -0.280414, 0)
 	ea.AddElement(e)
 	ea.AddElementToCluster(e.GetID(), o2.GetID())
-	o2.AddElement(e)
+	o2.AddElement(e.GetID())
 	e = el.NewSketchPoint(8, 3.998208, -0.119717)
 	ea.AddElement(e)
 	ea.AddElementToCluster(e.GetID(), o2.GetID())
-	o2.AddElement(e)
+	o2.AddElement(e.GetID())
 	e = el.NewSketchLine(1, 0, 1, 0)
 	ea.AddElement(e)
 	ea.AddElementToCluster(e.GetID(), o2.GetID())
-	o2.AddElement(e)
+	o2.AddElement(e.GetID())
 	e = el.NewSketchLine(2, 1, 0.0, 0.0)
 	ea.AddElement(e)
 	ea.AddElementToCluster(e.GetID(), o2.GetID())
-	o2.AddElement(e)
+	o2.AddElement(e.GetID())
 
 	state = g.solveMerge(ea, ca, o1, o2)
 	assert.Equal(t, solver.Solved, state, "Three cluster solve with three lines")
 
+	ea.Clear()
 	// Solve merge with one point and two lines where lines are in clusters 0 and 1
 	// I don't know where I got these values... they may be incorrect
 	g = NewGraphCluster(0)
 	e = el.NewSketchPoint(0, 0, 0)
 	ea.AddElement(e)
 	ea.AddElementToCluster(e.GetID(), g.GetID())
-	g.AddElement(e)
+	g.AddElement(e.GetID())
 	e = el.NewSketchLine(3, 0, -1, 0)
 	ea.AddElement(e)
 	ea.AddElementToCluster(e.GetID(), g.GetID())
-	g.AddElement(e)
+	g.AddElement(e.GetID())
 	e = el.NewSketchPoint(5, 4, 0)
 	ea.AddElement(e)
 	ea.AddElementToCluster(e.GetID(), g.GetID())
-	g.AddElement(e)
+	g.AddElement(e.GetID())
 	e = el.NewSketchLine(1, 0, -1, 0)
 	ea.AddElement(e)
 	ea.AddElementToCluster(e.GetID(), g.GetID())
-	g.AddElement(e)
+	g.AddElement(e.GetID())
 
 	o1 = NewGraphCluster(1)
 	e = el.NewSketchPoint(11, 2.183330, 6.092751)
 	ea.AddElement(e)
 	ea.AddElementToCluster(e.GetID(), o1.GetID())
-	o1.AddElement(e)
+	o1.AddElement(e.GetID())
 	e = el.NewSketchLine(12, -0.563309, 0.826247, -3.804226)
 	ea.AddElement(e)
 	ea.AddElementToCluster(e.GetID(), o1.GetID())
-	o1.AddElement(e)
+	o1.AddElement(e.GetID())
 	e = el.NewSketchLine(15, -3.839516, -1.121656, 0)
 	ea.AddElement(e)
 	ea.AddElementToCluster(e.GetID(), o1.GetID())
-	o1.AddElement(e)
+	o1.AddElement(e.GetID())
 	e = el.NewSketchLine(9, 0.611735, 0.791063, -6.155367)
 	ea.AddElement(e)
 	ea.AddElementToCluster(e.GetID(), o1.GetID())
-	o1.AddElement(e)
+	o1.AddElement(e.GetID())
 	e = el.NewSketchPoint(14, -1.121656, 3.839516)
 	ea.AddElement(e)
 	ea.AddElementToCluster(e.GetID(), o1.GetID())
-	o1.AddElement(e)
+	o1.AddElement(e.GetID())
 	e = el.NewSketchPoint(0, 0, 0)
 	ea.AddElement(e)
 	ea.AddElementToCluster(e.GetID(), o1.GetID())
-	o1.AddElement(e)
+	o1.AddElement(e.GetID())
 
 	o2 = NewGraphCluster(2)
 	e = el.NewSketchPoint(8, 5.14, 2.27)
 	ea.AddElement(e)
 	ea.AddElementToCluster(e.GetID(), o2.GetID())
-	o2.AddElement(e)
+	o2.AddElement(e.GetID())
 	e = el.NewSketchLine(6, 2.029929, -2.651719, -9.373495)
 	ea.AddElement(e)
 	ea.AddElementToCluster(e.GetID(), o2.GetID())
-	o2.AddElement(e)
+	o2.AddElement(e.GetID())
 	e = el.NewSketchPoint(5, 2.488281, -0.724727)
 	ea.AddElement(e)
 	ea.AddElementToCluster(e.GetID(), o2.GetID())
-	o2.AddElement(e)
+	o2.AddElement(e.GetID())
 	e = el.NewSketchLine(9, 0.861839, 0.507182, -5.581155)
 	ea.AddElement(e)
 	ea.AddElementToCluster(e.GetID(), o2.GetID())
-	o2.AddElement(e)
+	o2.AddElement(e.GetID())
 
 	state = g.solveMerge(ea, ca, o1, o2)
 	assert.Equal(t, solver.Solved, state, "Three cluster solve with three shared elements should solve")
 
-	ea.clusterElements[g.GetID()][0] = el.NewSketchLine(0, 1, 1, 1)
-	ea.clusterElements[o1.GetID()][0] = el.NewSketchLine(0, 3, 2, 1)
-	line := ea.elements[9]
+	ea.ReplaceElement(g.GetID(), 0, el.NewSketchLine(0, 1, 1, 1))
+	ea.ReplaceElement(o1.GetID(), 0, el.NewSketchLine(0, 3, 2, 1))
+	line, _ := ea.GetElement(-1, 9)
 	line.AsLine().SetB(0.235)
 	line.AsLine().SetC(2)
 	state = g.solveMerge(ea, ca, o1, o2)
 	assert.Equal(t, solver.NonConvergent, state, "Three cluster solve with non-convergent lines")
 
-	ea.clusterElements[o1.GetID()][2] = el.NewSketchLine(2, 1, 0, 0)
-	ea.clusterElements[o2.GetID()][2] = el.NewSketchLine(2, 1, 0, 0)
-	ea.clusterElements[g.GetID()][1] = el.NewSketchLine(1, 1, 0, 6)
-	ea.clusterElements[o2.GetID()][1] = el.NewSketchLine(1, 1, 0, 6)
-	ea.clusterElements[g.GetID()][0] = el.NewSketchPoint(0, -10, 1)
-	ea.clusterElements[o1.GetID()][0] = el.NewSketchPoint(0, 3, 2)
+	ea.ReplaceElement(o1.GetID(), 2, el.NewSketchLine(2, 1, 0, 0))
+	ea.ReplaceElement(o2.GetID(), 2, el.NewSketchLine(2, 1, 0, 0))
+	ea.ReplaceElement(g.GetID(), 1, el.NewSketchLine(1, 1, 0, 6))
+	ea.ReplaceElement(o2.GetID(), 1, el.NewSketchLine(1, 1, 0, 6))
+	ea.ReplaceElement(g.GetID(), 0, el.NewSketchPoint(0, -10, 1))
+	ea.ReplaceElement(o1.GetID(), 0, el.NewSketchPoint(0, 3, 2))
 	state = g.solveMerge(ea, ca, o1, o2)
 	assert.Equal(t, solver.NonConvergent, state, "Fail to solve final element")
 
@@ -1243,73 +1216,78 @@ func TestSolveMergeEdgeCases(t *testing.T) {
 	e = el.NewSketchPoint(0, 0, 0)
 	ea.AddElement(e)
 	ea.AddElementToCluster(e.GetID(), g.GetID())
-	g.AddElement(e)
+	g.AddElement(e.GetID())
 	e = el.NewSketchLine(9, 0.611735, 0.791063, -6.155367)
 	ea.AddElement(e)
 	ea.AddElementToCluster(e.GetID(), g.GetID())
-	g.AddElement(e)
+	g.AddElement(e.GetID())
 	e = el.NewSketchLine(1, 0, 1, 0)
 	ea.AddElement(e)
 	ea.AddElementToCluster(e.GetID(), g.GetID())
-	g.AddElement(e)
+	g.AddElement(e.GetID())
 
 	o1 = NewGraphCluster(1)
 	e = el.NewSketchPoint(0, 0, 0)
 	ea.AddElement(e)
 	ea.AddElementToCluster(e.GetID(), o1.GetID())
-	o1.AddElement(e)
+	o1.AddElement(e.GetID())
 	e = el.NewSketchPoint(5, 3.998208, -0.119717)
 	ea.AddElement(e)
 	ea.AddElementToCluster(e.GetID(), o1.GetID())
-	o1.AddElement(e)
+	o1.AddElement(e.GetID())
 	e = el.NewSketchPoint(11, 2.183330, 6.092751)
 	ea.AddElement(e)
 	ea.AddElementToCluster(e.GetID(), o1.GetID())
-	o1.AddElement(e)
+	o1.AddElement(e.GetID())
 	e = el.NewSketchLine(6, 0.611735, 0.791063, -6.155367)
 	ea.AddElement(e)
 	ea.AddElementToCluster(e.GetID(), o1.GetID())
-	o1.AddElement(e)
+	o1.AddElement(e.GetID())
 	e = el.NewSketchLine(2, 1, 0, 0)
 	ea.AddElement(e)
 	ea.AddElementToCluster(e.GetID(), o1.GetID())
-	o1.AddElement(e)
+	o1.AddElement(e.GetID())
 
 	o2 = NewGraphCluster(2)
 	e = el.NewSketchLine(15, -0.959879, -0.280414, 0)
 	ea.AddElement(e)
 	ea.AddElementToCluster(e.GetID(), o2.GetID())
-	o2.AddElement(e)
+	o2.AddElement(e.GetID())
 	e = el.NewSketchPoint(8, 3.998208, -0.119717)
 	ea.AddElement(e)
 	ea.AddElementToCluster(e.GetID(), o2.GetID())
-	o2.AddElement(e)
+	o2.AddElement(e.GetID())
 	e = el.NewSketchLine(1, 0, 1, 0)
 	ea.AddElement(e)
 	ea.AddElementToCluster(e.GetID(), o2.GetID())
-	o2.AddElement(e)
+	o2.AddElement(e.GetID())
 	e = el.NewSketchLine(2, 1, 0.0, 0.0)
 	ea.AddElement(e)
 	ea.AddElementToCluster(e.GetID(), o2.GetID())
-	o2.AddElement(e)
+	o2.AddElement(e.GetID())
 	e = el.NewSketchPoint(0, 0, 0)
 	ea.AddElement(e)
 	ea.AddElementToCluster(e.GetID(), o2.GetID())
-	o2.AddElement(e)
+	o2.AddElement(e.GetID())
 
 	state = g.solveMerge(ea, ca, o1, o2)
 	assert.Equal(t, solver.NonConvergent, state, "Nonconvergent where an element has too many parents")
 }
 
 func TestToGraphViz(t *testing.T) {
-	ca := NewConstraintRepository()
+	ea := accessors.NewElementRepository()
+	ca := accessors.NewConstraintRepository()
 	e1 := el.NewSketchPoint(0, 0, 1)
 	e2 := el.NewSketchPoint(1, 2, 1)
 	e3 := el.NewSketchLine(2, 2, 1, -1)
 	e4 := el.NewSketchLine(3, 2, 2, -0)
-	c1 := constraint.NewConstraint(0, constraint.Distance, e1, e2, 5, false)
-	c2 := constraint.NewConstraint(1, constraint.Distance, e2, e3, 7, false)
-	c3 := constraint.NewConstraint(2, constraint.Distance, e3, e4, 2, false)
+	ea.AddElement(e1)
+	ea.AddElement(e2)
+	ea.AddElement(e3)
+	ea.AddElement(e4)
+	c1 := constraint.NewConstraint(0, constraint.Distance, e1.GetID(), e2.GetID(), 5, false)
+	c2 := constraint.NewConstraint(1, constraint.Distance, e2.GetID(), e3.GetID(), 7, false)
+	c3 := constraint.NewConstraint(2, constraint.Distance, e3.GetID(), e4.GetID(), 2, false)
 
 	g := NewGraphCluster(0)
 	ca.AddConstraint(c1)
@@ -1319,7 +1297,7 @@ func TestToGraphViz(t *testing.T) {
 	ca.AddConstraint(c3)
 	g.AddConstraint(c3)
 
-	gvString := g.ToGraphViz(ca)
+	gvString := g.ToGraphViz(ea, ca)
 	assert.Contains(t, gvString, "subgraph cluster_0")
 	assert.Contains(t, gvString, "label = \"Cluster 0\"")
 	assert.Contains(t, gvString, c1.ToGraphViz(0), "GraphViz output contains constraint 1")

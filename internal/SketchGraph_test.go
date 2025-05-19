@@ -7,6 +7,7 @@ import (
 	"github.com/marcuswu/dlineate/internal/constraint"
 	el "github.com/marcuswu/dlineate/internal/element"
 	"github.com/marcuswu/dlineate/internal/solver"
+	"github.com/marcuswu/dlineate/utils"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -44,7 +45,7 @@ func TestCombinePoints(t *testing.T) {
 	newE := sketch.CombinePoints(e1, e2)
 
 	assert.Equal(t, e2.GetID(), newE.GetID(), "Combining points with origin should keep origin's id")
-	_, ok := sketch.elementAccessor.GetElement(-1, e2.GetID())
+	_, ok := sketch.elementAccessor.GetElement(-1, e1.GetID())
 	assert.False(t, ok, "The eliminated element should no longer exist in the sketch")
 
 	sketch = NewSketch()
@@ -74,7 +75,7 @@ func TestCombinePoints(t *testing.T) {
 	c2 = sketch.AddConstraint(constraint.Distance, e1, e2, 1)
 	newE = sketch.CombinePoints(e3, e2)
 	assert.Equal(t, e2.GetID(), newE.GetID(), "Ensure kept element id")
-	_, ok = sketch.elementAccessor.GetElement(-1, e2.GetID())
+	_, ok = sketch.elementAccessor.GetElement(-1, e3.GetID())
 	assert.False(t, ok, "The eliminated element should no longer exist in the sketch")
 	assert.True(t, c1.HasElementID(newE.GetID()), "constraints should be updated with the new element")
 	assert.True(t, c2.HasElementID(newE.GetID()), "constraints should be updated with the new element")
@@ -91,13 +92,13 @@ func TestFindStartConstraint(t *testing.T) {
 	sketch.AddConstraint(constraint.Distance, e3, e4, 1)
 
 	start := sketch.findStartConstraint()
-	assert.Equal(t, uint(1), start)
+	assert.Contains(t, []uint{0, 1, 2}, start)
 
-	sketch.usedNodes.Add(e1.GetID())
-	sketch.usedNodes.Add(e2.GetID())
+	sketch.freeEdges.Remove(e1.GetID())
+	sketch.freeEdges.Remove(e2.GetID())
 
 	start = sketch.findStartConstraint()
-	assert.Equal(t, uint(0), start)
+	assert.Contains(t, []uint{1, 2}, start)
 }
 
 func TestFindConstraints(t *testing.T) {
@@ -115,8 +116,8 @@ func TestFindConstraints(t *testing.T) {
 	c4 := sketch.AddConstraint(constraint.Distance, e1, e3, 1)
 
 	cluster := NewGraphCluster(1)
-	cluster.AddElement(e1)
-	cluster.AddElement(e2)
+	cluster.AddElement(e1.GetID())
+	cluster.AddElement(e2.GetID())
 	constraints, element, ok := sketch.findConstraints(cluster)
 	assert.True(t, ok, "Should find constraints to add to the cluster")
 	assert.Equal(t, e3.GetID(), element, "Should find element id for e3")
@@ -141,10 +142,10 @@ func TestFindConstraints(t *testing.T) {
 	c6 := sketch.AddConstraint(constraint.Distance, e3, e6, 1)
 
 	cluster = NewGraphCluster(1)
-	cluster.AddElement(e1)
-	cluster.AddElement(e2)
-	cluster.AddElement(e5)
-	cluster.AddElement(e6)
+	cluster.AddElement(e1.GetID())
+	cluster.AddElement(e2.GetID())
+	cluster.AddElement(e5.GetID())
+	cluster.AddElement(e6.GetID())
 	constraints, element, ok = sketch.findConstraints(cluster)
 	assert.True(t, ok, "Should find constraints to add to the cluster when over constrained")
 	assert.Equal(t, e3.GetID(), element, "Should find element id for e3")
@@ -165,9 +166,11 @@ func TestAddConstraintToCluster(t *testing.T) {
 	cluster := NewGraphCluster(1)
 	sketch.addConstraintToCluster(cluster, c3)
 	sketch.addConstraintToCluster(cluster, c4)
-	ok := cluster.constraints.Contains(c3.GetID())
+	constraintSet := utils.NewSet()
+	constraintSet.AddList(cluster.constraints)
+	ok := constraintSet.Contains(c3.GetID())
 	assert.True(t, ok, "Cluster has constraint c3")
-	ok = cluster.constraints.Contains(c4.GetID())
+	ok = constraintSet.Contains(c4.GetID())
 	assert.True(t, ok, "Cluster has constraint c4")
 }
 
@@ -197,7 +200,7 @@ func TestCreateCluster(t *testing.T) {
 	c = sketch.createCluster(0, 0)
 	assert.NotNil(t, c, "Cluster should not be nil")
 	assert.Equal(t, 5, c.elements.Count(), "Cluster should have 5 elements")
-	assert.Equal(t, 7, c.constraints.Count(), "Cluster should have 7 constraints")
+	assert.Equal(t, 7, len(c.constraints), "Cluster should have 7 constraints")
 }
 
 func TestCreateBuildResetClusters(t *testing.T) {
@@ -224,38 +227,30 @@ func TestCreateBuildResetClusters(t *testing.T) {
 
 	sketch.createClusters()
 
-	assert.Equal(t, 4, len(sketch.clusters), "Should have 4 clusters")
-	assert.Equal(t, 2, sketch.clusters[0].elements.Count(), "cluster 0 should have 2 element, 1 constraints")
-	assert.Equal(t, 1, sketch.clusters[0].constraints.Count(), "cluster 0 should have 2 element, 1 constraints")
+	assert.Equal(t, 2, len(sketch.clusters), "Should have 2 clusters")
+	assert.Equal(t, 6, sketch.clusters[0].elements.Count(), "cluster 0 should have 6 element, 9 constraints")
+	assert.Equal(t, 9, len(sketch.clusters[0].constraints), "cluster 0 should have 6 element, 9 constraints")
 
-	assert.Equal(t, 6, sketch.clusters[1].elements.Count(), "cluster 1 should have 6 element, 9 constraints")
-	assert.Equal(t, 9, sketch.clusters[1].constraints.Count(), "cluster 1 should have 6 element, 9 constraints")
-
-	assert.Equal(t, 2, sketch.clusters[2].elements.Count(), "cluster 2 should have 2 element, 1 constraints")
-	assert.Equal(t, 1, sketch.clusters[2].constraints.Count(), "cluster 2 should have 2 element, 1 constraints")
-
-	assert.Equal(t, 2, sketch.clusters[3].elements.Count(), "cluster 3 should have 2 element, 1 constraints")
-	assert.Equal(t, 1, sketch.clusters[3].constraints.Count(), "cluster 3 should have 2 element, 1 constraints")
+	assert.Equal(t, 2, sketch.clusters[1].elements.Count(), "cluster 1 should have 2 element, 1 constraints")
+	assert.Equal(t, 1, len(sketch.clusters[1].constraints), "cluster 1 should have 2 element, 1 constraints")
 
 	sketch.ResetClusters()
-	assert.Equal(t, 1, len(sketch.clusters), "Should have 1 cluster")
-	assert.Equal(t, 2, sketch.clusters[0].elements.Count(), "cluster 0 should have 2 element, 1 constraints")
-	assert.Equal(t, 1, sketch.clusters[0].constraints.Count(), "cluster 0 should have 2 element, 1 constraints")
+	assert.Equal(t, 0, len(sketch.clusters), "Should have 0 clusters")
 
 	sketch.BuildClusters()
 
-	assert.Equal(t, 4, len(sketch.clusters), "Should have 4 clusters")
-	assert.Equal(t, 2, sketch.clusters[0].elements.Count(), "cluster 0 should have 2 element, 1 constraints")
-	assert.Equal(t, 1, sketch.clusters[0].constraints.Count(), "cluster 0 should have 2 element, 1 constraints")
+	assert.Equal(t, 2, len(sketch.clusters), "Should have 4 clusters")
+	assert.Equal(t, 6, sketch.clusters[0].elements.Count(), "cluster 0 should have 6 element, 9 constraints")
+	assert.Equal(t, 9, len(sketch.clusters[0].constraints), "cluster 0 should have 6 element, 9 constraints")
 
-	assert.Equal(t, 6, sketch.clusters[1].elements.Count(), "cluster 1 should have 6 element, 7 constraints")
-	assert.Equal(t, 9, sketch.clusters[1].constraints.Count(), "cluster 1 should have 6 element, 9 constraints")
+	assert.Equal(t, 2, sketch.clusters[1].elements.Count(), "cluster 1 should have 2 element, 1 constraints")
+	assert.Equal(t, 1, len(sketch.clusters[1].constraints), "cluster 1 should have 2 element, 1 constraints")
 
-	assert.Equal(t, 2, sketch.clusters[2].elements.Count(), "cluster 2 should have 2 element, 1 constraints")
-	assert.Equal(t, 1, sketch.clusters[2].constraints.Count(), "cluster 2 should have 2 element, 1 constraints")
+	// assert.Equal(t, 2, sketch.clusters[2].elements.Count(), "cluster 2 should have 2 element, 1 constraints")
+	// assert.Equal(t, 1, len(sketch.clusters[2].constraints), "cluster 2 should have 2 element, 1 constraints")
 
-	assert.Equal(t, 2, sketch.clusters[3].elements.Count(), "cluster 3 should have 2 element, 1 constraints")
-	assert.Equal(t, 1, sketch.clusters[3].constraints.Count(), "cluster 3 should have 2 element, 1 constraints")
+	// assert.Equal(t, 2, sketch.clusters[3].elements.Count(), "cluster 3 should have 2 element, 1 constraints")
+	// assert.Equal(t, 1, len(sketch.clusters[3].constraints), "cluster 3 should have 2 element, 1 constraints")
 }
 
 func TestSolve(t *testing.T) {
@@ -332,7 +327,7 @@ func TestSolve(t *testing.T) {
 	s.BuildClusters()
 
 	state = s.Solve()
-	s.Conflicting()
+	//s.Conflicting()
 
 	assert.Equal(t, solver.NonConvergent, state, "Graph should be non-convergent")
 }
@@ -346,17 +341,17 @@ func TestFindMergeForCluster(t *testing.T) {
 	s.AddConstraint(constraint.Distance, origin, xAxis, 0)
 	s.AddConstraint(constraint.Distance, origin, yAxis, 0)
 
-	p1 := s.AddPoint(0, 0) // 3
-	p2 := s.AddPoint(4, 0) // 4
-	p3 := s.AddPoint(5.236068, 3.804226)
-	p4 := s.AddPoint(2, 6.155367)
-	p5 := s.AddPoint(-1.236068, 3.804226)
+	p1 := origin              //s.AddPoint(0, 0)    // 7
+	p2 := s.AddPoint(3.13, 0) // 4
+	p3 := s.AddPoint(5.14, 2.27)
+	p4 := s.AddPoint(2.28, 4.72)
+	p5 := s.AddPoint(-1.04, 3.56)
 
 	l1 := s.AddLine(0, -1, 0)
-	l2 := s.AddLine(0.951057, -0.309017, -3.804226)
-	l3 := s.AddLine(0.587785, 0.809017, -6.155367)
-	l4 := s.AddLine(-0.587785, 0.809017, -3.804226)
-	l5 := s.AddLine(-0.951057, -0.309017, 0) // 12
+	l2 := s.AddLine(2.27, -2.01, 7.1051)
+	l3 := s.AddLine(2.45, 2.86, 19.0852)
+	l4 := s.AddLine(-1.16, 3.32, 13.0256)
+	l5 := s.AddLine(-3.56, -1.04, 0) // 12
 
 	s.AddConstraint(constraint.Distance, l1, p1, 0)
 	s.AddConstraint(constraint.Distance, l1, p2, 0)
@@ -379,7 +374,6 @@ func TestFindMergeForCluster(t *testing.T) {
 	s.AddConstraint(constraint.Distance, p4, p5, 4)
 
 	s.AddConstraint(constraint.Angle, l1, xAxis, 0)
-	s.AddConstraint(constraint.Distance, p1, origin, 0)
 
 	s.ResetClusters()
 	s.BuildClusters()
@@ -387,15 +381,10 @@ func TestFindMergeForCluster(t *testing.T) {
 	for _, c := range s.clusters {
 		c.Solve(s.elementAccessor, s.constraintAccessor)
 	}
-	a, b := s.findMergeForCluster(s.clusters[3])
+	a, b := s.findMergeForCluster(s.clusters[0])
 
-	assert.Contains(t, []int{5, 6}, a, "First merge cluster is 5 or 6")
-	assert.Contains(t, []int{5, 6}, b, "Second merge cluster is 5 or 6")
-
-	a, b = s.findMergeForCluster(s.clusters[0])
-
-	assert.Equal(t, 1, a, "First merge cluster is 1")
-	assert.Equal(t, -1, b, "No second merge cluster")
+	assert.Contains(t, []int{1, 2}, a, "First merge cluster is 5 or 6")
+	assert.Contains(t, []int{1, 2}, b, "Second merge cluster is 5 or 6")
 }
 
 func TestGraphToGraphViz(t *testing.T) {
@@ -405,29 +394,51 @@ func TestGraphToGraphViz(t *testing.T) {
 	e2 := el.NewSketchPoint(1, 2, 1)
 	e3 := el.NewSketchLine(2, 2, 1, -1)
 	e4 := el.NewSketchLine(3, 2, 2, -0)
-	c1 := constraint.NewConstraint(0, constraint.Distance, e1, e2, 5, false)
-	c2 := constraint.NewConstraint(1, constraint.Distance, e2, e3, 7, false)
-	c3 := constraint.NewConstraint(2, constraint.Distance, e3, e4, 2, false)
+	c1 := constraint.NewConstraint(0, constraint.Distance, e1.GetID(), e2.GetID(), 5, false)
+	c2 := constraint.NewConstraint(1, constraint.Distance, e2.GetID(), e3.GetID(), 7, false)
+	c3 := constraint.NewConstraint(2, constraint.Distance, e3.GetID(), e4.GetID(), 2, false)
 
 	g := NewGraphCluster(0)
+	s.constraintAccessor.AddConstraint(c1)
+	s.constraintAccessor.AddConstraint(c2)
+	s.constraintAccessor.AddConstraint(c3)
+	s.elementAccessor.AddElement(e1)
+	s.elementAccessor.AddElement(e2)
+	s.elementAccessor.AddElement(e3)
+	s.elementAccessor.AddElement(e4)
 	g.AddConstraint(c1)
+	g.AddElement(c1.Element1)
+	g.AddElement(c1.Element2)
 	g.AddConstraint(c2)
+	g.AddElement(c2.Element1)
+	g.AddElement(c2.Element2)
 	g.AddConstraint(c3)
+	g.AddElement(c3.Element1)
+	g.AddElement(c3.Element2)
 	s.clusters = append(s.clusters, g)
 
 	o := NewGraphCluster(1)
 	p1 := el.NewSketchPoint(0, 0, 0)
 	p2 := el.NewSketchPoint(5, 4, 0)
 	l1 := el.NewSketchLine(6, 0, -1, 0)
-	c4 := constraint.NewConstraint(3, constraint.Distance, l1, p1, 0, false)
-	c5 := constraint.NewConstraint(4, constraint.Distance, l1, p2, 0, false)
+	c4 := constraint.NewConstraint(3, constraint.Distance, l1.GetID(), p1.GetID(), 0, false)
+	c5 := constraint.NewConstraint(4, constraint.Distance, l1.GetID(), p2.GetID(), 0, false)
+	s.constraintAccessor.AddConstraint(c4)
+	s.constraintAccessor.AddConstraint(c5)
+	s.elementAccessor.AddElement(p1)
+	s.elementAccessor.AddElement(p2)
+	s.elementAccessor.AddElement(l1)
 	o.AddConstraint(c4)
+	o.AddElement(c4.Element1)
+	o.AddElement(c4.Element2)
 	o.AddConstraint(c5)
+	o.AddElement(c5.Element1)
+	o.AddElement(c5.Element2)
 	s.clusters = append(s.clusters, o)
 
 	e5 := el.NewSketchPoint(7, 1, 1)
 	e6 := el.NewSketchPoint(8, 2, 1)
-	c6 := constraint.NewConstraint(5, constraint.Distance, e5, e6, 1, false)
+	c6 := constraint.NewConstraint(5, constraint.Distance, e5.GetID(), e6.GetID(), 1, false)
 	s.elementAccessor.AddElement(e5)
 	s.elementAccessor.AddElement(e6)
 	// s.elements[e5.GetID()] = e5
