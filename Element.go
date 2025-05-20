@@ -136,10 +136,7 @@ func (e *Element) getCircleRadius(s *Sketch, c *Constraint) (float64, error) {
 	return 0, errors.New("Constraint type for circle radius must be Distance or Coincident")
 }
 
-func (e *Element) Values(s *Sketch) []float64 {
-	if e.valuePass != s.passes {
-		e.valuesFromSketch(s)
-	}
+func (e *Element) Values() []float64 {
 	return e.values
 }
 
