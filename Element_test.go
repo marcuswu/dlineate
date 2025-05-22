@@ -80,7 +80,7 @@ func TestGetValues(t *testing.T) {
 	arc.children[2].element.AsPoint().X = 5
 	arc.children[2].element.AsPoint().Y = 6
 
-	values := arc.Values(s)
+	values := arc.Values()
 	assert.Equal(t, 0.0, values[0])
 	assert.Equal(t, 0.0, values[1])
 	assert.Equal(t, 1.0, values[2])
@@ -89,7 +89,7 @@ func TestGetValues(t *testing.T) {
 	assert.Equal(t, 2.0, values[5])
 
 	s.passes++
-	values = arc.Values(s)
+	values = arc.Values()
 	assert.Equal(t, 1.0, values[0])
 	assert.Equal(t, 2.0, values[1])
 	assert.Equal(t, 3.0, values[2])

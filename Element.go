@@ -4,8 +4,10 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"strings"
 
 	c "github.com/marcuswu/dlineate/internal/constraint"
+	"github.com/marcuswu/dlineate/internal/element"
 	el "github.com/marcuswu/dlineate/internal/element"
 	"github.com/tdewolff/canvas"
 )
@@ -58,6 +60,10 @@ func emptyElement() *Element {
 	ec.isChild = false
 	ec.valuePass = 0
 	return ec
+}
+
+func (e *Element) ID() uint {
+	return e.id
 }
 
 func (e *Element) valuesFromSketch(s *Sketch) error {
@@ -150,6 +156,15 @@ func (e *Element) ConstraintLevel() el.ConstraintLevel {
 		}
 	}
 	return level
+}
+
+func (e *Element) replaceElement(original uint, new element.SketchElement) {
+	if e.element.GetID() == original {
+		e.element = new
+	}
+	for _, c := range e.children {
+		c.replaceElement(original, new)
+	}
 }
 
 func (e *Element) minMaxXY() (float64, float64, float64, float64) {
@@ -338,5 +353,10 @@ func (e *Element) End() *Element {
 }
 
 func (e *Element) String() string {
-	return fmt.Sprintf("Element type %v, internal element: %v", e.elementType, e.element)
+	values := make([]string, len(e.values))
+	for i, value := range e.values {
+		values[i] = fmt.Sprintf("%f", value)
+	}
+	valueString := strings.Join(values, ", ")
+	return fmt.Sprintf("Element type %v, internal element: %v, values: %s", e.elementType, e.element, valueString)
 }

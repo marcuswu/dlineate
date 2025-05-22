@@ -9,6 +9,7 @@ import (
 type ElementRepository struct {
 	elements        map[uint]el.SketchElement
 	clusterElements map[int]map[uint]el.SketchElement
+	aliases         map[uint]uint
 }
 
 func NewElementRepository() *ElementRepository {
@@ -20,6 +21,7 @@ func NewElementRepository() *ElementRepository {
 func (r *ElementRepository) Clear() {
 	r.elements = make(map[uint]el.SketchElement, 0)
 	r.clusterElements = make(map[int]map[uint]el.SketchElement, 0)
+	r.aliases = make(map[uint]uint)
 }
 
 func (r *ElementRepository) ClearClusters() {

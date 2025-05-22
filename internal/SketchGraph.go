@@ -514,6 +514,7 @@ func (g *SketchGraph) Solve() solver.SolveState {
 	// Merge clusters
 	utils.Logger.Info().Msg("Starting Cluster Merges")
 	g.mergeClusters()
+	utils.Logger.Info().Int("cluster count", len(g.clusters)).Msg("Finished Cluster Merges")
 	return g.state
 }
 
@@ -566,13 +567,16 @@ func (g *SketchGraph) mergeClusters() {
 		}
 	}
 
-	for _, c := range g.clusters {
-		g.elementAccessor.MergeToRoot(c.GetID())
-	}
-
 	utils.Logger.Debug().
 		Str("graph state", g.state.String()).
+		Int("clusters remaining", len(g.clusters)).
 		Msg("Final graph state")
+
+	clusters := g.clusters
+	for _, c := range clusters {
+		g.elementAccessor.MergeToRoot(c.GetID())
+		removeCluster(g, c.GetID())
+	}
 
 	if !g.IsSolved() {
 		g.state = solver.NonConvergent

@@ -56,12 +56,12 @@ func main() {
 	sketch.ExportImage("squareExample.svg")
 
 	fmt.Println("Solved sketch: ")
-	values := l1.Values(sketch)
+	values := l1.Values()
 	fmt.Printf("l1: %f, %f to %f, %f\n", values[0], values[1], values[2], values[3])
-	values = l2.Values(sketch)
+	values = l2.Values()
 	fmt.Printf("l2: %f, %f to %f, %f\n", values[0], values[1], values[2], values[3])
-	values = l3.Values(sketch)
+	values = l3.Values()
 	fmt.Printf("l3: %f, %f to %f, %f\n", values[0], values[1], values[2], values[3])
-	values = l4.Values(sketch)
+	values = l4.Values()
 	fmt.Printf("l4: %f, %f to %f, %f\n", values[0], values[1], values[2], values[3])
 }

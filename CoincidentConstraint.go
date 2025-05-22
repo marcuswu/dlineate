@@ -1,5 +1,7 @@
 package dlineate
 
+import "github.com/marcuswu/dlineate/internal/element"
+
 func (s *Sketch) AddCoincidentConstraint(p1 *Element, p2 *Element) *Constraint {
 	// If two points are coincident, they are the same point -- make them reference the same element
 	if p1.elementType == Point && p2.elementType == Point {
@@ -7,8 +9,12 @@ func (s *Sketch) AddCoincidentConstraint(p1 *Element, p2 *Element) *Constraint {
 			return s.AddCoincidentConstraint(p2, p1)
 		}
 
-		p1.element = s.sketch.CombinePoints(p1.element, p2.element)
-		p2.element = p1.element
+		newElement := s.sketch.CombinePoints(p1.element, p2.element)
+		// Anywhere we referenced p2, we should now reference p1
+		s.ReplaceElement(p1.element.GetID(), newElement)
+		s.ReplaceElement(p2.element.GetID(), newElement)
+		p1.element = newElement
+		p2.element = newElement
 		// These elements must now reference the same constraints
 		for _, c := range s.eToC[p2.id] {
 			c.replaceElement(p2, p1)
@@ -21,6 +27,12 @@ func (s *Sketch) AddCoincidentConstraint(p1 *Element, p2 *Element) *Constraint {
 	c := s.AddDistanceConstraint(p1, p2, 0)
 	c.constraintType = Coincident
 	return c
+}
+
+func (s *Sketch) ReplaceElement(original uint, new element.SketchElement) {
+	for _, e := range s.Elements {
+		e.replaceElement(original, new)
+	}
 }
 
 /*
