@@ -10,6 +10,7 @@ type ElementRepository struct {
 	elements        map[uint]el.SketchElement
 	clusterElements map[int]map[uint]el.SketchElement
 	aliases         map[uint]uint
+	nextId          uint
 }
 
 func NewElementRepository() *ElementRepository {
@@ -19,6 +20,7 @@ func NewElementRepository() *ElementRepository {
 }
 
 func (r *ElementRepository) Clear() {
+	r.nextId = 0
 	r.elements = make(map[uint]el.SketchElement, 0)
 	r.clusterElements = make(map[int]map[uint]el.SketchElement, 0)
 	r.aliases = make(map[uint]uint)
@@ -164,7 +166,8 @@ func (r *ElementRepository) Count() int {
 }
 
 func (r *ElementRepository) NextId() uint {
-	return uint(len(r.elements))
+	defer func() { r.nextId++ }()
+	return r.nextId
 }
 
 func (r *ElementRepository) SetConstraintLevel(eId uint, level el.ConstraintLevel) {

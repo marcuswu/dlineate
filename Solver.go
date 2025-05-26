@@ -38,6 +38,8 @@ func NewSketch() *Sketch {
 	s := new(Sketch)
 	s.sketch = core.NewSketch()
 	s.passes = 0
+	s.Elements = make([]*Element, 0)
+	s.constraints = make([]*Constraint, 0)
 	s.eToC = make(map[uint][]*Constraint)
 	// TODO: These need to be in a special cluster that isn't counted towards solving
 	s.Origin = s.addOrigin()
@@ -484,6 +486,10 @@ func (s *Sketch) Solve() error {
 	for _, e := range s.Elements {
 		copyElements(e, s.sketch)
 		e.valuesFromSketch(s)
+	}
+
+	if s.sketch.Conflicting().Count() > 0 {
+		solveState = solver.OverConstrained
 	}
 
 	switch solveState {

@@ -169,6 +169,8 @@ func (g *SketchGraph) AddConstraint(t constraint.Type, e1 el.SketchElement, e2 e
 		Str("type", cType).
 		Float64("value", value).
 		Uint("constraint id", constraintID).
+		Uint("element 1", e1.GetID()).
+		Uint("element 2", e2.GetID()).
 		Msg("Adding constraint")
 	constraint := constraint.NewConstraint(constraintID, t, e1.GetID(), e2.GetID(), value, e1.IsFixed() && e2.IsFixed())
 	g.constraintAccessor.AddConstraint(constraint)
@@ -529,6 +531,9 @@ func (g *SketchGraph) mergeClusters() {
 	}
 	removeCluster := func(g *SketchGraph, cId int) {
 		cIndex := getClusterIndex(cId)
+		if cIndex < 0 || len(g.clusters) == 0 {
+			return
+		}
 		last := len(g.clusters) - 1
 		g.clusters[cIndex], g.clusters[last] = g.clusters[last], g.clusters[cIndex]
 		g.clusters = g.clusters[:last]

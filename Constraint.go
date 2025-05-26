@@ -116,6 +116,14 @@ func (c *Constraint) checkSolved() bool {
 	return c.state == Solved
 }
 
+func (c *Constraint) String() string {
+	ret := ""
+	for _, constraint := range c.constraints {
+		ret = fmt.Sprintf("%s\n%s", ret, constraint.String())
+	}
+	return ret
+}
+
 /*
 
 One Pass Constraints
