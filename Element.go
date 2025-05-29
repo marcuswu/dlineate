@@ -9,6 +9,8 @@ import (
 	c "github.com/marcuswu/dlineate/internal/constraint"
 	"github.com/marcuswu/dlineate/internal/element"
 	el "github.com/marcuswu/dlineate/internal/element"
+	"github.com/marcuswu/dlineate/utils"
+	"github.com/rs/zerolog/log"
 	"github.com/tdewolff/canvas"
 )
 
@@ -350,6 +352,53 @@ func (e *Element) End() *Element {
 		return nil
 	}
 	return e.children[1]
+}
+
+func (e *Element) PointVerticalFrom(x, y float64) (float64, float64, bool) {
+	if e.elementType != Line && e.elementType != Axis {
+		log.Debug().Msg("element is not a line or axis")
+		return 0, 0, false
+	}
+	l := e.element.AsLine()
+	if l == nil {
+		log.Debug().Msg("element is not castable to Line")
+		return 0, 0, false
+	}
+	start := l.NearestPoint(0, 0)
+	var newY float64
+	if utils.StandardFloatCompare(-l.GetA(), 0) == 0 {
+		// horizontal line
+		newY = -l.GetC() / l.GetB()
+	} else if utils.StandardFloatCompare(l.GetB(), 0) == 0 {
+		log.Debug().Msg("incorrect slope")
+		return 0, 0, false // if our element is already a vertical line, a vertical distance constraint makes no sense
+	} else {
+		slope := l.GetSlope()
+		newY = (slope * (x - start.X)) + start.Y
+	}
+	return x, newY, true
+}
+
+func (e *Element) PointHorizontalFrom(x, y float64) (float64, float64, bool) {
+	if e.elementType != Line && e.elementType != Axis {
+		return 0, 0, false
+	}
+	l := e.element.AsLine()
+	if l == nil {
+		return 0, 0, false
+	}
+	start := l.NearestPoint(0, 0)
+	var newX float64
+	if utils.StandardFloatCompare(-l.GetA(), 0) == 0 {
+		return 0, 0, false // if our element is already a vertical line, a vertical distance constraint makes no sense
+	} else if utils.StandardFloatCompare(l.GetB(), 0) == 0 {
+		// vertical line
+		newX = -l.GetC() / l.GetA()
+	} else {
+		slope := l.GetSlope()
+		newX = ((y - start.Y) / slope) + start.X
+	}
+	return newX, y, true
 }
 
 func (e *Element) String() string {

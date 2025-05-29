@@ -117,8 +117,24 @@ func SolveDistanceConstraint(cluster int, ea accessors.ElementAccessor, c *const
 
 	var solveElement el.SketchElement
 	var other el.SketchElement
-	e1, _ := ea.GetElement(cluster, c.Element1)
-	e2, _ := ea.GetElement(cluster, c.Element2)
+	e1, ok := ea.GetElement(cluster, c.Element1)
+	if !ok {
+		utils.Logger.Error().
+			Uint("constraint", c.GetID()).
+			Uint("element 1", c.Element1).
+			Uint("element 2", c.Element2).
+			Msgf("SolveDistanceConstraint: Element 1 not found")
+		return NonConvergent
+	}
+	e2, ok := ea.GetElement(cluster, c.Element2)
+	if !ok {
+		utils.Logger.Error().
+			Uint("constraint", c.GetID()).
+			Uint("element 1", c.Element1).
+			Uint("element 2", c.Element2).
+			Msgf("SolveDistanceConstraint: Element 2 not found")
+		return NonConvergent
+	}
 
 	if e1.IsFixed() && e2.IsFixed() {
 		return Solved

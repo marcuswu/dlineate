@@ -12,6 +12,7 @@ type ConstraintAccessor interface {
 	SetConstraintElement(oldId uint, newElement uint)
 	AddConstraint(*constraint.Constraint) *constraint.Constraint
 	RemoveConstraint(uint)
+	ReplaceElement(uint, uint)
 	Count() int
 	NextId() uint
 	IdSet() *utils.Set

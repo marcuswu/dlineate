@@ -1,6 +1,9 @@
 package dlineate
 
-import "github.com/marcuswu/dlineate/internal/element"
+import (
+	"github.com/marcuswu/dlineate/internal/element"
+	"github.com/rs/zerolog/log"
+)
 
 func (s *Sketch) AddCoincidentConstraint(p1 *Element, p2 *Element) *Constraint {
 	// If two points are coincident, they are the same point -- make them reference the same element
@@ -10,6 +13,11 @@ func (s *Sketch) AddCoincidentConstraint(p1 *Element, p2 *Element) *Constraint {
 		}
 
 		newElement := s.sketch.CombinePoints(p1.element, p2.element)
+		log.Debug().
+			Uint("element 1", p1.element.GetID()).
+			Uint("element 2", p2.element.GetID()).
+			Uint("keeping", newElement.GetID()).
+			Msg("Merging coincident points")
 		// Anywhere we referenced p2, we should now reference p1
 		s.ReplaceElement(p1.element.GetID(), newElement)
 		s.ReplaceElement(p2.element.GetID(), newElement)

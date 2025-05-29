@@ -115,3 +115,14 @@ func (r *ConstraintRepository) IsMet(constr uint, cluster int, ea ElementAccesso
 	}
 	return c.IsMet(e1, e2)
 }
+
+func (r *ConstraintRepository) ReplaceElement(original, new uint) {
+	for _, c := range r.constraints {
+		if c.Element1 == original {
+			c.Element1 = new
+		}
+		if c.Element2 == original {
+			c.Element2 = new
+		}
+	}
+}

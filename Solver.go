@@ -94,9 +94,11 @@ func (s *Sketch) AddPoint(x float64, y float64) *Element {
 
 func (s *Sketch) addOrigin() *Element {
 	o := emptyElement()
+	o.id = s.nextElementID()
 	o.elementType = Point
 	o.values = append(o.values, 0)
 	o.values = append(o.values, 0)
+	s.Elements = append(s.Elements, o)
 
 	o.element = s.sketch.AddOrigin(0, 0) // AddLine normalizes a, b, c
 	return o
@@ -104,10 +106,12 @@ func (s *Sketch) addOrigin() *Element {
 
 func (s *Sketch) addAxis(a float64, b float64, c float64) *Element {
 	ax := emptyElement()
+	ax.id = s.nextElementID()
 	ax.elementType = Axis
 	ax.values = append(ax.values, a)
 	ax.values = append(ax.values, b)
 	ax.values = append(ax.values, c)
+	s.Elements = append(s.Elements, ax)
 
 	ax.element = s.sketch.AddAxis(a, b, c) // AddLine normalizes a, b, c
 	return ax
@@ -206,8 +210,6 @@ func (s *Sketch) AddArc(x1 float64, y1 float64, x2 float64, y2 float64, x3 float
 	s.eToC[a.id] = make([]*Constraint, 0)
 	a.children = append(a.children, start)
 	a.children = append(a.children, end)
-	s.AddDistanceConstraint(a, start, 0.0)
-	s.AddDistanceConstraint(a, end, 0.0)
 	utils.Logger.Info().
 		Uint("arc", a.element.GetID()).
 		Uint("start", a.children[1].element.GetID()).
