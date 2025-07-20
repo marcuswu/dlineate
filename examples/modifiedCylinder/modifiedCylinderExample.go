@@ -23,8 +23,8 @@ func main() {
 	line5 := sketch.AddLine(9.4, -3.8, 9.4, -8)
 	line6 := sketch.AddLine(9.4, -8, 6, -8)
 	line7 := sketch.AddLine(6, -8, 6, 0)
-	arc2 := sketch.AddArc(6, 0, 6, 3, 8.1, -2.1)
-	arc3 := sketch.AddArc(6, -5, 6, -8.3, 8, -2.5)
+	arc2 := sketch.AddArc(6, 0, 6, 3, 6, -3)
+	arc3 := sketch.AddArc(6, -5, 6, -8.3, 6, -2)
 
 	sketch.ExportGraphViz("cylinderElementsAdded.dot")
 
@@ -75,14 +75,14 @@ func main() {
 	// arc2 constraints
 	sketch.AddCoincidentConstraint(arc2.Center(), line1.Start())
 	sketch.AddCoincidentConstraint(arc2.Start(), line7)
-	sketch.AddCoincidentConstraint(arc2.End(), line3)
+	sketch.AddCoincidentConstraint(arc2.End(), line7)
 	sketch.AddTangentConstraint(arc2, line3)
 	sketch.AddDistanceConstraint(arc2, nil, 3)
 
 	// arc3 constraints
 	sketch.AddCoincidentConstraint(arc3.Center(), line7)
 	sketch.AddCoincidentConstraint(arc3.End(), line7)
-	sketch.AddCoincidentConstraint(arc3.Start(), line4)
+	sketch.AddCoincidentConstraint(arc3.Start(), line7)
 	sketch.AddTangentConstraint(arc3, line4)
 	sketch.AddDistanceConstraint(arc3, nil, 3)
 
@@ -123,6 +123,12 @@ func main() {
 	fmt.Printf("l5 constraint level %v\n", line5.ConstraintLevel())
 	fmt.Printf("l5 constraint level %v\n", line6.ConstraintLevel())
 	fmt.Printf("l5 constraint level %v\n", line7.ConstraintLevel())
+	fmt.Printf("arc2 center constraint level %v\n", arc2.Center().ConstraintLevel())
+	fmt.Printf("arc2 start constraint level %v\n", arc2.Start().ConstraintLevel())
+	fmt.Printf("arc2 end constraint level %v\n", arc2.End().ConstraintLevel())
+	fmt.Printf("arc3 center constraint level %v\n", arc3.Center().ConstraintLevel())
+	fmt.Printf("arc3 start constraint level %v\n", arc3.Start().ConstraintLevel())
+	fmt.Printf("arc3 end constraint level %v\n", arc3.End().ConstraintLevel())
 
 	// Export Image
 	sketch.ExportImage("modifiedCylinderExample.svg")
@@ -144,4 +150,8 @@ func main() {
 	fmt.Printf("l6: %f, %f to %f, %f\n", values[0], values[1], values[2], values[3])
 	values = line7.Values()
 	fmt.Printf("l7: %f, %f to %f, %f\n", values[0], values[1], values[2], values[3])
+	values = arc2.Values()
+	fmt.Printf("arc2: center %f, %f from %f, %f to %f, %f\n", values[0], values[1], values[2], values[3], values[4], values[5])
+	values = arc3.Values()
+	fmt.Printf("arc3: center %f, %f from %f, %f to %f, %f\n", values[0], values[1], values[2], values[3], values[4], values[5])
 }

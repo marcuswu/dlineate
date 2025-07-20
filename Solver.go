@@ -210,6 +210,8 @@ func (s *Sketch) AddArc(x1 float64, y1 float64, x2 float64, y2 float64, x3 float
 	s.eToC[a.id] = make([]*Constraint, 0)
 	a.children = append(a.children, start)
 	a.children = append(a.children, end)
+	s.AddDistanceConstraint(a, start, 0)
+	s.AddDistanceConstraint(a, end, 0)
 	utils.Logger.Info().
 		Uint("arc", a.element.GetID()).
 		Uint("start", a.children[1].element.GetID()).
@@ -464,7 +466,7 @@ func (s *Sketch) Solve() error {
 		// Rebuild cluster 0
 		s.sketch.BuildClusters() // TODO: this probably needs a reset between passes!
 		if utils.LogLevel() <= zerolog.DebugLevel {
-			utils.Logger.Info().Msgf("Writing clustered.dot")
+			utils.Logger.Info().Int("unresolved", numUnresolved).Msgf("Writing clustered.dot")
 			s.ExportGraphViz("clustered.dot")
 		}
 		solveState = s.sketch.Solve()
@@ -486,6 +488,7 @@ func (s *Sketch) Solve() error {
 
 	// Load solved values back into our elements
 	for _, e := range s.Elements {
+		// copy internal elements back into external elements
 		copyElements(e, s.sketch)
 		e.valuesFromSketch(s)
 	}
