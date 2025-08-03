@@ -286,6 +286,7 @@ func (g *GraphCluster) Solve(ea accessors.ElementAccessor, ca accessors.Constrai
 			return solver.NonConvergent
 		}
 
+		utils.Logger.Debug().Msg("")
 		utils.Logger.Debug().
 			Uint("element", eId).
 			Msg("Solving for element")

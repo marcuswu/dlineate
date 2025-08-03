@@ -89,6 +89,7 @@ func TestGetValues(t *testing.T) {
 	assert.Equal(t, 2.0, values[5])
 
 	s.passes++
+	arc.valuesFromSketch(s)
 	values = arc.Values()
 	assert.Equal(t, 1.0, values[0])
 	assert.Equal(t, 2.0, values[1])

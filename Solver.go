@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"github.com/tdewolff/canvas"
 	"github.com/tdewolff/canvas/renderers/svg"
 
@@ -35,6 +36,7 @@ func UseLogger(logger zerolog.Logger) {
 // NewSketch creates a new sketch at [0, 0] with standard axis orientation and elements with constraints for origin and X/Y axes
 // It returns the new sketch
 func NewSketch() *Sketch {
+	UseLogger(log.Logger)
 	s := new(Sketch)
 	s.sketch = core.NewSketch()
 	s.passes = 0

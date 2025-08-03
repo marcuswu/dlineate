@@ -90,7 +90,7 @@ func (l *SketchLine) SquareDistanceTo(o SketchElement) float64 {
 }
 
 func (l *SketchLine) distanceToPoint(x float64, y float64) float64 {
-	return (l.a * x) + (l.b * y) + l.c
+	return math.Abs((l.a * x) + (l.b * y) + l.c)
 }
 
 // NearestPoint returns the point on the line nearest the provided point
@@ -105,9 +105,15 @@ func (l *SketchLine) NearestPoint(x float64, y float64) *SketchPoint {
 func (l *SketchLine) DistanceTo(o SketchElement) float64 {
 	switch o.GetType() {
 	case Line:
-		// Technically I should return 0 if lines aren't parallel
-		// Here I am instead comparing min distances to origin
-		return l.distanceToPoint(0, 0) - o.(*SketchLine).distanceToPoint(0, 0)
+		slope := l.GetSlope()
+		oSlope := o.(*SketchLine).GetSlope()
+		if utils.StandardFloatCompare(slope, oSlope) == 0 || utils.StandardFloatCompare(slope, -oSlope) == 0 {
+			p1 := l.PointNearestOrigin()
+			p2 := o.(*SketchLine).NearestPoint(p1.X, p1.Y)
+			return p1.DistanceTo(p2)
+		}
+		// Technically, non-parallel line distances should be 0. I am instead comparing min distances to origin
+		return math.Abs(l.distanceToPoint(0, 0) - o.(*SketchLine).distanceToPoint(0, 0))
 	default:
 		return l.distanceToPoint(o.(*SketchPoint).GetX(), o.(*SketchPoint).GetY())
 	}

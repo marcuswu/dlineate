@@ -143,9 +143,10 @@ func MoveLineToPoint(ea accessors.ElementAccessor, c *constraint.Constraint) Sol
 
 	// If two points, get distance between them, translate constraint value - distance between
 	// If point and line, get distance between them, translate normal to line constraint value - distance between
-	dist := line.DistanceTo(point)
-	translate1 := dist + c.GetValue()
-	translate2 := dist - c.GetValue()
+	v := line.VectorTo(point)
+	line.Translate(-v.X, -v.Y)
+	translate1 := c.GetValue()
+	translate2 := -c.GetValue()
 
 	if math.Abs(translate1) < math.Abs(translate2) {
 		line.TranslateDistance(translate1)
@@ -333,8 +334,10 @@ func LineFromPointLine(cluster int, ea accessors.ElementAccessor, c1 *constraint
 	}
 
 	// Translate to distC.Value from the point
-	dist1 := newLine.DistanceTo(point) - distC.Value
-	dist2 := newLine.DistanceTo(point) + distC.Value
+	v := newLine.VectorTo(point)
+	newLine.Translate(-v.X, -v.Y)
+	dist1 := -distC.Value
+	dist2 := distC.Value
 	line1 := newLine.TranslatedDistance(dist1)
 	line2 := newLine.TranslatedDistance(dist2)
 

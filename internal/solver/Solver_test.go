@@ -379,7 +379,7 @@ func TestPointFromLineLine(t *testing.T) {
 		},
 		{
 			"Test Parallel",
-			el.NewSketchLine(0, 0, 1, -1),
+			el.NewSketchLine(0, 0, 1, -3),
 			1.0,
 			el.NewSketchLine(1, 0, 1, 0),
 			2.0,

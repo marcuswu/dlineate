@@ -17,7 +17,7 @@ func AngleConstraint(p1 *Element, p2 *Element) *Constraint {
 	return constraint
 }
 
-// AddAngleConstraint adds a constraint between the lines p1 and p2 where the counter-clockwise angle
+// AddAngleConstraint adds a constraint between the lines p1 and p2 where the counter-clockwise angle in degrees
 // from p1 to p2 is the positive direction
 func (s *Sketch) AddAngleConstraint(p1 *Element, p2 *Element, v float64, useSupplementary bool) (*Constraint, error) {
 	c := AngleConstraint(p1, p2)

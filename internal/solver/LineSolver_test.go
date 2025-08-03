@@ -257,7 +257,7 @@ func TestMoveLineToPoint(t *testing.T) {
 		{"The constraint should be a distance constraint", c0, nil, NonConvergent},
 		{"The constraint should have a point and a line", c1, nil, NonConvergent},
 		{"The constraint should be met 1", c2, el.NewSketchLine(5, 0.3, 1.5, 0.629706), Solved},
-		{"The constraint should be met 2", c3, el.NewSketchLine(6, 0.3, 1.5, 1.020294), Solved},
+		{"The constraint should be met 2", c3, el.NewSketchLine(6, 0.196116, 0.980581, 2.666987), Solved},
 	}
 	for _, tt := range tests {
 		state := MoveLineToPoint(ea, tt.c1)

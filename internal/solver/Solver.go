@@ -263,19 +263,32 @@ func pointFromPointLine(originalP1 el.SketchElement, originalL2 el.SketchElement
 	p3 := el.CopySketchElement(originalP3).(*el.SketchPoint)
 	distanceDifference := l2.DistanceTo(p1)
 
-	// rotate l2 to X axis
+	// 1. Rotate l2 to be parallel with the x axis. Repeat rotation with p1 and p3
+	// 2. Find whether + or - lineDist places l2 closer to p3 and translate l2 towards p3
+	// 3. Translate l2 to x axis, repeating with p1 and p3. Combine with the translation from step 2 for later reversal
+	// 4. Translate p1 to the y axis, repeating with p3
+	// 5. Find point newP3 on altered l2 and pointDist from p1
+	// 6. Translate newP3 reverse x translate from 4 and reverse y translate from 3
+
+	// 1. rotate l2 to X axis, repeating with p1 and p3
+	// Rotation of the line will also normalize it making l2.C the distance to x axis
 	angle := l2.AngleTo(&el.Vector{X: 1, Y: 0})
 	l2.Rotate(angle)
 	p1.Rotate(angle)
 	p3.Rotate(angle)
 
-	// translate l2 to X axis
-	yTranslate := l2.GetC() - lineDist
-	if math.Abs(p1.GetY()+yTranslate) > pointDist {
-		yTranslate = l2.GetC() + lineDist
+	// 2. Determine whether to use + or - lineDist
+	l2 = l2.Translated(0, lineDist)
+	l2TransNeg := l2.Translated(0, -lineDist)
+	if l2TransNeg.DistanceTo(p3) < l2.DistanceTo(p3) {
+		l2 = l2TransNeg
 	}
+
+	// 3. Translate l2 to X axis
+	yTranslate := l2.GetC()
 	l2.Translate(0, yTranslate)
-	// move p1 to Y axis
+
+	// 4. Translate p1 to Y axis
 	xTranslate := p1.GetX()
 	p1.Translate(-xTranslate, yTranslate)
 	p3.Translate(-xTranslate, yTranslate)
@@ -288,7 +301,7 @@ func pointFromPointLine(originalP1 el.SketchElement, originalL2 el.SketchElement
 		return nil, NonConvergent
 	}
 
-	// Find points where circle at p1 with radius pointDist intersects with x axis
+	// 5. Find points where circle at p1 with radius pointDist intersects with x axis
 	xPos := math.Sqrt(math.Abs((pointDist * pointDist) - (p1.GetY() * p1.GetY())))
 	if utils.StandardFloatCompare(distanceDifference, 0) == 0 {
 		xPos = pointDist
@@ -300,8 +313,14 @@ func pointFromPointLine(originalP1 el.SketchElement, originalL2 el.SketchElement
 	if newP32.SquareDistanceTo(p3) < newP31.SquareDistanceTo(p3) {
 		actualP3 = newP32
 	}
+
+	// 6. Reverse translate new P3
 	actualP3.Translate(xTranslate, -yTranslate)
 	actualP3.Rotate(-angle)
+
+	utils.Logger.Error().
+		Str("p3", actualP3.String()).
+		Msg("pointFromPointLine: Final")
 
 	return actualP3, Solved
 }
@@ -345,9 +364,10 @@ func PointFromPointLine(cluster int, ea accessors.ElementAccessor, c1 *constrain
 
 func pointFromLineLine(l1 *el.SketchLine, l2 *el.SketchLine, p3 *el.SketchPoint, line1Dist float64, line2Dist float64) (*el.SketchPoint, SolveState) {
 	sameSlope := utils.StandardFloatCompare(l1.GetA(), l2.GetA()) == 0 && utils.StandardFloatCompare(l1.GetB(), l2.GetB()) == 0
-	// If l1 and l2 are parallel, and line distances aren't what is passed in, there is no solution
+	// If l1 and l2 are parallel, and the distance between the lines isn't line1Dist + line2Dist, we can't solve
+	distanceBetween := l1.DistanceTo(l2)
 	if sameSlope &&
-		utils.StandardFloatCompare(line1Dist-line2Dist, l1.DistanceTo(l2)) != 0 {
+		utils.StandardFloatCompare(line1Dist+line2Dist, distanceBetween) != 0 {
 		utils.Logger.Error().
 			Uint("line 1", l1.GetID()).
 			Uint("line 2", l2.GetID()).

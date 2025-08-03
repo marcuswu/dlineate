@@ -262,7 +262,7 @@ func TestSolve(t *testing.T) {
 	s.AddConstraint(constraint.Distance, origin, xAxis, 0)
 	s.AddConstraint(constraint.Distance, origin, yAxis, 0)
 
-	p1 := s.AddPoint(0, 0) // 3
+	p1 := origin
 	p2 := s.AddPoint(4, 0) // 4
 	p3 := s.AddPoint(5.236068, 3.804226)
 	p4 := s.AddPoint(2, 6.155367)
@@ -327,7 +327,6 @@ func TestSolve(t *testing.T) {
 	s.BuildClusters()
 
 	state = s.Solve()
-	//s.Conflicting()
 
 	assert.Equal(t, solver.NonConvergent, state, "Graph should be non-convergent")
 }
