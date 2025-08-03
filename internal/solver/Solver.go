@@ -261,7 +261,6 @@ func pointFromPointLine(originalP1 el.SketchElement, originalL2 el.SketchElement
 	p1 := el.CopySketchElement(originalP1).(*el.SketchPoint)
 	l2 := el.CopySketchElement(originalL2).(*el.SketchLine)
 	p3 := el.CopySketchElement(originalP3).(*el.SketchPoint)
-	distanceDifference := l2.DistanceTo(p1)
 
 	// 1. Rotate l2 to be parallel with the x axis. Repeat rotation with p1 and p3
 	// 2. Find whether + or - lineDist places l2 closer to p3 and translate l2 towards p3
@@ -278,9 +277,10 @@ func pointFromPointLine(originalP1 el.SketchElement, originalL2 el.SketchElement
 	p3.Rotate(angle)
 
 	// 2. Determine whether to use + or - lineDist
-	l2 = l2.Translated(0, lineDist)
+	l2TransPos := l2.Translated(0, lineDist)
 	l2TransNeg := l2.Translated(0, -lineDist)
-	if l2TransNeg.DistanceTo(p3) < l2.DistanceTo(p3) {
+	l2 = l2TransPos
+	if l2TransNeg.DistanceTo(p3) < l2TransPos.DistanceTo(p3) {
 		l2 = l2TransNeg
 	}
 
@@ -303,9 +303,6 @@ func pointFromPointLine(originalP1 el.SketchElement, originalL2 el.SketchElement
 
 	// 5. Find points where circle at p1 with radius pointDist intersects with x axis
 	xPos := math.Sqrt(math.Abs((pointDist * pointDist) - (p1.GetY() * p1.GetY())))
-	if utils.StandardFloatCompare(distanceDifference, 0) == 0 {
-		xPos = pointDist
-	}
 
 	newP31 := el.NewSketchPoint(p3.GetID(), xPos, 0)
 	newP32 := el.NewSketchPoint(p3.GetID(), -xPos, 0)
