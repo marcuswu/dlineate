@@ -263,16 +263,16 @@ func TestSolve(t *testing.T) {
 	s.AddConstraint(constraint.Distance, origin, yAxis, 0)
 
 	p1 := origin
-	p2 := s.AddPoint(4, 0) // 4
-	p3 := s.AddPoint(5.236068, 3.804226)
-	p4 := s.AddPoint(2, 6.155367)
-	p5 := s.AddPoint(-1.236068, 3.804226)
+	p2 := s.AddPoint(4, 0)                // 3
+	p3 := s.AddPoint(5.236068, 3.804226)  // 4
+	p4 := s.AddPoint(2, 6.155367)         // 5
+	p5 := s.AddPoint(-1.236068, 3.804226) // 6
 
-	l1 := s.AddLine(0, -1, 0)
-	l2 := s.AddLine(0.951057, -0.309017, -3.804226)
-	l3 := s.AddLine(0.587785, 0.809017, -6.155367)
-	l4 := s.AddLine(-0.587785, 0.809017, -3.804226)
-	l5 := s.AddLine(-0.951057, -0.309017, 0) // 12
+	l1 := s.AddLine(0, -1, 0)                       // 7
+	l2 := s.AddLine(0.951057, -0.309017, -3.804226) // 8
+	l3 := s.AddLine(0.587785, 0.809017, -6.155367)  // 9
+	l4 := s.AddLine(-0.587785, 0.809017, -3.804226) // 10
+	l5 := s.AddLine(-0.951057, -0.309017, 0)        // 11
 
 	s.AddConstraint(constraint.Distance, l1, p1, 0)
 	s.AddConstraint(constraint.Distance, l1, p2, 0)
@@ -295,7 +295,6 @@ func TestSolve(t *testing.T) {
 	c3 := s.AddConstraint(constraint.Distance, p4, p5, 4)
 
 	c4 := s.AddConstraint(constraint.Angle, l1, xAxis, 0)
-	s.AddConstraint(constraint.Distance, p1, origin, 0)
 
 	s.ResetClusters()
 	s.BuildClusters()

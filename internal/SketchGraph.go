@@ -230,8 +230,7 @@ func (g *SketchGraph) createCluster(first uint, id int) *GraphCluster {
 			g.conflicting.AddList(cIds)
 		}
 		g.elementAccessor.SetConstraintLevel(eId, level)
-		element, _ := g.elementAccessor.GetElement(-1, eId)
-		c.AddElement(element.GetID())
+		c.AddElement(eId)
 		for _, cId := range cIds[:2] {
 			utils.Logger.Debug().
 				Int("cluster", clusterNum).
