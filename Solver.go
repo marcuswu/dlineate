@@ -587,7 +587,7 @@ func (s *Sketch) WriteImage(out io.Writer, args ...float64) error {
 	c := canvas.New(width, height)
 	ctx := canvas.NewContext(c)
 	ctx.SetCoordSystem(canvas.CartesianI)
-	ctx.SetCoordRect(canvas.Rect{X: minx, Y: miny, W: vw, H: vh}, width, height)
+	ctx.SetCoordRect(canvas.Rect{X0: minx, Y0: miny, X1: vw, Y1: vh}, width, height)
 
 	ctx.SetStrokeColor(canvas.Gray)
 	ctx.SetStrokeWidth(0.5)
