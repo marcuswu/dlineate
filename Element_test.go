@@ -1,6 +1,7 @@
 package dlineate
 
 import (
+	"math/big"
 	"testing"
 
 	"github.com/marcuswu/dlineate/internal/constraint"
@@ -27,12 +28,12 @@ func TestElementTypeString(t *testing.T) {
 func TestValuesFromSketch(t *testing.T) {
 	s := NewSketch()
 	arc := s.AddArc(0, 0, 1, 1, 2, 2)
-	arc.children[0].element.AsPoint().X = 1
-	arc.children[0].element.AsPoint().Y = 2
-	arc.children[1].element.AsPoint().X = 3
-	arc.children[1].element.AsPoint().Y = 4
-	arc.children[2].element.AsPoint().X = 5
-	arc.children[2].element.AsPoint().Y = 6
+	arc.children[0].element.AsPoint().X.SetFloat64(1)
+	arc.children[0].element.AsPoint().Y.SetFloat64(2)
+	arc.children[1].element.AsPoint().X.SetFloat64(3)
+	arc.children[1].element.AsPoint().Y.SetFloat64(4)
+	arc.children[2].element.AsPoint().X.SetFloat64(5)
+	arc.children[2].element.AsPoint().Y.SetFloat64(6)
 
 	s.XAxis.valuesFromSketch(s)
 	assert.Equal(t, 0.0, s.XAxis.values[0])
@@ -64,7 +65,7 @@ func TestGetCircleRadius(t *testing.T) {
 
 	c = s.AddCircle(1, 0, 2)
 	c3 := s.AddCoincidentConstraint(c, o)
-	c3.constraints = append(c3.constraints, s.sketch.AddConstraint(constraint.Distance, c.Center().element, o.element, 1.0))
+	c3.constraints = append(c3.constraints, s.sketch.AddConstraint(constraint.Distance, c.Center().element, o.element, big.NewFloat(1.0)))
 	dist, err = c.getCircleRadius(s, c3)
 	assert.Nil(t, err, "Should have no error looking for a circle")
 	assert.Equal(t, 1.0, dist, "Should find circle distance")
@@ -73,12 +74,12 @@ func TestGetCircleRadius(t *testing.T) {
 func TestGetValues(t *testing.T) {
 	s := NewSketch()
 	arc := s.AddArc(0, 0, 1, 1, 2, 2)
-	arc.children[0].element.AsPoint().X = 1
-	arc.children[0].element.AsPoint().Y = 2
-	arc.children[1].element.AsPoint().X = 3
-	arc.children[1].element.AsPoint().Y = 4
-	arc.children[2].element.AsPoint().X = 5
-	arc.children[2].element.AsPoint().Y = 6
+	arc.children[0].element.AsPoint().X.SetFloat64(1)
+	arc.children[0].element.AsPoint().Y.SetFloat64(2)
+	arc.children[1].element.AsPoint().X.SetFloat64(3)
+	arc.children[1].element.AsPoint().Y.SetFloat64(4)
+	arc.children[2].element.AsPoint().X.SetFloat64(5)
+	arc.children[2].element.AsPoint().Y.SetFloat64(6)
 
 	values := arc.Values()
 	assert.Equal(t, 0.0, values[0])

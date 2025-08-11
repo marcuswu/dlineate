@@ -2,6 +2,7 @@ package dlineate
 
 import (
 	"math"
+	"math/big"
 	"testing"
 
 	"github.com/marcuswu/dlineate/utils"
@@ -28,13 +29,13 @@ func TestAddAngleConstraint(t *testing.T) {
 
 	assert.NotNil(t, c1, "AngleConstraint should be created")
 	assert.Nil(t, err, "AngleConstraint should be created")
-	assert.Equal(t, (40/180.0)*math.Pi, c1.constraints[0].Value, "Angle constraint is 40 degrees")
+	assert.Equal(t, 0, utils.StandardBigFloatCompare(big.NewFloat((40/180.0)*math.Pi), &c1.constraints[0].Value), "Angle constraint is 40 degrees")
 
 	c1, err = s.AddAngleConstraint(l1, l2, 40, true)
 
 	assert.NotNil(t, c1, "AngleConstraint should be created")
 	assert.Nil(t, err, "AngleConstraint should be created")
-	assert.Equal(t, (140/180.0)*math.Pi, c1.constraints[0].Value, "Angle constraint is 140 degrees")
+	assert.Equal(t, 0, utils.StandardBigFloatCompare(big.NewFloat((140/180.0)*math.Pi), &c1.constraints[0].Value), "Angle constraint is 140 degrees")
 }
 
 func TestAddCoincidentConstraint(t *testing.T) {

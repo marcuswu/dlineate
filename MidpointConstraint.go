@@ -1,7 +1,7 @@
 package dlineate
 
 import (
-	"math"
+	"math/big"
 
 	el "github.com/marcuswu/dlineate/internal/element"
 	"github.com/marcuswu/dlineate/utils"
@@ -113,21 +113,35 @@ func (s *Sketch) resolveArcMidpoint(c *Constraint, point *Element, other *Elemen
 	endX := other.children[2].values[0]
 	endY := other.children[2].values[1]
 	// Calculate vector from center to start
-	start := el.Vector{X: startX - centerX, Y: startY - centerY}
+	var x1, y1, x2, y2 big.Float
+	x1.SetFloat64(startX - centerX)
+	y1.SetFloat64(startY - centerY)
+	start := el.Vector{X: x1, Y: y1}
 	// Calculate vector from center to end
-	end := el.Vector{X: endX - centerX, Y: endY - centerY}
+	x2.SetFloat64(endX - centerX)
+	y2.SetFloat64(endY - centerY)
+	end := el.Vector{X: x2, Y: y2}
 
 	// Calculate center vector
-	halfAngle := start.AngleTo(&end) / 2.0
+	var two big.Float
+	two.SetFloat64(2)
+	halfAngle := start.AngleTo(&end)
+	halfAngle.Quo(halfAngle, &two)
 	start.Rotate(halfAngle)
-	midPoint := start.Translated(centerX, centerY)
+	midPoint := start.Translated(big.NewFloat(centerX), big.NewFloat(centerY))
 
 	// Calculate distance from point to start / end
-	a := midPoint.X - startX
-	b := midPoint.Y - startY
-	midDist := math.Sqrt((a * a) + (b * b))
+	var a, b, midDist, t1 big.Float
+	t1.SetFloat64(startX)
+	a.Sub(&midPoint.X, &t1)
+	t1.SetFloat64(startY)
+	b.Sub(&midPoint.Y, &t1)
+	midDist.Mul(&a, &a)
+	t1.Mul(&b, &b)
+	midDist.Add(&midDist, &t1)
 	// Set coincident and distance constraints
-	constraint := s.addDistanceConstraint(other.children[1], point, midDist)
+	dist, _ := midDist.Float64()
+	constraint := s.addDistanceConstraint(other.children[1], point, dist)
 	if constraint != nil {
 		utils.Logger.Debug().
 			Uint("constraint", constraint.GetID()).
@@ -137,7 +151,8 @@ func (s *Sketch) resolveArcMidpoint(c *Constraint, point *Element, other *Elemen
 		c.constraints = append(c.constraints, constraint)
 	}
 	arcRadius := other.children[1].element.DistanceTo(other.children[0].element)
-	constraint = s.addDistanceConstraint(point, other.Center(), arcRadius)
+	radius, _ := arcRadius.Float64()
+	constraint = s.addDistanceConstraint(point, other.Center(), radius)
 	if constraint != nil {
 		utils.Logger.Debug().
 			Uint("constraint", constraint.GetID()).

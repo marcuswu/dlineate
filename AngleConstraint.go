@@ -3,6 +3,7 @@ package dlineate
 import (
 	"errors"
 	"math"
+	"math/big"
 
 	ic "github.com/marcuswu/dlineate/internal/constraint"
 )
@@ -34,7 +35,7 @@ func (s *Sketch) AddAngleConstraint(p1 *Element, p2 *Element, v float64, useSupp
 		radians = radiansAlt
 	}
 
-	constraint := s.sketch.AddConstraint(ic.Angle, p1.element, p2.element, radians)
+	constraint := s.sketch.AddConstraint(ic.Angle, p1.element, p2.element, big.NewFloat(radians))
 	p1.constraints = append(p1.constraints, constraint)
 	p2.constraints = append(p2.constraints, constraint)
 	c.constraints = append(c.constraints, constraint)

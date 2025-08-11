@@ -1,7 +1,7 @@
 package solver
 
 import (
-	"math"
+	"math/big"
 
 	"github.com/marcuswu/dlineate/internal/accessors"
 	"github.com/marcuswu/dlineate/internal/constraint"
@@ -145,18 +145,20 @@ func SolveDistanceConstraint(cluster int, ea accessors.ElementAccessor, c *const
 		solveElement, other = other, solveElement
 	}
 
+	var zero, temp, x, y big.Float
+	zero.SetFloat64(0)
 	direction := other.VectorTo(solveElement)
 	dist := direction.Magnitude()
 	utils.Logger.Trace().
-		Float64("distance", dist).
+		Str("distance", dist.String()).
 		Msg("Calculated current distance")
 
-	if dist == 0 && c.GetValue() > 0 {
+	if dist.Cmp(&zero) == 0 && c.GetValue().Cmp(&zero) > 0 {
 		utils.Logger.Error().Msg("SolveDistanceConstraint: points are coincident, but they shouldn't be. Infinite solutions.")
 		return NonConvergent
 	}
 
-	if dist == 0 && c.GetValue() == 0 {
+	if utils.StandardBigFloatCompare(dist, &zero) == 0 && c.GetValue().Cmp(&zero) == 0 {
 		c.Solved = true
 		return Solved
 	}
@@ -165,8 +167,11 @@ func SolveDistanceConstraint(cluster int, ea accessors.ElementAccessor, c *const
 	if !ok {
 		return NonConvergent
 	}
-	translation.Scaled(c.GetValue() - dist)
-	solveElement.Translate(-translation.GetX(), -translation.GetY())
+	translation.Scaled(temp.Sub(c.GetValue(), dist))
+
+	x.Neg(translation.GetX())
+	y.Neg(translation.GetY())
+	solveElement.Translate(&x, &y)
 	c.Solved = true
 
 	return Solved
@@ -174,14 +179,15 @@ func SolveDistanceConstraint(cluster int, ea accessors.ElementAccessor, c *const
 
 // GetPointFromPoints calculates where a 3rd point exists in relation to two others with
 // distance constraints from the first two
-func GetPointFromPoints(p1 el.SketchElement, originalP2 el.SketchElement, originalP3 el.SketchElement, p1Radius float64, p2Radius float64) (*el.SketchPoint, SolveState) {
+func GetPointFromPoints(p1 el.SketchElement, originalP2 el.SketchElement, originalP3 el.SketchElement, p1Radius *big.Float, p2Radius *big.Float) (*el.SketchPoint, SolveState) {
 	// Don't mutate the originals
 	p2 := el.CopySketchElement(originalP2)
 	p3 := el.CopySketchElement(originalP3)
 	pointDistance := p1.DistanceTo(p2)
-	constraintDist := p1Radius + p2Radius
+	var constraintDist, x, y, temp big.Float
+	constraintDist.Add(p1Radius, p2Radius)
 
-	if utils.StandardFloatCompare(pointDistance, constraintDist) > 0 {
+	if utils.StandardBigFloatCompare(pointDistance, &constraintDist) > 0 {
 		utils.Logger.Error().
 			Uint("point 1", p1.GetID()).
 			Uint("point 2", p2.GetID()).
@@ -189,10 +195,12 @@ func GetPointFromPoints(p1 el.SketchElement, originalP2 el.SketchElement, origin
 		return nil, NonConvergent
 	}
 
-	if utils.StandardFloatCompare(pointDistance, constraintDist) == 0 {
+	if utils.StandardBigFloatCompare(pointDistance, &constraintDist) == 0 {
 		translate := p1.VectorTo(p2)
-		translate.Scaled(p1Radius / translate.Magnitude())
-		newP3 := el.NewSketchPoint(p3.GetID(), p1.AsPoint().X-translate.X, p1.AsPoint().Y-translate.Y)
+		translate.Scaled(temp.Quo(p1Radius, translate.Magnitude()))
+		x.Sub(&p1.AsPoint().X, &translate.X)
+		y.Sub(&p1.AsPoint().Y, &translate.Y)
+		newP3 := el.NewSketchPoint(p3.GetID(), &x, &y)
 		return newP3, Solved
 	}
 
@@ -201,27 +209,44 @@ func GetPointFromPoints(p1 el.SketchElement, originalP2 el.SketchElement, origin
 	p2.ReverseTranslateByElement(p1)
 	p3.ReverseTranslateByElement(p1)
 	// rotate p2 and p3 so p2 is on x axis
-	angle := p2.AngleTo(&el.Vector{X: 1, Y: 0})
+	x.SetFloat64(1)
+	y.SetFloat64(0)
+	angle := p2.AngleTo(&el.Vector{X: x, Y: y})
 	p2.Rotate(angle)
 	p3.Rotate(angle)
 	// calculate possible p3s
 	p2Dist := p2.(*el.SketchPoint).GetX()
 
+	var xDelta, yDelta, p3X, p3Y1, p3Y2, p1rSq, temp1, temp2 big.Float
 	// https://mathworld.wolfram.com/Circle-CircleIntersection.html
-	xDelta := ((-(p2Radius * p2Radius) + (p2Dist * p2Dist)) + (p1Radius * p1Radius)) / (2 * p2Dist)
-	yDelta := math.Sqrt((p1Radius * p1Radius) - (xDelta * xDelta))
-	p3X := xDelta
-	p3Y1 := yDelta
-	p3Y2 := -yDelta
+	// xDelta := ((-(p2Radius * p2Radius) + (p2Dist * p2Dist)) + (p1Radius * p1Radius)) / (2 * p2Dist)
+	xDelta.Mul(p2Radius, p2Radius)
+	xDelta.Neg(&xDelta)
+	temp1.Mul(p2Dist, p2Dist)
+	xDelta.Add(&xDelta, &temp1)
+	p1rSq.Mul(p1Radius, p1Radius)
+	xDelta.Add(&xDelta, &p1rSq)
+	temp2.SetFloat64(2)
+	temp1.Mul(p2Dist, &temp2)
+	xDelta.Quo(&xDelta, &temp1)
+
+	// yDelta := math.Sqrt((p1Radius * p1Radius) - (xDelta * xDelta))
+	temp1.Mul(&xDelta, &xDelta)
+	yDelta.Sub(&p1rSq, &temp1)
+	yDelta.Sqrt(&yDelta)
+	p3X.Set(&xDelta)
+	p3Y1.Set(&yDelta)
+	p3Y2.Neg(&yDelta)
 	// determine which is closest to the p3 from constraint
-	newP31 := el.NewSketchPoint(p3.GetID(), p3X, p3Y1)
-	newP32 := el.NewSketchPoint(p3.GetID(), p3X, p3Y2)
+	newP31 := el.NewSketchPoint(p3.GetID(), &p3X, &p3Y1)
+	newP32 := el.NewSketchPoint(p3.GetID(), &p3X, &p3Y2)
 	actualP3 := newP31
-	if newP32.SquareDistanceTo(p3) < newP31.SquareDistanceTo(p3) {
+	if newP32.SquareDistanceTo(p3).Cmp(newP31.SquareDistanceTo(p3)) < 0 {
 		actualP3 = newP32
 	}
 	// unrotate actualP3
-	actualP3.Rotate(-angle)
+	temp1.Neg(angle)
+	actualP3.Rotate(&temp1)
 	// untranslate actualP3
 	actualP3.TranslateByElement(p1)
 
@@ -257,7 +282,7 @@ func PointFromPoints(cluster int, ea accessors.ElementAccessor, c1 *constraint.C
 	return GetPointFromPoints(p1, p2, p3, p1Radius, p2Radius)
 }
 
-func pointFromPointLine(originalP1 el.SketchElement, originalL2 el.SketchElement, originalP3 el.SketchElement, pointDist float64, lineDist float64) (*el.SketchPoint, SolveState) {
+func pointFromPointLine(originalP1 el.SketchElement, originalL2 el.SketchElement, originalP3 el.SketchElement, pointDist *big.Float, lineDist *big.Float) (*el.SketchPoint, SolveState) {
 	p1 := el.CopySketchElement(originalP1).(*el.SketchPoint)
 	l2 := el.CopySketchElement(originalL2).(*el.SketchLine)
 	p3 := el.CopySketchElement(originalP3).(*el.SketchPoint)
@@ -271,49 +296,68 @@ func pointFromPointLine(originalP1 el.SketchElement, originalL2 el.SketchElement
 
 	// 1. rotate l2 to X axis, repeating with p1 and p3
 	// Rotation of the line will also normalize it making l2.C the distance to x axis
-	angle := l2.AngleTo(&el.Vector{X: 1, Y: 0})
+	var x, y, xTranslate, yTranslate, temp1, temp2 big.Float
+	x.SetFloat64(1)
+	y.SetFloat64(0)
+	angle := l2.AngleTo(&el.Vector{X: x, Y: y})
 	l2.Rotate(angle)
 	p1.Rotate(angle)
 	p3.Rotate(angle)
 
 	// 2. Determine whether to use + or - lineDist
-	l2TransPos := l2.Translated(0, lineDist)
-	l2TransNeg := l2.Translated(0, -lineDist)
+	x.SetFloat64(0)
+	y.Copy(lineDist)
+	l2TransPos := l2.Translated(&x, &y)
+	y.Neg(lineDist)
+	l2TransNeg := l2.Translated(&x, &y)
 	l2 = l2TransPos
-	if l2TransNeg.DistanceTo(p3) < l2TransPos.DistanceTo(p3) {
+	if l2TransNeg.DistanceTo(p3).Cmp(l2TransPos.DistanceTo(p3)) < 0 {
 		l2 = l2TransNeg
 	}
 
 	// 3. Translate l2 to X axis
-	yTranslate := l2.GetC()
-	l2.Translate(0, yTranslate)
+	yTranslate.Set(l2.GetC())
+	x.SetFloat64(0)
+	l2.Translate(&x, &yTranslate)
 
 	// 4. Translate p1 to Y axis
-	xTranslate := p1.GetX()
-	p1.Translate(-xTranslate, yTranslate)
-	p3.Translate(-xTranslate, yTranslate)
+	xTranslate.Neg(p1.GetX())
+	p1.Translate(&xTranslate, &yTranslate)
+	p3.Translate(&xTranslate, &yTranslate)
 
-	if utils.StandardFloatCompare(pointDist, math.Abs(p1.GetY())) < 0 {
+	temp1.Abs(p1.GetY())
+	if utils.StandardBigFloatCompare(pointDist, &temp1) < 0 {
 		utils.Logger.Error().
-			Float64("point distance", pointDist).
-			Float64("p1.y", math.Abs(p1.GetY())).
+			Str("point distance", pointDist.String()).
+			Str("p1.y", temp1.String()).
 			Msg("pointFromPointLine: Nonconvergent")
 		return nil, NonConvergent
 	}
 
 	// 5. Find points where circle at p1 with radius pointDist intersects with x axis
-	xPos := math.Sqrt(math.Abs((pointDist * pointDist) - (p1.GetY() * p1.GetY())))
+	// xPos := math.Sqrt(math.Abs((pointDist * pointDist) - (p1.GetY() * p1.GetY())))
+	var xPos, negXPos big.Float
+	temp1.Mul(pointDist, pointDist)
+	temp2.Mul(p1.GetY(), p1.GetY())
+	xPos.Sub(&temp1, &temp2)
+	xPos.Abs(&xPos)
+	xPos.Sqrt(&xPos)
+	negXPos.Neg(&xPos)
+	y.SetFloat64(0)
 
-	newP31 := el.NewSketchPoint(p3.GetID(), xPos, 0)
-	newP32 := el.NewSketchPoint(p3.GetID(), -xPos, 0)
+	newP31 := el.NewSketchPoint(p3.GetID(), &xPos, &y)
+	newP32 := el.NewSketchPoint(p3.GetID(), &negXPos, &y)
 	actualP3 := newP31
-	if newP32.SquareDistanceTo(p3) < newP31.SquareDistanceTo(p3) {
+	if newP32.SquareDistanceTo(p3).Cmp(newP31.SquareDistanceTo(p3)) < 0 {
 		actualP3 = newP32
 	}
 
 	// 6. Reverse translate new P3
-	actualP3.Translate(xTranslate, -yTranslate)
-	actualP3.Rotate(-angle)
+	xTranslate.Neg(&xTranslate)
+	yTranslate.Neg(&yTranslate)
+	angle.Neg(angle)
+	actualP3.Translate(&xTranslate, &yTranslate)
+	actualP3.Rotate(angle)
 
 	utils.Logger.Error().
 		Str("p3", actualP3.String()).
@@ -359,12 +403,14 @@ func PointFromPointLine(cluster int, ea accessors.ElementAccessor, c1 *constrain
 	return pointFromPointLine(p1, l2, p3, pointDist, lineDist)
 }
 
-func pointFromLineLine(l1 *el.SketchLine, l2 *el.SketchLine, p3 *el.SketchPoint, line1Dist float64, line2Dist float64) (*el.SketchPoint, SolveState) {
-	sameSlope := utils.StandardFloatCompare(l1.GetA(), l2.GetA()) == 0 && utils.StandardFloatCompare(l1.GetB(), l2.GetB()) == 0
+func pointFromLineLine(l1 *el.SketchLine, l2 *el.SketchLine, p3 *el.SketchPoint, line1Dist *big.Float, line2Dist *big.Float) (*el.SketchPoint, SolveState) {
+	sameSlope := utils.StandardBigFloatCompare(l1.GetA(), l2.GetA()) == 0 && utils.StandardBigFloatCompare(l1.GetB(), l2.GetB()) == 0
 	// If l1 and l2 are parallel, and the distance between the lines isn't line1Dist + line2Dist, we can't solve
 	distanceBetween := l1.DistanceTo(l2)
+	var combinedDistances big.Float
+	combinedDistances.Add(line1Dist, line2Dist)
 	if sameSlope &&
-		utils.StandardFloatCompare(line1Dist+line2Dist, distanceBetween) != 0 {
+		utils.StandardBigFloatCompare(&combinedDistances, distanceBetween) != 0 {
 		utils.Logger.Error().
 			Uint("line 1", l1.GetID()).
 			Uint("line 2", l2.GetID()).
@@ -375,16 +421,24 @@ func pointFromLineLine(l1 *el.SketchLine, l2 *el.SketchLine, p3 *el.SketchPoint,
 	// If l1 & l2 are parallel and it's solvable, there are infinite solutions
 	// Choose the one closest to the current point location
 	if sameSlope {
+		var scale, x, y big.Float
 		translate := l1.VectorTo(p3)
-		translate.Scaled((p3.DistanceTo(l1) - line1Dist) / translate.Magnitude())
-		return el.NewSketchPoint(p3.GetID(), p3.X+translate.X, p3.Y+translate.Y), Solved
+		scale.Sub(p3.DistanceTo(l1), line1Dist)
+		scale.Quo(&scale, translate.Magnitude())
+		translate.Scaled(&scale)
+		x.Add(p3.GetX(), &translate.X)
+		y.Add(p3.GetY(), &translate.Y)
+		return el.NewSketchPoint(p3.GetID(), &x, &y), Solved
 	}
 	// Translate l1 line1Dist
+	var neg big.Float
+	neg.Neg(line1Dist)
 	line1TranslatePos := l1.TranslatedDistance(line1Dist)
-	line1TranslateNeg := l1.TranslatedDistance(-line1Dist)
+	line1TranslateNeg := l1.TranslatedDistance(&neg)
 	// Translate l2 line2Dist
+	neg.Neg(line2Dist)
 	line2TranslatedPos := l2.TranslatedDistance(line2Dist)
-	line2TranslatedNeg := l2.TranslatedDistance(-line2Dist)
+	line2TranslatedNeg := l2.TranslatedDistance(&neg)
 
 	// If line1 and line2 are the same line,
 	intersect1 := el.SketchPointFromVector(p3.GetID(), line1TranslatePos.Intersection(line2TranslatedPos))
@@ -395,15 +449,15 @@ func pointFromLineLine(l1 *el.SketchLine, l2 *el.SketchLine, p3 *el.SketchPoint,
 	// Return closest intersection point
 	closest := intersect1
 	dist := p3.DistanceTo(intersect1)
-	if next := p3.DistanceTo(intersect2); next < dist {
+	if next := p3.DistanceTo(intersect2); next.Cmp(dist) < 0 {
 		dist = next
 		closest = intersect2
 	}
-	if next := p3.DistanceTo(intersect3); next < dist {
+	if next := p3.DistanceTo(intersect3); next.Cmp(dist) < 0 {
 		dist = next
 		closest = intersect3
 	}
-	if next := p3.DistanceTo(intersect4); next < dist {
+	if next := p3.DistanceTo(intersect4); next.Cmp(dist) < 0 {
 		closest = intersect4
 	}
 

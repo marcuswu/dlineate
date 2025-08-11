@@ -2,7 +2,7 @@ package element
 
 import (
 	"fmt"
-	"math"
+	"math/big"
 
 	"github.com/marcuswu/dlineate/utils"
 )
@@ -12,24 +12,24 @@ import (
 type SketchLine struct {
 	elementType     Type
 	id              uint
-	a               float64
-	b               float64
-	c               float64
+	a               big.Float
+	b               big.Float
+	c               big.Float
 	constraintLevel ConstraintLevel
 	fixed           bool
 }
 
 // NewSketchLine creates a new SketchLine
-func NewSketchLine(id uint, a float64, b float64, c float64) *SketchLine {
+func NewSketchLine(id uint, a *big.Float, b *big.Float, c *big.Float) *SketchLine {
 	// A & B represent a normal vector for the line. This also determines
 	// the direction of the line. C represents a magnitude of the normal
 	// vector to reach from origin to the line.
 	l := &SketchLine{
 		elementType:     Line,
 		id:              id,
-		a:               a,
-		b:               b,
-		c:               c,
+		a:               *a,
+		b:               *b,
+		c:               *c,
 		constraintLevel: FullyConstrained,
 	}
 	l.Normalize()
@@ -43,22 +43,31 @@ func (l *SketchLine) GetID() uint { return l.id }
 func (l *SketchLine) SetID(id uint) { l.id = id }
 
 // GetA returns A in the formula Ax + By + C = 0
-func (l *SketchLine) GetA() float64 { return l.a }
+func (l *SketchLine) GetA() *big.Float {
+	var ret big.Float
+	return ret.Copy(&l.a)
+}
 
 // GetB returns B in the formula Ax + By + C = 0
-func (l *SketchLine) GetB() float64 { return l.b }
+func (l *SketchLine) GetB() *big.Float {
+	var ret big.Float
+	return ret.Copy(&l.b)
+}
 
 // GetC returns c in the formula Ax + By + C = 0
-func (l *SketchLine) GetC() float64 { return l.c }
+func (l *SketchLine) GetC() *big.Float {
+	var ret big.Float
+	return ret.Copy(&l.c)
+}
 
 // SetC set the a value for the line (Ax + Bx + C = 0)
-func (l *SketchLine) SetA(a float64) { l.a = a }
+func (l *SketchLine) SetA(a *big.Float) { l.a.Set(a) }
 
 // SetC set the b value for the line (Ax + Bx + C = 0)
-func (l *SketchLine) SetB(b float64) { l.b = b }
+func (l *SketchLine) SetB(b *big.Float) { l.b.Set(b) }
 
 // SetC set the c value for the line (Ax + Bx + C = 0)
-func (l *SketchLine) SetC(c float64) { l.c = c }
+func (l *SketchLine) SetC(c *big.Float) { l.c.Set(c) }
 
 // GetType returns the sketch type
 func (l *SketchLine) GetType() Type { return l.elementType }
@@ -68,105 +77,151 @@ func (l *SketchLine) Is(o SketchElement) bool {
 	return l.id == o.GetID()
 }
 
+func (l *SketchLine) magnitude() *big.Float {
+	var aSq, bSq, magnitude big.Float
+	aSq.Mul(&l.a, &l.a)
+	bSq.Mul(&l.b, &l.b)
+	return magnitude.Sqrt(aSq.Add(&aSq, &bSq))
+}
+
 func (l *SketchLine) Normalize() {
-	magnitude := math.Sqrt((l.a * l.a) + (l.b * l.b))
-	l.a = l.a / magnitude
-	l.b = l.b / magnitude
-	l.c = l.c / magnitude
+	var magnitude big.Float
+	magnitude.Set(l.magnitude())
+	l.a.Quo(&l.a, &magnitude)
+	l.b.Quo(&l.b, &magnitude)
+	l.c.Quo(&l.c, &magnitude)
 }
 
 // IsEquivalent returns true if the two lines are equivalent
 func (l *SketchLine) IsEquivalent(o *SketchLine) bool {
-	return utils.StandardFloatCompare(l.a, o.a) == 0 &&
-		utils.StandardFloatCompare(l.b, o.b) == 0 &&
-		utils.StandardFloatCompare(l.c, o.c) == 0
+	return utils.StandardBigFloatCompare(&l.a, &o.a) == 0 &&
+		utils.StandardBigFloatCompare(&l.b, &o.b) == 0 &&
+		utils.StandardBigFloatCompare(&l.c, &o.c) == 0
 }
 
 // SquareDistanceTo returns the squared distance to the other element
-func (l *SketchLine) SquareDistanceTo(o SketchElement) float64 {
-	d := l.DistanceTo(o)
-
-	return d * d
+func (l *SketchLine) SquareDistanceTo(o SketchElement) *big.Float {
+	var ret big.Float
+	ret.Set(l.DistanceTo(o))
+	return ret.Mul(&ret, &ret)
 }
 
-func (l *SketchLine) distanceToPoint(x float64, y float64) float64 {
-	return math.Abs((l.a * x) + (l.b * y) + l.c)
+func (l *SketchLine) distanceToPoint(x *big.Float, y *big.Float) *big.Float {
+	var a, b, ret big.Float
+	a.Mul(&l.a, x)
+	b.Mul(&l.b, y)
+	ret.Add(&a, &b)
+	ret.Add(&ret, &l.c)
+	return ret.Abs(&ret)
 }
 
 // NearestPoint returns the point on the line nearest the provided point
-func (l *SketchLine) NearestPoint(x float64, y float64) *SketchPoint {
-	px := (l.b * ((l.b * x) - (l.a * y))) - l.a*l.c
-	py := (l.a * ((l.a * y) - (l.b * x))) - l.b*l.c
+func (l *SketchLine) NearestPoint(x *big.Float, y *big.Float) *SketchPoint {
+	var bx, ay, ac, bc, px, py big.Float
+	bx.Mul(&l.b, x)
+	ay.Mul(&l.a, y)
+	ac.Mul(&l.a, &l.c)
+	bc.Mul(&l.b, &l.c)
+	px.Sub(&bx, &ay)
+	px.Mul(&l.b, &px)
+	px.Sub(&px, &ac)
+	py.Sub(&ay, &bx)
+	py.Mul(&l.a, &py)
+	py.Sub(&py, &bc)
 
-	return NewSketchPoint(0, px, py)
+	return NewSketchPoint(0, &px, &py)
 }
 
 // DistanceTo returns the distance to the other element
-func (l *SketchLine) DistanceTo(o SketchElement) float64 {
+func (l *SketchLine) DistanceTo(o SketchElement) *big.Float {
 	switch o.GetType() {
 	case Line:
-		slope := l.GetSlope()
-		oSlope := o.(*SketchLine).GetSlope()
-		if utils.StandardFloatCompare(slope, oSlope) == 0 || utils.StandardFloatCompare(slope, -oSlope) == 0 {
+		var slope, oSlope, oNeg big.Float
+		slope.Set(l.GetSlope())
+		oSlope.Set(o.(*SketchLine).GetSlope())
+		oNeg.Neg(&oSlope)
+		if utils.StandardBigFloatCompare(&slope, &oSlope) == 0 || utils.StandardBigFloatCompare(&slope, &oNeg) == 0 {
 			p1 := l.PointNearestOrigin()
-			p2 := o.(*SketchLine).NearestPoint(p1.X, p1.Y)
+			p2 := o.(*SketchLine).NearestPoint(&p1.X, &p1.Y)
 			return p1.DistanceTo(p2)
 		}
 		// Technically, non-parallel line distances should be 0. I am instead comparing min distances to origin
-		return math.Abs(l.distanceToPoint(0, 0) - o.(*SketchLine).distanceToPoint(0, 0))
+		var zero, res big.Float
+		zero.SetFloat64(0)
+		res.Sub(l.distanceToPoint(&zero, &zero), o.(*SketchLine).distanceToPoint(&zero, &zero))
+		return res.Abs(&res)
 	default:
 		return l.distanceToPoint(o.(*SketchPoint).GetX(), o.(*SketchPoint).GetY())
 	}
 }
 
 // GetOriginDistance returns the distance to the origin for this line
-func (l *SketchLine) GetOriginDistance() float64 { return l.distanceToPoint(0, 0) }
+func (l *SketchLine) GetOriginDistance() *big.Float {
+	var zero big.Float
+	zero.SetFloat64(0)
+	return l.distanceToPoint(&zero, &zero)
+}
 
 // PointNearestOrigin get the point on the line nearest to the origin
 func (l *SketchLine) PointNearestOrigin() *SketchPoint {
-	if utils.StandardFloatCompare((l.a*l.a)+(l.b*l.b), 0) != 0 {
+	var one, x, y big.Float
+	one.SetFloat64(1)
+	if utils.StandardBigFloatCompare(l.magnitude(), &one) != 0 {
 		l.Normalize()
 	}
-	return NewSketchPoint(
-		0,
-		-l.GetC()*l.GetA(),
-		-l.GetC()*l.GetB())
+	x.Neg(l.GetC())
+	x.Mul(&x, l.GetA())
+	y.Neg(l.GetC())
+	y.Mul(&y, l.GetB())
+	return NewSketchPoint(0, &x, &y)
 }
 
 // TranslateDistance translates the line by a distance along its normal
-func (l *SketchLine) TranslateDistance(dist float64) {
+func (l *SketchLine) TranslateDistance(dist *big.Float) {
 	// find point nearest to origin
 	newC := l.TranslatedDistance(dist).GetC()
-	l.c = newC
+	l.c.Set(newC)
 }
 
 // TranslatedDistance returns the line translated by a distance along its normal
-func (l *SketchLine) TranslatedDistance(dist float64) *SketchLine {
-	if utils.StandardFloatCompare((l.a*l.a)+(l.b*l.b), 0) != 0 {
+func (l *SketchLine) TranslatedDistance(dist *big.Float) *SketchLine {
+	var one, c big.Float
+	one.SetFloat64(1)
+	if utils.StandardBigFloatCompare(l.magnitude(), &one) != 0 {
 		l.Normalize()
 	}
-	return &SketchLine{Line, l.GetID(), l.GetA(), l.GetB(), l.GetC() - dist, l.constraintLevel, l.fixed}
+	c.Sub(l.GetC(), dist)
+	return &SketchLine{Line, l.GetID(), *l.GetA(), *l.GetB(), c, l.constraintLevel, l.fixed}
 }
 
 // Translated returns a line translated by an x and y value
-func (l *SketchLine) Translated(tx float64, ty float64) *SketchLine {
-	if utils.StandardFloatCompare((l.a*l.a)+(l.b*l.b), 0) != 0 {
+func (l *SketchLine) Translated(tx *big.Float, ty *big.Float) *SketchLine {
+	var one, x, y, newc big.Float
+	one.SetFloat64(1)
+	if utils.StandardBigFloatCompare(l.magnitude(), &one) != 0 {
 		l.Normalize()
 	}
-	pointOnLine := Vector{l.GetA() * -l.GetC(), l.GetB() * -l.GetC()}
+	newc.Neg(l.GetC())
+	x.Mul(l.GetA(), &newc)
+	y.Mul(l.GetB(), &newc)
+	pointOnLine := Vector{x, y}
 	pointOnLine.Translate(tx, ty)
-	newC := (-l.GetA() * pointOnLine.GetX()) - (l.GetB() * pointOnLine.GetY())
+	newc.Neg(l.GetA())
+	newc.Mul(&newc, pointOnLine.GetX())
+	newc.Sub(&newc, y.Mul(l.GetB(), pointOnLine.GetY()))
+	x.Set(l.GetA())
+	y.Set(l.GetB())
 	// If (A, B) is a unit vector normal to the line,
 	// C is the magnitude of the vector to the line,
 	// and (tx, ty) is a vector to translate the line,
 	// then the dot product of the vectors is the change to C to move the line by tx, ty
 	// newC := l.GetC() + (l.GetA() * tx) + (l.GetB() * ty)
-	return &SketchLine{Line, l.GetID(), l.GetA(), l.GetB(), newC, l.constraintLevel, l.fixed}
+	return &SketchLine{Line, l.GetID(), x, y, newc, l.constraintLevel, l.fixed}
 }
 
 // Translate translates the location of this line by an x and y distance
-func (l *SketchLine) Translate(tx float64, ty float64) {
-	l.c = l.Translated(tx, ty).GetC()
+func (l *SketchLine) Translate(tx *big.Float, ty *big.Float) {
+	l.c.Set(l.Translated(tx, ty).GetC())
 }
 
 // TranslateByElement translates the location of this line by another element
@@ -188,53 +243,85 @@ func (l *SketchLine) ReverseTranslateByElement(e SketchElement) {
 	} else {
 		point = e.(*SketchPoint)
 	}
-	l.Translate(-point.GetX(), -point.GetY())
+	var x, y big.Float
+	x.Neg(point.GetX())
+	y.Neg(point.GetY())
+	l.Translate(&x, &y)
 }
 
 // GetSlope returns the slope of the line (Ax + By + C = 0)
-func (l *SketchLine) GetSlope() float64 {
-	return -l.GetA() / l.GetB()
+func (l *SketchLine) GetSlope() *big.Float {
+	var res big.Float
+	res.Neg(l.GetA())
+	return res.Quo(&res, l.GetB())
 }
 
 // AngleTo returns the angle to another vector in radians
-func (l *SketchLine) AngleTo(u *Vector) float64 {
+func (l *SketchLine) AngleTo(u *Vector) *big.Float {
 	// point [0, -C / B] - point[-C / A, 0]
-	lv := &Vector{l.GetB(), -l.GetA()}
+	var x, y big.Float
+	x.Set(l.GetB())
+	y.Neg(l.GetA())
+	lv := &Vector{x, y}
 	return lv.AngleTo(u)
 }
 
 // AngleToLine returns the angle the line needs to rotate to be equivalent to to another line in radians
-func (l *SketchLine) AngleToLine(o *SketchLine) float64 {
-	lv := &Vector{l.GetB(), -l.GetA()}
-	ov := &Vector{o.GetB(), -o.GetA()}
+func (l *SketchLine) AngleToLine(o *SketchLine) *big.Float {
+	var lx, ly, ox, oy big.Float
+	lx.Set(l.GetB())
+	ly.Neg(l.GetA())
+	lv := &Vector{lx, ly}
+	ox.Set(o.GetB())
+	oy.Neg(o.GetA())
+	ov := &Vector{ox, oy}
 	return lv.AngleTo(ov)
 }
 
 // Rotated returns a line representing this line rotated around the origin by angle radians
-func (l *SketchLine) Rotated(angle float64) *SketchLine {
+func (l *SketchLine) Rotated(angle *big.Float) *SketchLine {
 	// create vectors with points from the line (x and y intercepts)
 	l.Normalize()
-	n := &Vector{l.GetA(), l.GetB()}
+	var x, y big.Float
+	x.Set(l.GetA())
+	y.Set(l.GetB())
+	n := &Vector{x, y}
 	n.Rotate(angle)
 	return NewSketchLine(l.GetID(), n.GetX(), n.GetY(), l.GetC())
 }
 
 // Rotate returns a line representing this line rotated around the origin by angle radians
-func (l *SketchLine) Rotate(angle float64) {
+func (l *SketchLine) Rotate(angle *big.Float) {
 	rotated := l.Rotated(angle)
-	l.a = rotated.GetA()
-	l.b = rotated.GetB()
-	l.c = rotated.GetC()
+	l.a.Set(rotated.GetA())
+	l.b.Set(rotated.GetB())
+	l.c.Set(rotated.GetC())
 }
 
 // Intersection returns the intersection of two lines
-func (l *SketchLine) Intersection(l2 *SketchLine) Vector {
-	y := ((l.a * l2.c) - (l.c * l2.a)) / ((l.b * l2.a) - (l.a * l2.b))
-	var x float64 = 0.0
-	if utils.StandardFloatCompare(l2.a, 0) == 0 {
-		x = ((l.b * y) + l.c) / -l.a
+func (l *SketchLine) Intersection(o *SketchLine) Vector {
+	var x, y, temp1, temp2, zero big.Float
+	zero.SetFloat64(0)
+	// y := ((l.a * o.c) - (l.c * o.a)) / ((l.b * o.a) - (l.a * o.b))
+	y.Mul(&l.a, &o.c)
+	temp1.Mul(&l.c, &o.a)
+	y.Sub(&y, &temp1)
+	temp1.Mul(&l.b, &o.a)
+	temp2.Mul(&l.a, &o.b)
+	temp1.Sub(&temp1, &temp2)
+	y.Quo(&y, &temp1)
+
+	x.Set(&zero)
+	if utils.StandardBigFloatCompare(&o.a, &zero) == 0 {
+		// x = ((l.b * y) + l.c) / -l.a
+		x.Mul(&l.b, &y)
+		x.Add(&x, &l.c)
+		x.Quo(&x, temp1.Neg(&l.a))
 	} else {
-		x = ((l2.b * y) + l2.c) / -l2.a
+		// x = ((o.b * y) + o.c) / -o.a
+		x.Mul(&o.b, &y)
+		x.Add(&x, &o.c)
+		x.Quo(&x, temp1.Neg(&o.a))
 	}
 
 	return Vector{x, y}
@@ -244,7 +331,9 @@ func (l *SketchLine) Intersection(l2 *SketchLine) Vector {
 func (l *SketchLine) VectorTo(o SketchElement) *Vector {
 	var point *SketchPoint
 	var myPoint *SketchPoint
-	if utils.StandardFloatCompare((l.a*l.a)+(l.b*l.b), 0) != 0 {
+	var one, x, y big.Float
+	one.SetFloat64(1)
+	if utils.StandardBigFloatCompare(l.magnitude(), &one) != 0 {
 		l.Normalize()
 	}
 	if o.GetType() == Point {
@@ -252,14 +341,20 @@ func (l *SketchLine) VectorTo(o SketchElement) *Vector {
 		myPoint = l.NearestPoint(point.GetX(), point.GetY())
 	} else {
 		oline := o.AsLine()
-		if utils.StandardFloatCompare((oline.a*oline.a)+(oline.b*oline.b), 1) != 0 {
+		if utils.StandardBigFloatCompare(oline.magnitude(), &one) != 0 {
 			oline.Normalize()
 		}
-		point = NewSketchPoint(0, oline.a*oline.c, oline.b*oline.c)
-		myPoint = NewSketchPoint(0, l.a*l.c, l.b*l.c)
+		x.Mul(&oline.a, &oline.c)
+		y.Mul(&oline.b, &oline.c)
+		point = NewSketchPoint(0, &x, &y)
+		x.Mul(&l.a, &l.c)
+		y.Mul(&l.b, &l.c)
+		myPoint = NewSketchPoint(0, &x, &y)
 	}
 
-	return &Vector{myPoint.GetX() - point.GetX(), myPoint.GetY() - point.GetY()}
+	x.Sub(myPoint.GetX(), point.GetX())
+	y.Sub(myPoint.GetY(), point.GetY())
+	return &Vector{x, y}
 }
 
 // AsPoint returns a SketchElement as a *SketchPoint or nil
@@ -281,7 +376,7 @@ func (l *SketchLine) SetConstraintLevel(cl ConstraintLevel) {
 }
 
 func (l *SketchLine) String() string {
-	return fmt.Sprintf("Line(%d) %fx + %fy + %f = 0", l.id, l.a, l.b, l.c)
+	return fmt.Sprintf("Line(%d) %sx + %sy + %s = 0", l.id, l.a.String(), l.b.String(), l.c.String())
 }
 
 func (l *SketchLine) SetFixed(fixed bool) {

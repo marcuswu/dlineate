@@ -3,6 +3,7 @@ package dlineate
 import (
 	"bytes"
 	"errors"
+	"math/big"
 	"testing"
 
 	"github.com/marcuswu/dlineate/internal/constraint"
@@ -50,7 +51,7 @@ func TestResolveConstraint(t *testing.T) {
 
 	tests[0].constraint.constraintType = 100
 	tests[1].constraint.state = Resolved
-	ic := constraint.NewConstraint(20, constraint.Distance, l1.Start().element.GetID(), p1.element.GetID(), 2, false)
+	ic := constraint.NewConstraint(20, constraint.Distance, l1.Start().element.GetID(), p1.element.GetID(), big.NewFloat(2), false)
 	tests[2].constraint.constraints = append(tests[2].constraint.constraints, ic)
 
 	s.resolveConstraints()

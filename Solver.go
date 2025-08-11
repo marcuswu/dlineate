@@ -4,6 +4,7 @@ import (
 	"errors"
 	"io"
 	"math"
+	"math/big"
 	"os"
 
 	"github.com/rs/zerolog"
@@ -88,7 +89,7 @@ func (s *Sketch) AddPoint(x float64, y float64) *Element {
 	p.elementType = Point
 	p.values = append(p.values, x)
 	p.values = append(p.values, y)
-	p.element = s.sketch.AddPoint(p.values[0], p.values[1])
+	p.element = s.sketch.AddPoint(big.NewFloat(p.values[0]), big.NewFloat(p.values[1]))
 	s.Elements = append(s.Elements, p)
 	s.eToC[p.id] = make([]*Constraint, 0)
 	return p
@@ -102,7 +103,9 @@ func (s *Sketch) addOrigin() *Element {
 	o.values = append(o.values, 0)
 	s.Elements = append(s.Elements, o)
 
-	o.element = s.sketch.AddOrigin(0, 0) // AddLine normalizes a, b, c
+	var zero big.Float
+	zero.SetFloat64(0)
+	o.element = s.sketch.AddOrigin(&zero, &zero) // AddLine normalizes a, b, c
 	return o
 }
 
@@ -115,7 +118,7 @@ func (s *Sketch) addAxis(a float64, b float64, c float64) *Element {
 	ax.values = append(ax.values, c)
 	s.Elements = append(s.Elements, ax)
 
-	ax.element = s.sketch.AddAxis(a, b, c) // AddLine normalizes a, b, c
+	ax.element = s.sketch.AddAxis(big.NewFloat(a), big.NewFloat(b), big.NewFloat(c)) // AddLine normalizes a, b, c
 	return ax
 }
 
@@ -134,7 +137,7 @@ func (s *Sketch) AddLine(x1 float64, y1 float64, x2 float64, y2 float64) *Elemen
 	l.values = append(l.values, x2)
 	l.values = append(l.values, y2)
 
-	l.element = s.sketch.AddLine(a, b, c) // AddLine normalizes a, b, c
+	l.element = s.sketch.AddLine(big.NewFloat(a), big.NewFloat(b), big.NewFloat(c)) // AddLine normalizes a, b, c
 	s.Elements = append(s.Elements, l)
 
 	start := s.AddPoint(l.values[0], l.values[1])
@@ -330,13 +333,14 @@ func (s *Sketch) resolveLineLength(e *Element) (float64, bool) {
 			continue
 		}
 		if c.elements[0] == e.children[1] || c.elements[1] == e.children[1] {
-			return c.constraints[0].Value, true
+			val, _ := c.constraints[0].Value.Float64()
+			return val, true
 		}
 	}
 
 	dc, ok := s.getDistanceConstraint(e)
 	if ok {
-		v := dc.constraints[0].Value
+		v, _ := dc.constraints[0].Value.Float64()
 		return v, ok
 	}
 
@@ -344,7 +348,7 @@ func (s *Sketch) resolveLineLength(e *Element) (float64, bool) {
 	endConstrained := s.isElementSolved(e.children[1])
 	if startConstrained && endConstrained {
 		// resolve constraint setting p2's distance to the distance from p1 start to p1 end
-		v := e.children[0].element.AsPoint().DistanceTo(e.children[1].element.AsPoint())
+		v, _ := e.children[0].element.AsPoint().DistanceTo(e.children[1].element.AsPoint()).Float64()
 
 		return v, true
 	}
@@ -362,7 +366,7 @@ func (s *Sketch) resolveCurveRadius(e *Element) (float64, bool) {
 	if dc != nil {
 		v := dc.dataValue
 		if len(dc.constraints) > 0 {
-			v = dc.constraints[0].Value
+			v, _ = dc.constraints[0].Value.Float64()
 		}
 		return v, true
 	}
@@ -384,7 +388,7 @@ func (s *Sketch) resolveCurveRadius(e *Element) (float64, bool) {
 				continue
 			}
 			// Other & e have a distance constraint between them. dist(other, e.center) - c.value is radius
-			distFromCurve := other.element.AsPoint().DistanceTo(e.children[0].element.AsPoint())
+			distFromCurve, _ := other.element.AsPoint().DistanceTo(e.children[0].element.AsPoint()).Float64()
 			radius := distFromCurve - ec.dataValue
 			return radius, true
 		}

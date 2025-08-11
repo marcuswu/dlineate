@@ -1,6 +1,9 @@
 package element
 
-import "fmt"
+import (
+	"fmt"
+	"math/big"
+)
 
 // Type of a SketchElement (Point or Line)
 type Type uint
@@ -49,14 +52,14 @@ type SketchElement interface {
 	SetID(uint)
 	GetID() uint
 	GetType() Type
-	AngleTo(*Vector) float64
-	Translate(tx float64, ty float64)
+	AngleTo(*Vector) *big.Float
+	Translate(tx *big.Float, ty *big.Float)
 	TranslateByElement(SketchElement)
 	ReverseTranslateByElement(SketchElement)
-	Rotate(tx float64)
+	Rotate(tx *big.Float)
 	Is(SketchElement) bool
-	SquareDistanceTo(SketchElement) float64
-	DistanceTo(SketchElement) float64
+	SquareDistanceTo(SketchElement) *big.Float
+	DistanceTo(SketchElement) *big.Float
 	VectorTo(SketchElement) *Vector
 	AsPoint() *SketchPoint
 	AsLine() *SketchLine

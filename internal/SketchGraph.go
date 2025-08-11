@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	"math/big"
 	"sort"
 
 	"github.com/marcuswu/dlineate/internal/accessors"
@@ -58,11 +59,11 @@ func (g *SketchGraph) isShared(cId int, eId uint) bool {
 }
 
 // AddPoint adds a point to the sketch
-func (g *SketchGraph) AddPoint(x float64, y float64) el.SketchElement {
+func (g *SketchGraph) AddPoint(x *big.Float, y *big.Float) el.SketchElement {
 	elementID := g.elementAccessor.NextId()
 	utils.Logger.Debug().
-		Float64("X", x).
-		Float64("Y", y).
+		Str("X", x.String()).
+		Str("Y", y.String()).
 		Uint("id", elementID).
 		Msg("Adding point")
 	p := el.NewSketchPoint(elementID, x, y)
@@ -72,12 +73,12 @@ func (g *SketchGraph) AddPoint(x float64, y float64) el.SketchElement {
 }
 
 // AddLine adds a line to the sketch
-func (g *SketchGraph) AddLine(a float64, b float64, c float64) el.SketchElement {
+func (g *SketchGraph) AddLine(a *big.Float, b *big.Float, c *big.Float) el.SketchElement {
 	elementID := g.elementAccessor.NextId()
 	utils.Logger.Debug().
-		Float64("A", a).
-		Float64("B", b).
-		Float64("C", c).
+		Str("A", a.String()).
+		Str("B", b.String()).
+		Str("C", c.String()).
 		Uint("id", elementID).
 		Msg("Adding line")
 	l := el.NewSketchLine(elementID, a, b, c)
@@ -86,11 +87,11 @@ func (g *SketchGraph) AddLine(a float64, b float64, c float64) el.SketchElement 
 	return l
 }
 
-func (g *SketchGraph) AddOrigin(x float64, y float64) el.SketchElement {
+func (g *SketchGraph) AddOrigin(x *big.Float, y *big.Float) el.SketchElement {
 	elementID := g.elementAccessor.NextId()
 	utils.Logger.Debug().
-		Float64("X", x).
-		Float64("Y", y).
+		Str("X", x.String()).
+		Str("Y", y.String()).
 		Uint("id", elementID).
 		Msgf("Adding origin")
 	ax := el.NewSketchPoint(elementID, x, y)
@@ -102,12 +103,12 @@ func (g *SketchGraph) AddOrigin(x float64, y float64) el.SketchElement {
 	return ax
 }
 
-func (g *SketchGraph) AddAxis(a float64, b float64, c float64) el.SketchElement {
+func (g *SketchGraph) AddAxis(a *big.Float, b *big.Float, c *big.Float) el.SketchElement {
 	elementID := g.elementAccessor.NextId()
 	utils.Logger.Debug().
-		Float64("A", a).
-		Float64("B", b).
-		Float64("C", c).
+		Str("A", a.String()).
+		Str("B", b.String()).
+		Str("C", c.String()).
 		Uint("id", elementID).
 		Msg("Adding axis")
 	ax := el.NewSketchLine(elementID, a, b, c)
@@ -159,7 +160,7 @@ func (g *SketchGraph) CombinePoints(e1 el.SketchElement, e2 el.SketchElement) el
 }
 
 // AddConstraint adds a constraint to existing sketch elements
-func (g *SketchGraph) AddConstraint(t constraint.Type, e1 el.SketchElement, e2 el.SketchElement, value float64) *constraint.Constraint {
+func (g *SketchGraph) AddConstraint(t constraint.Type, e1 el.SketchElement, e2 el.SketchElement, value *big.Float) *constraint.Constraint {
 	constraintID := g.constraintAccessor.NextId()
 	cType := "Distance"
 	if t != constraint.Distance {
@@ -167,7 +168,7 @@ func (g *SketchGraph) AddConstraint(t constraint.Type, e1 el.SketchElement, e2 e
 	}
 	utils.Logger.Debug().
 		Str("type", cType).
-		Float64("value", value).
+		Str("value", value.String()).
 		Uint("constraint id", constraintID).
 		Uint("element 1", e1.GetID()).
 		Uint("element 2", e2.GetID()).
