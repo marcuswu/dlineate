@@ -394,7 +394,7 @@ func TestVectorTo(t *testing.T) {
 			"Line to line VectorTo",
 			NewSketchLine(0, big.NewFloat(1.0), big.NewFloat(2.0), big.NewFloat(1.0)),
 			NewSketchLine(0, big.NewFloat(2.0), big.NewFloat(3.0), big.NewFloat(5.0)),
-			&Vector{*big.NewFloat(-0.5692308), *big.NewFloat(-0.7538462)},
+			&Vector{*big.NewFloat(-0.5692307692), *big.NewFloat(-0.7538461538)},
 		},
 	}
 	for _, tt := range tests {

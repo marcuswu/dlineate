@@ -102,9 +102,9 @@ func TestUnitVectorAndScale(t *testing.T) {
 		if !tt.expected {
 			assert.Nil(t, v, tt.name)
 		} else {
-			assert.Equal(t, 0, v.Magnitude().Cmp(big.NewFloat(1)))
+			assert.Equal(t, 0, utils.StandardBigFloatCompare(v.Magnitude(), new(big.Float).SetPrec(utils.FloatPrecision).SetFloat64(1)), "check unit magnitude")
 			v.Scaled(tt.scale)
-			assert.Equal(t, 0, v.Magnitude().Cmp(tt.scale))
+			assert.Equal(t, 0, utils.StandardBigFloatCompare(v.Magnitude(), tt.scale), "check scaled magnitude")
 		}
 	}
 }

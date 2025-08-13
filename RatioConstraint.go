@@ -1,6 +1,8 @@
 package dlineate
 
 import (
+	"math/big"
+
 	"github.com/marcuswu/dlineate/utils"
 )
 
@@ -70,9 +72,13 @@ func (s *Sketch) resolveRatioConstraint(c *Constraint) bool {
 	}
 
 	// Circles and Arcs with solved center and solved elements coincident or distance to the circle / arc
+	var ratio, value big.Float
+	ratio.SetPrec(utils.FloatPrecision).SetFloat64(c.dataValue)
 	p1Radius, ok := s.resolveCurveRadius(p1)
+	value.SetPrec(utils.FloatPrecision).Mul(p1Radius, &ratio)
+	val, _ := value.Float64()
 	if ok {
-		constraint := s.addDistanceConstraint(p2, nil, p1Radius*c.dataValue)
+		constraint := s.addDistanceConstraint(p2, nil, val)
 		if constraint != nil {
 			utils.Logger.Debug().
 				Uint("constraint", constraint.GetID()).
@@ -87,8 +93,10 @@ func (s *Sketch) resolveRatioConstraint(c *Constraint) bool {
 	}
 
 	p2Radius, ok := s.resolveCurveRadius(p2)
+	value.Quo(p2Radius, &ratio)
+	val, _ = value.Float64()
 	if ok {
-		constraint := s.addDistanceConstraint(p1, nil, p2Radius/c.dataValue)
+		constraint := s.addDistanceConstraint(p1, nil, val)
 		if constraint != nil {
 			utils.Logger.Debug().
 				Uint("constraint", constraint.GetID()).

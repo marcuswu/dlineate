@@ -49,22 +49,22 @@ func TestNormalize(t *testing.T) {
 }
 
 func TestAngleToLine(t *testing.T) {
-	// 108 * math.Pi / 180
+	// 72 * math.Pi / 180
 	angle := big.NewFloat(math.Pi)
 	angle.Quo(angle, big.NewFloat(180))
-	angle.Mul(angle, big.NewFloat(108))
-	l1 := NewSketchLine(0, big.NewFloat(-0.611735), big.NewFloat(-0.791063), big.NewFloat(6.155367))
-	l2 := NewSketchLine(1, big.NewFloat(-0.563309), big.NewFloat(0.826247), big.NewFloat(-3.804226))
+	angle.Mul(angle, big.NewFloat(72))
+	l1 := NewSketchLine(0, big.NewFloat(0.5877852523), big.NewFloat(0.8090169944), big.NewFloat(-6.155367074))
+	l2 := NewSketchLine(1, big.NewFloat(-0.5877852523), big.NewFloat(0.8090169944), big.NewFloat(-3.804226065))
 
 	a := l1.AngleToLine(l2)
 	b := l2.AngleToLine(l1)
 
 	var negAngle big.Float
 	negAngle.Neg(angle)
-	if utils.StandardBigFloatCompare(a, &negAngle) != 0 {
-		t.Errorf("Expected angle to be -108º (%s), got %s\n", negAngle.String(), a.String())
+	if utils.StandardBigFloatCompare(a, angle) != 0 {
+		t.Errorf("Expected angle to be 108º (%s), got %s\n", negAngle.String(), a.String())
 	}
-	if utils.StandardBigFloatCompare(b, angle) != 0 {
+	if utils.StandardBigFloatCompare(b, &negAngle) != 0 {
 		t.Errorf("Expected angle to be -108º (%s), got %s\n", angle.String(), b.String())
 	}
 }

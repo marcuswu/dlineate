@@ -209,7 +209,7 @@ func LineFromPoints(cluster int, ea accessors.ElementAccessor, c1 *constraint.Co
 
 	// Special case where distances are both 0, calculate a line through the two points
 	var zero big.Float
-	zero.SetFloat64(0)
+	zero.SetPrec(utils.FloatPrecision).SetFloat64(0)
 	if p1Dist.Cmp(&zero) == 0 && p2Dist.Cmp(&zero) == 0 {
 		var la1, lb1, lc1, la2, lb2, lc2, t1, t2 big.Float
 		la1.Sub(p2.GetY(), p1.GetY()) // y' - y
@@ -268,7 +268,7 @@ func LineFromPoints(cluster int, ea accessors.ElementAccessor, c1 *constraint.Co
 
 	calcTangent := func(X, Y, R, k *big.Float, external bool) (*big.Float, *big.Float, *big.Float, error) {
 		var a, b, c, rSquared, one, mag, t1 big.Float
-		one.SetFloat64(1)
+		one.SetPrec(utils.FloatPrecision).SetFloat64(1)
 
 		rSquared.Mul(R, R)
 		rSquared.Sub(&one, &rSquared)
@@ -360,7 +360,7 @@ func LineFromPoints(cluster int, ea accessors.ElementAccessor, c1 *constraint.Co
 
 	// Look for the closest combination of slope and origin distance
 	var minDifference, originalSlope, tangentSlope, slopeDifference, originDistanceDifference, averageDifference big.Float
-	minDifference.SetFloat64(math.MaxFloat64)
+	minDifference.SetPrec(utils.FloatPrecision).SetFloat64(math.MaxFloat64)
 	chosenA, chosenB, chosenC := tanA[0], tanB[0], tanC[0]
 	for i, _ := range tanA {
 		originalSlope.Quo(line.GetB(), line.GetA())

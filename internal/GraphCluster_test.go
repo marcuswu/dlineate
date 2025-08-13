@@ -697,23 +697,25 @@ func TestSolveMerge(t *testing.T) {
 	ca := accessors.NewConstraintRepository()
 	g0 := NewGraphCluster(0)
 
-	p0 := el.NewSketchPoint(0, big.NewFloat(0.0), big.NewFloat(0.0))
+	var prec uint = 200
+
+	p0 := el.NewSketchPoint(0, new(big.Float).SetPrec(prec).SetFloat64(0.0), new(big.Float).SetPrec(prec).SetFloat64(0.0))
 	ea.AddElement(p0)
 	g0.AddElement(p0.GetID())
 	ea.AddElementToCluster(p0.GetID(), g0.GetID())
-	l1 := el.NewSketchLine(1, big.NewFloat(0), big.NewFloat(-1), big.NewFloat(0))
+	l1 := el.NewSketchLine(1, new(big.Float).SetPrec(prec).SetFloat64(0), new(big.Float).SetPrec(prec).SetFloat64(-1), new(big.Float).SetPrec(prec).SetFloat64(0))
 	ea.AddElement(l1)
 	g0.AddElement(l1.GetID())
 	ea.AddElementToCluster(l1.GetID(), g0.GetID())
-	l2 := el.NewSketchLine(2, big.NewFloat(1), big.NewFloat(0), big.NewFloat(0))
+	l2 := el.NewSketchLine(2, new(big.Float).SetPrec(prec).SetFloat64(1), new(big.Float).SetPrec(prec).SetFloat64(0), new(big.Float).SetPrec(prec).SetFloat64(0))
 	ea.AddElement(l2)
 	g0.AddElement(l2.GetID())
 	ea.AddElementToCluster(l2.GetID(), g0.GetID())
-	l3 := el.NewSketchLine(3, big.NewFloat(0), big.NewFloat(-1), big.NewFloat(0))
+	l3 := el.NewSketchLine(3, new(big.Float).SetPrec(prec).SetFloat64(0), new(big.Float).SetPrec(prec).SetFloat64(-1), new(big.Float).SetPrec(prec).SetFloat64(0))
 	ea.AddElement(l3)
 	g0.AddElement(l3.GetID())
 	ea.AddElementToCluster(l3.GetID(), g0.GetID())
-	p5 := el.NewSketchPoint(5, big.NewFloat(4.0), big.NewFloat(0.0))
+	p5 := el.NewSketchPoint(5, new(big.Float).SetPrec(prec).SetFloat64(4.0), new(big.Float).SetPrec(prec).SetFloat64(0.0))
 	ea.AddElement(p5)
 	g0.AddElement(p5.GetID())
 	ea.AddElementToCluster(p5.GetID(), g0.GetID())
@@ -722,23 +724,23 @@ func TestSolveMerge(t *testing.T) {
 
 	ea.AddElementToCluster(p0.GetID(), g1.GetID())
 	g1.AddElement(p0.GetID())
-	l15 := el.NewSketchLine(15, big.NewFloat(-3.839516), big.NewFloat(-1.121656), big.NewFloat(0.000000))
+	l15 := el.NewSketchLine(15, new(big.Float).SetPrec(prec).SetFloat64(-3.839516468), new(big.Float).SetPrec(prec).SetFloat64(-1.121656496), new(big.Float).SetPrec(prec).SetFloat64(0.000000))
 	ea.AddElement(l15)
 	g1.AddElement(l15.GetID())
 	ea.AddElementToCluster(l15.GetID(), g1.GetID())
-	l12 := el.NewSketchLine(12, big.NewFloat(-0.563309), big.NewFloat(0.826247), big.NewFloat(-3.804226))
+	l12 := el.NewSketchLine(12, new(big.Float).SetPrec(prec).SetFloat64(-0.07382409879), new(big.Float).SetPrec(prec).SetFloat64(0.9972712783), new(big.Float).SetPrec(prec).SetFloat64(-3.911844775))
 	ea.AddElement(l12)
 	g1.AddElement(l12.GetID())
 	ea.AddElementToCluster(l12.GetID(), g1.GetID())
-	p11 := el.NewSketchPoint(11, big.NewFloat(2.183330), big.NewFloat(6.092751))
+	p11 := el.NewSketchPoint(11, new(big.Float).SetPrec(prec).SetFloat64(2.867428617), new(big.Float).SetPrec(prec).SetFloat64(4.134812863))
 	ea.AddElement(p11)
 	g1.AddElement(p11.GetID())
 	ea.AddElementToCluster(p11.GetID(), g1.GetID())
-	l9 := el.NewSketchLine(9, big.NewFloat(0.611735), big.NewFloat(0.791063), big.NewFloat(-6.155367))
+	l9 := el.NewSketchLine(9, new(big.Float).SetPrec(prec).SetFloat64(0.2318030078), new(big.Float).SetPrec(prec).SetFloat64(0.9727627489), new(big.Float).SetPrec(prec).SetFloat64(-4.686870504))
 	ea.AddElement(l9)
 	g1.AddElement(l9.GetID())
 	ea.AddElementToCluster(l9.GetID(), g1.GetID())
-	p14 := el.NewSketchPoint(14, big.NewFloat(-1.121656), big.NewFloat(3.839516))
+	p14 := el.NewSketchPoint(14, new(big.Float).SetPrec(prec).SetFloat64(-1.121656496), new(big.Float).SetPrec(prec).SetFloat64(3.839516468))
 	ea.AddElement(p14)
 	g1.AddElement(p14.GetID())
 	ea.AddElementToCluster(p14.GetID(), g1.GetID())
@@ -749,13 +751,13 @@ func TestSolveMerge(t *testing.T) {
 	g2.AddElement(p5.GetID())
 	e, _ := ea.GetElement(g2.GetID(), p5.GetID())
 	p5 = e.AsPoint()
-	p5.X.SetFloat64(2.488281)
-	p5.Y.SetFloat64(-0.724727)
-	p8 := el.NewSketchPoint(8, big.NewFloat(5.140000), big.NewFloat(2.270000))
+	p5.X.SetFloat64(2.488281499).SetPrec(prec)
+	p5.Y.SetFloat64(-0.7247268643).SetPrec(prec)
+	p8 := el.NewSketchPoint(8, new(big.Float).SetPrec(prec).SetFloat64(5.140000), new(big.Float).SetPrec(prec).SetFloat64(2.270000))
 	ea.AddElement(p8)
 	g2.AddElement(p8.GetID())
 	ea.AddElementToCluster(p8.GetID(), g2.GetID())
-	l6 := el.NewSketchLine(6, big.NewFloat(2.994727), big.NewFloat(-2.651719), big.NewFloat(-9.373495))
+	l6 := el.NewSketchLine(6, new(big.Float).SetPrec(prec).SetFloat64(2.994726864), new(big.Float).SetPrec(prec).SetFloat64(-2.651718501), new(big.Float).SetPrec(prec).SetFloat64(-9.373495085))
 	ea.AddElement(l6)
 	g2.AddElement(l6.GetID())
 	ea.AddElementToCluster(l6.GetID(), g2.GetID())
@@ -763,9 +765,9 @@ func TestSolveMerge(t *testing.T) {
 	g2.AddElement(l9.GetID())
 	e, _ = ea.GetElement(g2.GetID(), l9.GetID())
 	l9 = e.AsLine()
-	l9.SetA(big.NewFloat(0.861839))
-	l9.SetB(big.NewFloat(0.507182))
-	l9.SetC(big.NewFloat(-5.581155))
+	l9.SetA(new(big.Float).SetPrec(prec).SetFloat64(0.8618389136))
+	l9.SetB(new(big.Float).SetPrec(prec).SetFloat64(0.5071821044))
+	l9.SetC(new(big.Float).SetPrec(prec).SetFloat64(-5.581155393))
 
 	state := g0.solveMerge(ea, ca, g1, g2)
 
@@ -798,32 +800,41 @@ func TestSolveMerge(t *testing.T) {
 	l15 = e.AsLine()
 
 	// rad2Deg := func(rad float64) float64 { return (rad / math.Pi) * 180 }
-	deg2Rad := func(deg float64) float64 { return (deg / 180.0) * math.Pi }
-	desired := big.NewFloat(deg2Rad(72))
+	deg2Rad := func(deg float64) *big.Float {
+		var pi, piDeg big.Float
+		pi.SetPrec(utils.FloatPrecision).SetFloat64(math.Pi)
+		piDeg.SetPrec(utils.FloatPrecision).SetFloat64(180)
+		d := new(big.Float).SetPrec(utils.FloatPrecision).SetFloat64(deg)
+		d.Quo(d, &piDeg)
+		d.Mul(d, &pi)
+		return d
+	}
+	desired := deg2Rad(108)
+	desiredAlt := deg2Rad(72)
 	// All angles should be 108 or 72 degrees
 	var angle big.Float
 	angle.Abs(l9.AngleToLine(l6))
-	if utils.StandardBigFloatCompare(&angle, desired) != 0 {
-		t.Error("Expected l9 to l6 to be", desired.String(), "degrees, got", angle.String())
+	if utils.StandardBigFloatCompare(&angle, desired) != 0 && utils.StandardBigFloatCompare(&angle, desiredAlt) != 0 {
+		t.Error("Expected l9 to l6 to be", desired.String(), "or", desiredAlt.String(), "degrees, got", angle.String())
 	}
 	angle.Abs(l6.AngleToLine(l3))
-	if utils.StandardBigFloatCompare(&angle, desired) != 0 {
-		t.Error("Expected l6 to l3 to be", desired.String(), "degrees, got", angle.String())
+	if utils.StandardBigFloatCompare(&angle, desired) != 0 && utils.StandardBigFloatCompare(&angle, desiredAlt) != 0 {
+		t.Error("Expected l6 to l3 to be", desired.String(), "or", desiredAlt.String(), "degrees, got", angle.String())
 	}
 	angle.Abs(l3.AngleToLine(l15))
-	if utils.StandardBigFloatCompare(&angle, desired) != 0 {
-		t.Error("Expected l3 to l15 to be", desired.String(), "degrees, got", angle.String())
+	if utils.StandardBigFloatCompare(&angle, desired) != 0 && utils.StandardBigFloatCompare(&angle, desiredAlt) != 0 {
+		t.Error("Expected l3 to l15 to be", desired.String(), "or", desiredAlt.String(), "degrees, got", angle.String())
 	}
 	angle.Abs(l15.AngleToLine(l12))
-	if utils.StandardBigFloatCompare(&angle, desired) != 0 {
-		t.Error("Expected l12 to l15 to be", desired.String(), "degrees, got", angle.String())
+	if utils.StandardBigFloatCompare(&angle, desired) != 0 && utils.StandardBigFloatCompare(&angle, desiredAlt) != 0 {
+		t.Error("Expected l12 to l15 to be", desired.String(), "or", desiredAlt.String(), "degrees, got", angle.String())
 	}
 	angle.Abs(l12.AngleToLine(l9))
-	if utils.StandardBigFloatCompare(&angle, desired) != 0 {
-		t.Error("Expected l12 to l9 to be", desired.String(), "degrees, got", angle.String())
+	if utils.StandardBigFloatCompare(&angle, desired) != 0 && utils.StandardBigFloatCompare(&angle, desiredAlt) != 0 {
+		t.Error("Expected l12 to l9 to be", desired.String(), "or", desiredAlt.String(), "degrees, got", angle.String())
 	}
 
-	desired = big.NewFloat(4.0)
+	desired = new(big.Float).SetPrec(prec).SetFloat64(4.0)
 	measured := p0.DistanceTo(p5)
 	if utils.StandardBigFloatCompare(measured, desired) != 0 {
 		t.Error("Expected p0 to p5 to be", desired, ", got", measured)

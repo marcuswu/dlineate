@@ -146,7 +146,7 @@ func SolveDistanceConstraint(cluster int, ea accessors.ElementAccessor, c *const
 	}
 
 	var zero, temp, x, y big.Float
-	zero.SetFloat64(0)
+	zero.SetPrec(utils.FloatPrecision).SetFloat64(0)
 	direction := other.VectorTo(solveElement)
 	dist := direction.Magnitude()
 	utils.Logger.Trace().
@@ -209,8 +209,8 @@ func GetPointFromPoints(p1 el.SketchElement, originalP2 el.SketchElement, origin
 	p2.ReverseTranslateByElement(p1)
 	p3.ReverseTranslateByElement(p1)
 	// rotate p2 and p3 so p2 is on x axis
-	x.SetFloat64(1)
-	y.SetFloat64(0)
+	x.SetPrec(utils.FloatPrecision).SetFloat64(1)
+	y.SetPrec(utils.FloatPrecision).SetFloat64(0)
 	angle := p2.AngleTo(&el.Vector{X: x, Y: y})
 	p2.Rotate(angle)
 	p3.Rotate(angle)
@@ -226,7 +226,7 @@ func GetPointFromPoints(p1 el.SketchElement, originalP2 el.SketchElement, origin
 	xDelta.Add(&xDelta, &temp1)
 	p1rSq.Mul(p1Radius, p1Radius)
 	xDelta.Add(&xDelta, &p1rSq)
-	temp2.SetFloat64(2)
+	temp2.SetPrec(utils.FloatPrecision).SetFloat64(2)
 	temp1.Mul(p2Dist, &temp2)
 	xDelta.Quo(&xDelta, &temp1)
 
@@ -297,15 +297,15 @@ func pointFromPointLine(originalP1 el.SketchElement, originalL2 el.SketchElement
 	// 1. rotate l2 to X axis, repeating with p1 and p3
 	// Rotation of the line will also normalize it making l2.C the distance to x axis
 	var x, y, xTranslate, yTranslate, temp1, temp2 big.Float
-	x.SetFloat64(1)
-	y.SetFloat64(0)
+	x.SetPrec(utils.FloatPrecision).SetFloat64(1)
+	y.SetPrec(utils.FloatPrecision).SetFloat64(0)
 	angle := l2.AngleTo(&el.Vector{X: x, Y: y})
 	l2.Rotate(angle)
 	p1.Rotate(angle)
 	p3.Rotate(angle)
 
 	// 2. Determine whether to use + or - lineDist
-	x.SetFloat64(0)
+	x.SetPrec(utils.FloatPrecision).SetFloat64(0)
 	y.Copy(lineDist)
 	l2TransPos := l2.Translated(&x, &y)
 	y.Neg(lineDist)
@@ -317,7 +317,7 @@ func pointFromPointLine(originalP1 el.SketchElement, originalL2 el.SketchElement
 
 	// 3. Translate l2 to X axis
 	yTranslate.Set(l2.GetC())
-	x.SetFloat64(0)
+	x.SetPrec(utils.FloatPrecision).SetFloat64(0)
 	l2.Translate(&x, &yTranslate)
 
 	// 4. Translate p1 to Y axis
@@ -343,7 +343,7 @@ func pointFromPointLine(originalP1 el.SketchElement, originalL2 el.SketchElement
 	xPos.Abs(&xPos)
 	xPos.Sqrt(&xPos)
 	negXPos.Neg(&xPos)
-	y.SetFloat64(0)
+	y.SetPrec(utils.FloatPrecision).SetFloat64(0)
 
 	newP31 := el.NewSketchPoint(p3.GetID(), &xPos, &y)
 	newP32 := el.NewSketchPoint(p3.GetID(), &negXPos, &y)

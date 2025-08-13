@@ -503,7 +503,7 @@ func (g *GraphCluster) solveMerge(ea accessors.ElementAccessor, ca accessors.Con
 
 		// translate element into place
 		var zero big.Float
-		zero.SetFloat64(0)
+		zero.SetPrec(utils.FloatPrecision).SetFloat64(0)
 		other.TranslateCluster(ea, &translation.X, &translation.Y)
 		if utils.StandardBigFloatCompare(e2.DistanceTo(e1), &zero) != 0 {
 			return solver.NonConvergent, eType
@@ -577,7 +577,7 @@ func (g *GraphCluster) solveMerge(ea accessors.ElementAccessor, ca accessors.Con
 			Msg("Move Cluster Params")
 		if pivot.GetType() == el.Line {
 			var neg big.Float
-			neg.SetFloat64(-1)
+			neg.SetPrec(utils.FloatPrecision).SetFloat64(-1)
 			move := from.VectorTo(to)
 			move.Scaled(&neg)
 			c.TranslateCluster(ea, &move.X, &move.Y)

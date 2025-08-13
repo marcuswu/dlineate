@@ -6,6 +6,8 @@ import (
 )
 
 // StandardCompare is the tolerance for a standard float64 comparison
+const FloatPrecision = 200
+const StandardBigCompare = 0.0000001
 const StandardCompare = 0.00001
 
 // BigFloatCompare returns 0 if floats are equal, -1 if a < b, 1 if a > b using a tolerance
@@ -30,7 +32,7 @@ func BigFloatCompare(a *big.Float, b *big.Float, tolerance float64) int {
 
 // StandardBigFloatCompare returns 0 if floats are equal, -1 if a < b, 1 if a > b using a tolerance
 func StandardBigFloatCompare(a *big.Float, b *big.Float) int {
-	return BigFloatCompare(a, b, StandardCompare)
+	return BigFloatCompare(a, b, StandardBigCompare)
 }
 
 // FloatCompare returns 0 if floats are equal, -1 if a < b, 1 if a > b using a tolerance

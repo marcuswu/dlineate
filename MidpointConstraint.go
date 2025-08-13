@@ -106,20 +106,21 @@ func (s *Sketch) resolveArcMidpoint(c *Constraint, point *Element, other *Elemen
 		return c.state == Resolved
 	}
 
-	centerX := other.children[0].values[0]
-	centerY := other.children[0].values[1]
-	startX := other.children[1].values[0]
-	startY := other.children[1].values[1]
-	endX := other.children[2].values[0]
-	endY := other.children[2].values[1]
+	var centerX, centerY, startX, startY, endX, endY big.Float
+	centerX.SetPrec(utils.FloatPrecision).SetFloat64(other.children[0].values[0])
+	centerY.SetPrec(utils.FloatPrecision).SetFloat64(other.children[0].values[1])
+	startX.SetPrec(utils.FloatPrecision).SetFloat64(other.children[1].values[0])
+	startY.SetPrec(utils.FloatPrecision).SetFloat64(other.children[1].values[1])
+	endX.SetPrec(utils.FloatPrecision).SetFloat64(other.children[2].values[0])
+	endY.SetPrec(utils.FloatPrecision).SetFloat64(other.children[2].values[1])
 	// Calculate vector from center to start
 	var x1, y1, x2, y2 big.Float
-	x1.SetFloat64(startX - centerX)
-	y1.SetFloat64(startY - centerY)
+	x1.Sub(&startX, &centerX)
+	y1.Sub(&startY, &centerY)
 	start := el.Vector{X: x1, Y: y1}
 	// Calculate vector from center to end
-	x2.SetFloat64(endX - centerX)
-	y2.SetFloat64(endY - centerY)
+	x2.Sub(&endX, &centerX)
+	y2.Sub(&endY, &centerY)
 	end := el.Vector{X: x2, Y: y2}
 
 	// Calculate center vector
@@ -128,13 +129,13 @@ func (s *Sketch) resolveArcMidpoint(c *Constraint, point *Element, other *Elemen
 	halfAngle := start.AngleTo(&end)
 	halfAngle.Quo(halfAngle, &two)
 	start.Rotate(halfAngle)
-	midPoint := start.Translated(big.NewFloat(centerX), big.NewFloat(centerY))
+	midPoint := start.Translated(&centerX, &centerY)
 
 	// Calculate distance from point to start / end
 	var a, b, midDist, t1 big.Float
-	t1.SetFloat64(startX)
+	t1.Copy(&startX)
 	a.Sub(&midPoint.X, &t1)
-	t1.SetFloat64(startY)
+	t1.Copy(&startY)
 	b.Sub(&midPoint.Y, &t1)
 	midDist.Mul(&a, &a)
 	t1.Mul(&b, &b)

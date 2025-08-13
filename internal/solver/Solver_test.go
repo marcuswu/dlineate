@@ -690,8 +690,8 @@ func TestPointResult(t *testing.T) {
 		desired *el.SketchPoint
 		state   SolveState
 	}{
-		{"Test PointFromPoints", c0, c1, el.NewSketchPoint(1, big.NewFloat(0.515383), big.NewFloat(0.125274)), Solved},
-		{"Test PointFromLineLine", c2, c3, el.NewSketchPoint(5, big.NewFloat(0.745353), big.NewFloat(1.038922)), Solved},
+		{"Test PointFromPoints", c0, c1, el.NewSketchPoint(1, big.NewFloat(0.5153829827), big.NewFloat(0.125273559)), Solved},
+		{"Test PointFromLineLine", c2, c3, el.NewSketchPoint(5, big.NewFloat(0.745352826), big.NewFloat(1.03892205)), Solved},
 	}
 	for _, tt := range tests {
 		newPoint, state := PointResult(-1, ea, tt.c1, tt.c2)
@@ -706,6 +706,8 @@ func TestPointResult(t *testing.T) {
 		assert.True(t, ca.IsMet(tt.c1.GetID(), -1, ea), tt.name)
 		assert.True(t, ca.IsMet(tt.c2.GetID(), -1, ea), tt.name)
 		assert.Equal(t, tt.desired.GetID(), shared.GetID(), tt.name)
+		t.Logf("PointResult expected line B: %s, found %s\n", tt.desired.GetX().String(), shared.AsPoint().GetX().String())
+		t.Logf("PointResult expected line C: %s, found %s\n", tt.desired.GetY().String(), shared.AsPoint().GetY().String())
 		assert.Equal(t, 0, utils.StandardBigFloatCompare(tt.desired.GetX(), shared.AsPoint().GetX()), tt.name)
 		assert.Equal(t, 0, utils.StandardBigFloatCompare(tt.desired.GetY(), shared.AsPoint().GetY()), tt.name)
 	}

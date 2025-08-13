@@ -103,14 +103,14 @@ func TestLineFromPointLine(t *testing.T) {
 			"test 1",
 			c0,
 			c1,
-			el.NewSketchLine(1, big.NewFloat(0.151089), big.NewFloat(0.988520), big.NewFloat(-0.139610)),
+			el.NewSketchLine(1, big.NewFloat(0.1510894582), big.NewFloat(0.9885200937), big.NewFloat(-0.1396095519)),
 			Solved,
 		},
 		{
 			"test 2",
 			c2,
 			c3,
-			el.NewSketchLine(1, big.NewFloat(0.151089), big.NewFloat(0.988520), big.NewFloat(0.139610)),
+			el.NewSketchLine(1, big.NewFloat(0.1510894582), big.NewFloat(0.9885200937), big.NewFloat(0.1396095519)),
 			Solved,
 		},
 	}
@@ -131,6 +131,9 @@ func TestLineFromPointLine(t *testing.T) {
 			assert.True(t, ca.IsMet(tt.c1.GetID(), -1, ea), tt.name)
 			assert.True(t, ca.IsMet(tt.c2.GetID(), -1, ea), tt.name)
 			assert.Equal(t, tt.desired.GetID(), newLine.GetID(), tt.name)
+			t.Logf("LineFromPointLine expected line A: %s, found %s\n", tt.desired.GetA().String(), newLine.GetA().String())
+			t.Logf("LineFromPointLine expected line B: %s, found %s\n", tt.desired.GetB().String(), newLine.GetB().String())
+			t.Logf("LineFromPointLine expected line C: %s, found %s\n", tt.desired.GetC().String(), newLine.GetC().String())
 			assert.Equal(t, 0, utils.StandardBigFloatCompare(tt.desired.GetA(), newLine.GetA()), tt.name)
 			assert.Equal(t, 0, utils.StandardBigFloatCompare(tt.desired.GetB(), newLine.GetB()), tt.name)
 			assert.Equal(t, 0, utils.StandardBigFloatCompare(tt.desired.GetC(), newLine.GetC()), tt.name)
@@ -201,9 +204,9 @@ func TestLineFromPoints(t *testing.T) {
 		{"Can't find points", c2, c3, el.NewSketchLine(4, big.NewFloat(0.3), big.NewFloat(1.5), big.NewFloat(-0.1)), NonConvergent},
 		{"Coincident to both points", c4, c5, el.NewSketchLine(7, big.NewFloat(0.7), big.NewFloat(0.5), big.NewFloat(-1.2)), Solved},
 		{"Coincident to both points alt slope", c6, c7, el.NewSketchLine(10, big.NewFloat(0.7), big.NewFloat(0.5), big.NewFloat(-1.2)), Solved},
-		{"Distance between points is large", c8, c9, el.NewSketchLine(13, big.NewFloat(0.813733), big.NewFloat(0.581238), big.NewFloat(-0.394971)), Solved},
-		{"Solve by tangent external", c10, c11, el.NewSketchLine(16, big.NewFloat(0.269630), big.NewFloat(0.962964), big.NewFloat(-0.443334)), Solved},
-		{"Solve by tangent internal", c12, c13, el.NewSketchLine(19, big.NewFloat(-0.080388), big.NewFloat(-0.996764), big.NewFloat(0.169612)), Solved},
+		{"Distance between points is large", c8, c9, el.NewSketchLine(13, big.NewFloat(0.8137334712), big.NewFloat(0.5812381937), big.NewFloat(-0.3949716649)), Solved},
+		{"Solve by tangent external", c10, c11, el.NewSketchLine(16, big.NewFloat(0.2696299255), big.NewFloat(0.9629640197), big.NewFloat(-0.4433340942)), Solved},
+		{"Solve by tangent internal", c12, c13, el.NewSketchLine(19, big.NewFloat(-0.08038836581), big.NewFloat(-0.9967636182), big.NewFloat(0.1696116342)), Solved},
 	}
 	for _, tt := range tests {
 		newLine, state := LineFromPoints(-1, ea, tt.c1, tt.c2)
@@ -221,6 +224,9 @@ func TestLineFromPoints(t *testing.T) {
 			c2Line.AsLine().SetB(newLine.GetB())
 			c2Line.AsLine().SetC(newLine.GetC())
 			assert.Equal(t, tt.desired.GetID(), newLine.GetID(), tt.name)
+			t.Logf("LineFromPoints expected line A: %s, found %s\n", tt.desired.GetA().String(), newLine.GetA().String())
+			t.Logf("LineFromPoints expected line B: %s, found %s\n", tt.desired.GetB().String(), newLine.GetB().String())
+			t.Logf("LineFromPoints expected line C: %s, found %s\n", tt.desired.GetC().String(), newLine.GetC().String())
 			assert.Equal(t, 0, utils.StandardBigFloatCompare(tt.desired.GetA(), newLine.GetA()), tt.name)
 			assert.Equal(t, 0, utils.StandardBigFloatCompare(tt.desired.GetB(), newLine.GetB()), tt.name)
 			assert.Equal(t, 0, utils.StandardBigFloatCompare(tt.desired.GetC(), newLine.GetC()), tt.name)
@@ -260,8 +266,8 @@ func TestMoveLineToPoint(t *testing.T) {
 	}{
 		{"The constraint should be a distance constraint", c0, nil, NonConvergent},
 		{"The constraint should have a point and a line", c1, nil, NonConvergent},
-		{"The constraint should be met 1", c2, el.NewSketchLine(5, big.NewFloat(0.3), big.NewFloat(1.5), big.NewFloat(0.629706)), Solved},
-		{"The constraint should be met 2", c3, el.NewSketchLine(6, big.NewFloat(0.196116), big.NewFloat(0.980581), big.NewFloat(2.666987)), Solved},
+		{"The constraint should be met 1", c2, el.NewSketchLine(5, big.NewFloat(0.1961161351), big.NewFloat(0.9805806757), big.NewFloat(0.4116515946)), Solved},
+		{"The constraint should be met 2", c3, el.NewSketchLine(6, big.NewFloat(0.1961161351), big.NewFloat(0.9805806757), big.NewFloat(2.666987149)), Solved},
 	}
 	for _, tt := range tests {
 		state := MoveLineToPoint(ea, tt.c1)
@@ -277,6 +283,9 @@ func TestMoveLineToPoint(t *testing.T) {
 			newLine = e.AsLine()
 		}
 		assert.Equal(t, tt.desired.GetID(), newLine.GetID(), tt.name)
+		t.Logf("MoveLineToPoint expected line A: %s, found %s\n", tt.desired.GetA().String(), newLine.GetA().String())
+		t.Logf("MoveLineToPoint expected line B: %s, found %s\n", tt.desired.GetB().String(), newLine.GetB().String())
+		t.Logf("MoveLineToPoint expected line C: %s, found %s\n", tt.desired.GetC().String(), newLine.GetC().String())
 		assert.Equal(t, 0, utils.StandardBigFloatCompare(tt.desired.GetA(), newLine.GetA()), tt.name)
 		assert.Equal(t, 0, utils.StandardBigFloatCompare(tt.desired.GetB(), newLine.GetB()), tt.name)
 		assert.Equal(t, 0, utils.StandardBigFloatCompare(tt.desired.GetC(), newLine.GetC()), tt.name)
@@ -308,7 +317,7 @@ func TestLineResult(t *testing.T) {
 		state   SolveState
 	}{
 		{"Test Line From Points", c0, c1, el.NewSketchLine(1, big.NewFloat(0.7), big.NewFloat(0.5), big.NewFloat(-1.2)), Solved},
-		{"Test Line From Point Line", c2, c3, el.NewSketchLine(4, big.NewFloat(0.151089), big.NewFloat(0.988520), big.NewFloat(-0.139610)), Solved},
+		{"Test Line From Point Line", c2, c3, el.NewSketchLine(4, big.NewFloat(0.1510894582), big.NewFloat(0.9885200937), big.NewFloat(-0.1396095519)), Solved},
 	}
 	for _, tt := range tests {
 		newLine, state := LineResult(-1, ea, tt.c1, tt.c2)
@@ -326,6 +335,9 @@ func TestLineResult(t *testing.T) {
 			c2Line.AsLine().SetB(newLine.GetB())
 			c2Line.AsLine().SetC(newLine.GetC())
 			assert.Equal(t, tt.desired.GetID(), newLine.GetID(), tt.name)
+			t.Logf("LineResult expected line A: %s, found %s\n", tt.desired.GetA().String(), newLine.GetA().String())
+			t.Logf("LineResult expected line B: %s, found %s\n", tt.desired.GetB().String(), newLine.GetB().String())
+			t.Logf("LineResult expected line C: %s, found %s\n", tt.desired.GetC().String(), newLine.GetC().String())
 			assert.Equal(t, 0, utils.StandardBigFloatCompare(tt.desired.GetA(), newLine.GetA()), tt.name)
 			assert.Equal(t, 0, utils.StandardBigFloatCompare(tt.desired.GetB(), newLine.GetB()), tt.name)
 			assert.Equal(t, 0, utils.StandardBigFloatCompare(tt.desired.GetC(), newLine.GetC()), tt.name)
@@ -371,7 +383,7 @@ func TestSolveForLine(t *testing.T) {
 	}{
 		{"Test Nonconvergent", c0, c1, nil, NonConvergent},
 		{"Test Line From Points", c2, c3, el.NewSketchLine(4, big.NewFloat(0.7), big.NewFloat(0.5), big.NewFloat(-1.2)), Solved},
-		{"Test Line From Point Line", c4, c5, el.NewSketchLine(7, big.NewFloat(0.151089), big.NewFloat(0.988520), big.NewFloat(-0.139610)), Solved},
+		{"Test Line From Point Line", c4, c5, el.NewSketchLine(7, big.NewFloat(0.1510894582), big.NewFloat(0.9885200937), big.NewFloat(-0.1396095510)), Solved},
 	}
 	for _, tt := range tests {
 		state := SolveForLine(-1, ea, tt.c1, tt.c2)
@@ -387,6 +399,9 @@ func TestSolveForLine(t *testing.T) {
 		shared, _ := ea.GetElement(-1, e)
 		shared.AsLine().Normalize()
 		assert.Equal(t, tt.desired.GetID(), shared.GetID(), tt.name)
+		t.Logf("SolveForLine expected line A: %s, found %s\n", tt.desired.GetA().String(), shared.AsLine().GetA().String())
+		t.Logf("SolveForLine expected line B: %s, found %s\n", tt.desired.GetB().String(), shared.AsLine().GetB().String())
+		t.Logf("SolveForLine expected line C: %s, found %s\n", tt.desired.GetC().String(), shared.AsLine().GetC().String())
 		assert.Equal(t, 0, utils.StandardBigFloatCompare(tt.desired.GetA(), shared.AsLine().GetA()), tt.name)
 		assert.Equal(t, 0, utils.StandardBigFloatCompare(tt.desired.GetB(), shared.AsLine().GetB()), tt.name)
 		assert.Equal(t, 0, utils.StandardBigFloatCompare(tt.desired.GetC(), shared.AsLine().GetC()), tt.name)

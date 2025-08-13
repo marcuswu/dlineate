@@ -128,16 +128,23 @@ func (s *Sketch) AddLine(x1 float64, y1 float64, x2 float64, y2 float64) *Elemen
 	l := emptyElement()
 	l.id = s.nextElementID()
 	l.elementType = Line
+	var a, b, c, t big.Float
 
-	a := y2 - y1              // y' - y
-	b := x1 - x2              // x - x'
-	c := (-a * x1) - (b * y1) // c = -ax - by from ax + by + c = 0
+	a.SetPrec(utils.FloatPrecision).SetFloat64(y2 - y1) // y' - y
+	b.SetPrec(utils.FloatPrecision).SetFloat64(x1 - x2) // x - x'
+	c.SetPrec(utils.FloatPrecision).Neg(&a)
+	t.SetPrec(utils.FloatPrecision).SetFloat64(x1)
+	// c = -ax - by from ax + by + c = 0
+	c.Mul(&c, &t)
+	t.SetFloat64(y1)
+	t.Mul(&t, &b)
+	c.Sub(&c, &t)
 	l.values = append(l.values, x1)
 	l.values = append(l.values, y1)
 	l.values = append(l.values, x2)
 	l.values = append(l.values, y2)
 
-	l.element = s.sketch.AddLine(big.NewFloat(a), big.NewFloat(b), big.NewFloat(c)) // AddLine normalizes a, b, c
+	l.element = s.sketch.AddLine(&a, &b, &c) // AddLine normalizes a, b, c
 	s.Elements = append(s.Elements, l)
 
 	start := s.AddPoint(l.values[0], l.values[1])
@@ -356,19 +363,20 @@ func (s *Sketch) resolveLineLength(e *Element) (float64, bool) {
 	return 0, false
 }
 
-func (s *Sketch) resolveCurveRadius(e *Element) (float64, bool) {
+func (s *Sketch) resolveCurveRadius(e *Element) (*big.Float, bool) {
 	if e.elementType != Arc && e.elementType != Circle {
-		return 0, false
+		return nil, false
 	}
 
 	dc, _ := s.getDistanceConstraint(e)
 	// Have a distance constraint already marked as resolved before solving begins!
 	if dc != nil {
-		v := dc.dataValue
+		var v big.Float
+		v.SetPrec(utils.FloatPrecision).SetFloat64(dc.dataValue)
 		if len(dc.constraints) > 0 {
-			v, _ = dc.constraints[0].Value.Float64()
+			v.Copy(&dc.constraints[0].Value)
 		}
-		return v, true
+		return &v, true
 	}
 
 	// Circles and Arcs with solved center and solved elements coincident or distance to the circle / arc
@@ -387,14 +395,16 @@ func (s *Sketch) resolveCurveRadius(e *Element) (float64, bool) {
 			if !s.isElementSolved(other) {
 				continue
 			}
+			var dv, radius big.Float
+			dv.SetPrec(utils.FloatPrecision).SetFloat64(ec.dataValue)
 			// Other & e have a distance constraint between them. dist(other, e.center) - c.value is radius
-			distFromCurve, _ := other.element.AsPoint().DistanceTo(e.children[0].element.AsPoint()).Float64()
-			radius := distFromCurve - ec.dataValue
-			return radius, true
+			distFromCurve := other.element.AsPoint().DistanceTo(e.children[0].element.AsPoint())
+			radius.Sub(distFromCurve, &dv)
+			return &radius, true
 		}
 	}
 
-	return 0, false
+	return nil, false
 }
 
 func (s *Sketch) checkCircleConstraints() {

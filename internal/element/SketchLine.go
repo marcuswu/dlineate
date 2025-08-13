@@ -147,7 +147,7 @@ func (l *SketchLine) DistanceTo(o SketchElement) *big.Float {
 		}
 		// Technically, non-parallel line distances should be 0. I am instead comparing min distances to origin
 		var zero, res big.Float
-		zero.SetFloat64(0)
+		zero.SetPrec(utils.FloatPrecision).SetFloat64(0)
 		res.Sub(l.distanceToPoint(&zero, &zero), o.(*SketchLine).distanceToPoint(&zero, &zero))
 		return res.Abs(&res)
 	default:
@@ -158,14 +158,14 @@ func (l *SketchLine) DistanceTo(o SketchElement) *big.Float {
 // GetOriginDistance returns the distance to the origin for this line
 func (l *SketchLine) GetOriginDistance() *big.Float {
 	var zero big.Float
-	zero.SetFloat64(0)
+	zero.SetPrec(utils.FloatPrecision).SetFloat64(0)
 	return l.distanceToPoint(&zero, &zero)
 }
 
 // PointNearestOrigin get the point on the line nearest to the origin
 func (l *SketchLine) PointNearestOrigin() *SketchPoint {
 	var one, x, y big.Float
-	one.SetFloat64(1)
+	one.SetPrec(utils.FloatPrecision).SetFloat64(1)
 	if utils.StandardBigFloatCompare(l.magnitude(), &one) != 0 {
 		l.Normalize()
 	}
@@ -186,7 +186,7 @@ func (l *SketchLine) TranslateDistance(dist *big.Float) {
 // TranslatedDistance returns the line translated by a distance along its normal
 func (l *SketchLine) TranslatedDistance(dist *big.Float) *SketchLine {
 	var one, c big.Float
-	one.SetFloat64(1)
+	one.SetPrec(utils.FloatPrecision).SetFloat64(1)
 	if utils.StandardBigFloatCompare(l.magnitude(), &one) != 0 {
 		l.Normalize()
 	}
@@ -197,7 +197,7 @@ func (l *SketchLine) TranslatedDistance(dist *big.Float) *SketchLine {
 // Translated returns a line translated by an x and y value
 func (l *SketchLine) Translated(tx *big.Float, ty *big.Float) *SketchLine {
 	var one, x, y, newc big.Float
-	one.SetFloat64(1)
+	one.SetPrec(utils.FloatPrecision).SetFloat64(1)
 	if utils.StandardBigFloatCompare(l.magnitude(), &one) != 0 {
 		l.Normalize()
 	}
@@ -301,7 +301,7 @@ func (l *SketchLine) Rotate(angle *big.Float) {
 // Intersection returns the intersection of two lines
 func (l *SketchLine) Intersection(o *SketchLine) Vector {
 	var x, y, temp1, temp2, zero big.Float
-	zero.SetFloat64(0)
+	zero.SetPrec(utils.FloatPrecision).SetFloat64(0)
 	// y := ((l.a * o.c) - (l.c * o.a)) / ((l.b * o.a) - (l.a * o.b))
 	y.Mul(&l.a, &o.c)
 	temp1.Mul(&l.c, &o.a)
@@ -332,7 +332,7 @@ func (l *SketchLine) VectorTo(o SketchElement) *Vector {
 	var point *SketchPoint
 	var myPoint *SketchPoint
 	var one, x, y big.Float
-	one.SetFloat64(1)
+	one.SetPrec(utils.FloatPrecision).SetFloat64(1)
 	if utils.StandardBigFloatCompare(l.magnitude(), &one) != 0 {
 		l.Normalize()
 	}

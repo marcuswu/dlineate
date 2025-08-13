@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+
+	"github.com/marcuswu/dlineate/utils"
 )
 
 // Vector represents a 2D vector
@@ -27,7 +29,7 @@ func (v *Vector) GetY() *big.Float {
 // Dot product with another vector
 func (v *Vector) Dot(u *Vector) (ret *big.Float) {
 	var x, y, res, zero big.Float
-	zero.SetFloat64(0)
+	zero.SetPrec(utils.FloatPrecision).SetFloat64(0)
 	defer func() {
 		if r := recover(); r != nil {
 			ret = &zero
@@ -42,7 +44,7 @@ func (v *Vector) Dot(u *Vector) (ret *big.Float) {
 // SquareMagnitude returns the squared magnitude of the vector
 func (v *Vector) SquareMagnitude() (ret *big.Float) {
 	var x, y, res, zero big.Float
-	zero.SetFloat64(0)
+	zero.SetPrec(utils.FloatPrecision).SetFloat64(0)
 	x.Mul(&v.X, &v.X)
 	y.Mul(&v.Y, &v.Y)
 	res.Add(&x, &y)
@@ -72,7 +74,7 @@ func (v *Vector) AngleTo(u *Vector) *big.Float {
 	} else if angle <= -math.Pi {
 		angle += 2 * math.Pi
 	}
-	return big.NewFloat(angle)
+	return new(big.Float).SetPrec(utils.FloatPrecision).SetFloat64(angle)
 }
 
 // Rotated returns a vector representing this vector rotated around the origin by angle radians
@@ -84,8 +86,8 @@ func (v *Vector) Rotated(angle *big.Float) (ret Vector) {
 	}()
 	a, _ := angle.Float64()
 	var sinAngle, cosAngle big.Float
-	sinAngle.SetFloat64(math.Sin(a))
-	cosAngle.SetFloat64(math.Cos(a))
+	sinAngle.SetPrec(utils.FloatPrecision).SetFloat64(math.Sin(a))
+	cosAngle.SetPrec(utils.FloatPrecision).SetFloat64(math.Cos(a))
 
 	var xSin, xCos, ySin, yCos big.Float
 	xCos.Mul(&v.X, &cosAngle)
@@ -112,6 +114,8 @@ func (v *Vector) Translated(dx *big.Float, dy *big.Float) (ret Vector) {
 		}
 	}()
 	var x, y big.Float
+	x.SetPrec(utils.FloatPrecision)
+	y.SetPrec(utils.FloatPrecision)
 	return Vector{*x.Add(&v.X, dx), *y.Add(&v.Y, dy)}
 }
 
@@ -127,7 +131,9 @@ func (v *Vector) Translate(dx *big.Float, dy *big.Float) {
 func (v *Vector) UnitVector() (*Vector, bool) {
 	mag := v.Magnitude()
 	var x, y, zero big.Float
-	zero.SetInt64(0)
+	x.SetPrec(utils.FloatPrecision)
+	y.SetPrec(utils.FloatPrecision)
+	zero.SetPrec(utils.FloatPrecision).SetInt64(0)
 	if mag.Cmp(&zero) == 0 {
 		return nil, false
 	}
@@ -138,8 +144,8 @@ func (v *Vector) UnitVector() (*Vector, bool) {
 func (v *Vector) Scaled(scale *big.Float) {
 	defer func() {
 		if r := recover(); r != nil {
-			v.X.SetFloat64(0)
-			v.Y.SetFloat64(0)
+			v.X.SetPrec(utils.FloatPrecision).SetFloat64(0)
+			v.Y.SetPrec(utils.FloatPrecision).SetFloat64(0)
 		}
 	}()
 	v.X.Mul(&v.X, scale)
