@@ -1,6 +1,7 @@
 package solver
 
 import (
+	"fmt"
 	"math"
 	"math/big"
 	"testing"
@@ -35,7 +36,7 @@ func TestSolveAngleConstraint(t *testing.T) {
 			Solved,
 		},
 		{
-			"Test -108º constraint 2",
+			"Test 108º constraint 2",
 			constraint.NewConstraint(0, constraint.Angle, 2, 3, big.NewFloat((108.0/180.0)*math.Pi), false),
 			3,
 			Solved,
@@ -55,7 +56,8 @@ func TestSolveAngleConstraint(t *testing.T) {
 	}
 	for _, tt := range tests {
 		newLine, status := SolveAngleConstraint(-1, ea, tt.constraint, tt.solveFor)
-		if tt.solveState == Solved {
+		assert.Equal(t, tt.solveState, status, fmt.Sprintf("Expected solve state not found for %s", tt.name))
+		if tt.solveState == status && tt.solveState == Solved {
 			e1, _ := ea.GetElement(-1, tt.constraint.Element1)
 			e2, _ := ea.GetElement(-1, tt.constraint.Element2)
 			first := e1.AsLine()
@@ -69,6 +71,7 @@ func TestSolveAngleConstraint(t *testing.T) {
 			var v1, v2 big.Float
 			v1.Abs(&tt.constraint.Value)
 			v2.Abs(first.AngleToLine(second))
+			t.Logf("SolveAngleConstraint expected angle: %s, found %s\n", v1.String(), v2.String())
 			assert.Equal(t, 0, utils.StandardBigFloatCompare(&v1, &v2), tt.name)
 		} else {
 			assert.Nil(t, newLine, tt.name)
@@ -117,7 +120,7 @@ func TestLineFromPointLine(t *testing.T) {
 	for _, tt := range tests {
 		newLine, state := LineFromPointLine(-1, ea, tt.c1, tt.c2)
 		assert.Equal(t, state, tt.state, tt.name)
-		if tt.state == NonConvergent {
+		if tt.state != state || tt.state == NonConvergent {
 			assert.Nil(t, newLine)
 		} else {
 			c1Line, _ := ea.GetElement(-1, newLine.GetID())
@@ -322,7 +325,7 @@ func TestLineResult(t *testing.T) {
 	for _, tt := range tests {
 		newLine, state := LineResult(-1, ea, tt.c1, tt.c2)
 		assert.Equal(t, state, tt.state, tt.name)
-		if tt.desired == nil {
+		if tt.desired == nil || state != tt.state {
 			assert.Nil(t, newLine, tt.name)
 		} else {
 			newLine.Normalize()
@@ -343,7 +346,7 @@ func TestLineResult(t *testing.T) {
 			assert.Equal(t, 0, utils.StandardBigFloatCompare(tt.desired.GetC(), newLine.GetC()), tt.name)
 		}
 
-		if tt.state == Solved {
+		if tt.state == Solved && state == tt.state {
 			assert.True(t, ca.IsMet(tt.c1.GetID(), -1, ea), tt.name)
 			assert.True(t, ca.IsMet(tt.c2.GetID(), -1, ea), tt.name)
 		}

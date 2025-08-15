@@ -102,8 +102,8 @@ func (v *Vector) Rotated(angle *big.Float) (ret Vector) {
 func (v *Vector) Rotate(angle *big.Float) {
 	rotated := v.Rotated(angle)
 
-	v.X = rotated.X
-	v.Y = rotated.Y
+	v.X.Copy(&rotated.X)
+	v.Y.Copy(&rotated.Y)
 }
 
 // Translated returns a vector representing this vector by an x and y distance
@@ -123,8 +123,8 @@ func (v *Vector) Translated(dx *big.Float, dy *big.Float) (ret Vector) {
 func (v *Vector) Translate(dx *big.Float, dy *big.Float) {
 	translated := v.Translated(dx, dy)
 
-	v.X = translated.X
-	v.Y = translated.Y
+	v.X.Copy(&translated.X)
+	v.Y.Copy(&translated.Y)
 }
 
 // UnitVector returns a unit vector with the same direction

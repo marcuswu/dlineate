@@ -461,7 +461,9 @@ func SolveAngleConstraint(cluster int, ea accessors.ElementAccessor, c *constrai
 		return nil, NonConvergent
 	}
 	l2 := element.(*el.SketchLine)
+	var negDesired big.Float
 	desired := c.Value
+	negDesired.SetPrec(utils.FloatPrecision).Neg(&desired)
 	if l1.GetID() == e {
 		l1, l2 = l2, l1
 	}
@@ -481,19 +483,28 @@ func SolveAngleConstraint(cluster int, ea accessors.ElementAccessor, c *constrai
 	}
 
 	var newLine *el.SketchLine = nil
+	// Find the option that is closest to the original line and fits the desired angle
 	for _, line := range lines {
 		if newLine == nil {
 			newLine = line
 			continue
 		}
 		var angle1, angle2 big.Float
-		angle1.Abs(line.AngleToLine(l2))
-		angle2.Abs(newLine.AngleToLine(l2))
+		angle1.SetPrec(utils.FloatPrecision).Copy(line.AngleToLine(l1))
+		if utils.StandardBigFloatCompare(&angle1, &desired) != 0 && utils.StandardBigFloatCompare(&angle1, &negDesired) != 0 {
+			continue
+		}
+		angle1.SetPrec(utils.FloatPrecision).Abs(line.AngleToLine(l2))
+		angle2.SetPrec(utils.FloatPrecision).Abs(newLine.AngleToLine(l2))
 		if angle1.Cmp(&angle2) < 0 {
 			newLine = line
 		}
 	}
 
+	angle1.SetPrec(utils.FloatPrecision).Copy(newLine.AngleToLine(l1))
+	if utils.StandardBigFloatCompare(angle1, &desired) != 0 && utils.StandardBigFloatCompare(angle1, &negDesired) != 0 {
+		return nil, NonConvergent
+	}
 	c.Solved = true
 	return newLine, Solved
 }
