@@ -221,7 +221,8 @@ func (g *GraphCluster) Solve(ea accessors.ElementAccessor, ca accessors.Constrai
 	}
 	utils.Logger.Trace().
 		Str("state", state.String()).
-		Msg("State")
+		Uint("constraint", c1.GetID()).
+		Msg("State after constraint solve")
 	g.solved.Add(c1.GetID())
 
 	/*
@@ -327,7 +328,8 @@ func (g *GraphCluster) Solve(ea accessors.ElementAccessor, ca accessors.Constrai
 			state = s
 			utils.Logger.Trace().
 				Str("state", state.String()).
-				Msg("State")
+				Str("element", element.String()).
+				Msg("State after element solve")
 		}
 		g.solved.Add(c[0].GetID())
 		g.solved.Add(c[1].GetID())
@@ -339,7 +341,8 @@ func (g *GraphCluster) Solve(ea accessors.ElementAccessor, ca accessors.Constrai
 
 	utils.Logger.Info().
 		Str("state", state.String()).
-		Msg("finished")
+		Int("state", g.id).
+		Msg("cluster solve finished")
 	g.logElements(ea, zerolog.InfoLevel)
 	return state
 }
@@ -588,9 +591,20 @@ func (g *GraphCluster) solveMerge(ea accessors.ElementAccessor, ca accessors.Con
 		current, desired := from.VectorTo(pivot), to.VectorTo(pivot)
 		angle := desired.AngleTo(current)
 		angle2 := current.AngleTo(desired)
+		if from.GetType() == el.Line {
+			angle = from.AsLine().AngleToLine(to.AsLine())
+		}
+		new1 := el.CopySketchElement(from)
+		new1.Rotate(angle)
+		if new1.IsEqual(to) {
+			utils.Logger.Trace().
+				Str("angle", angle.String()).
+				Msg("Cluster Rotation")
+			c.RotateCluster(ea, pivot.AsPoint(), angle)
+			return
+		}
 		utils.Logger.Trace().
-			Str("angle", angle.String()).
-			Str("angle 2", angle2.String()).
+			Str("angle", angle2.String()).
 			Msg("Cluster Rotation")
 		c.RotateCluster(ea, pivot.AsPoint(), angle2)
 	}

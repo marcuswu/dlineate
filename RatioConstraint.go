@@ -75,9 +75,9 @@ func (s *Sketch) resolveRatioConstraint(c *Constraint) bool {
 	var ratio, value big.Float
 	ratio.SetPrec(utils.FloatPrecision).SetFloat64(c.dataValue)
 	p1Radius, ok := s.resolveCurveRadius(p1)
-	value.SetPrec(utils.FloatPrecision).Mul(p1Radius, &ratio)
-	val, _ := value.Float64()
 	if ok {
+		value.SetPrec(utils.FloatPrecision).Mul(p1Radius, &ratio)
+		val, _ := value.Float64()
 		constraint := s.addDistanceConstraint(p2, nil, val)
 		if constraint != nil {
 			utils.Logger.Debug().
@@ -93,9 +93,9 @@ func (s *Sketch) resolveRatioConstraint(c *Constraint) bool {
 	}
 
 	p2Radius, ok := s.resolveCurveRadius(p2)
-	value.Quo(p2Radius, &ratio)
-	val, _ = value.Float64()
 	if ok {
+		value.Quo(p2Radius, &ratio)
+		val, _ := value.Float64()
 		constraint := s.addDistanceConstraint(p1, nil, val)
 		if constraint != nil {
 			utils.Logger.Debug().

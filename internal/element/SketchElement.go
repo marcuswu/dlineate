@@ -58,6 +58,7 @@ type SketchElement interface {
 	ReverseTranslateByElement(SketchElement)
 	Rotate(tx *big.Float)
 	Is(SketchElement) bool
+	IsEqual(SketchElement) bool
 	SquareDistanceTo(SketchElement) *big.Float
 	DistanceTo(SketchElement) *big.Float
 	VectorTo(SketchElement) *Vector

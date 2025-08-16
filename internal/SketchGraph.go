@@ -54,10 +54,6 @@ func (g *SketchGraph) MakeFixed(e el.SketchElement) {
 	e.SetFixed(true)
 }
 
-func (g *SketchGraph) isShared(cId int, eId uint) bool {
-	return g.elementAccessor.IsShared(eId)
-}
-
 // AddPoint adds a point to the sketch
 func (g *SketchGraph) AddPoint(x *big.Float, y *big.Float) el.SketchElement {
 	elementID := g.elementAccessor.NextId()

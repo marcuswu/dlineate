@@ -362,7 +362,7 @@ func LineFromPoints(cluster int, ea accessors.ElementAccessor, c1 *constraint.Co
 	var minDifference, originalSlope, tangentSlope, slopeDifference, originDistanceDifference, averageDifference big.Float
 	minDifference.SetPrec(utils.FloatPrecision).SetFloat64(math.MaxFloat64)
 	chosenA, chosenB, chosenC := tanA[0], tanB[0], tanC[0]
-	for i, _ := range tanA {
+	for i := range tanA {
 		originalSlope.Quo(line.GetB(), line.GetA())
 		a, b, c = &tanA[i], &tanB[i], &tanC[i]
 		tangentSlope.Quo(b, a)

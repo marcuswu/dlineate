@@ -3,6 +3,8 @@ package element
 import (
 	"fmt"
 	"math/big"
+
+	"github.com/marcuswu/dlineate/utils"
 )
 
 // SketchPoint represents a point in a 2D Sketch
@@ -71,6 +73,15 @@ func (p *SketchPoint) ReverseTranslateByElement(e SketchElement) {
 // Is returns true if the two elements are equal
 func (p *SketchPoint) Is(o SketchElement) bool {
 	return p.id == o.GetID()
+}
+
+func (p *SketchPoint) IsEqual(o SketchElement) bool {
+	if p.GetType() != o.GetType() {
+		return false
+	}
+	op := o.AsPoint()
+	return utils.StandardBigFloatCompare(&p.X, &op.X) == 0 &&
+		utils.StandardBigFloatCompare(&p.Y, &op.Y) == 0
 }
 
 // SquareDistanceTo returns the squared distance to the other element

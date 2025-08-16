@@ -264,16 +264,16 @@ func TestSolve(t *testing.T) {
 	s.AddConstraint(constraint.Distance, origin, yAxis, big.NewFloat(0))
 
 	p1 := origin
-	p2 := s.AddPoint(big.NewFloat(4), big.NewFloat(0))                // 3
-	p3 := s.AddPoint(big.NewFloat(5.236068), big.NewFloat(3.804226))  // 4
-	p4 := s.AddPoint(big.NewFloat(2), big.NewFloat(6.155367))         // 5
-	p5 := s.AddPoint(big.NewFloat(-1.236068), big.NewFloat(3.804226)) // 6
+	p2 := s.AddPoint(big.NewFloat(3.13), big.NewFloat(0))     // 3
+	p3 := s.AddPoint(big.NewFloat(5.14), big.NewFloat(2.27))  // 4
+	p4 := s.AddPoint(big.NewFloat(2.28), big.NewFloat(4.72))  // 5
+	p5 := s.AddPoint(big.NewFloat(-1.04), big.NewFloat(3.56)) // 6
 
 	l1 := s.AddLine(big.NewFloat(0), big.NewFloat(-1), big.NewFloat(0))                       // 7
-	l2 := s.AddLine(big.NewFloat(0.951057), big.NewFloat(-0.309017), big.NewFloat(-3.804226)) // 8
-	l3 := s.AddLine(big.NewFloat(0.587785), big.NewFloat(0.809017), big.NewFloat(-6.155367))  // 9
-	l4 := s.AddLine(big.NewFloat(-0.587785), big.NewFloat(0.809017), big.NewFloat(-3.804226)) // 10
-	l5 := s.AddLine(big.NewFloat(-0.951057), big.NewFloat(-0.309017), big.NewFloat(0))        // 11
+	l2 := s.AddLine(big.NewFloat(0.748681), big.NewFloat(-0.662629), big.NewFloat(-2.343374)) // 8
+	l3 := s.AddLine(big.NewFloat(0.650573), big.NewFloat(0.759444), big.NewFloat(-5.067881))  // 9
+	l4 := s.AddLine(big.NewFloat(-0.329844), big.NewFloat(0.944036), big.NewFloat(-3.703804)) // 10
+	l5 := s.AddLine(big.NewFloat(-0.959879), big.NewFloat(-0.280414), big.NewFloat(0))        // 11
 
 	s.AddConstraint(constraint.Distance, l1, p1, big.NewFloat(0))
 	s.AddConstraint(constraint.Distance, l1, p2, big.NewFloat(0))
@@ -286,9 +286,9 @@ func TestSolve(t *testing.T) {
 	s.AddConstraint(constraint.Distance, l5, p5, big.NewFloat(0))
 	c1 := s.AddConstraint(constraint.Distance, l5, p1, big.NewFloat(0))
 
-	s.AddConstraint(constraint.Angle, l2, l3, big.NewFloat((72.0/180.0)*math.Pi))
-	s.AddConstraint(constraint.Angle, l3, l4, big.NewFloat((72.0/180.0)*math.Pi))
-	s.AddConstraint(constraint.Angle, l4, l5, big.NewFloat((72.0/180.0)*math.Pi))
+	s.AddConstraint(constraint.Angle, l2, l3, big.NewFloat((108.0/180.0)*math.Pi))
+	s.AddConstraint(constraint.Angle, l3, l4, big.NewFloat((108.0/180.0)*math.Pi))
+	s.AddConstraint(constraint.Angle, l4, l5, big.NewFloat((108.0/180.0)*math.Pi))
 
 	c2 := s.AddConstraint(constraint.Distance, p1, p2, big.NewFloat(4))
 	s.AddConstraint(constraint.Distance, p2, p3, big.NewFloat(4))

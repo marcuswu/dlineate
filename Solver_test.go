@@ -143,8 +143,9 @@ func TestResolveCurveRadius(t *testing.T) {
 	}
 
 	r, ok := s.resolveCurveRadius(c1)
+	desired := new(big.Float).SetPrec(utils.FloatPrecision).SetFloat64(3.0)
 	assert.True(t, ok, "Curve radius should be resolved")
-	assert.Equal(t, 3.0, r, "Curve radius should be 3")
+	assert.Equal(t, 0, utils.StandardBigFloatCompare(desired, r), "Curve radius should be 3")
 }
 
 func TestSolve(t *testing.T) {

@@ -72,9 +72,20 @@ func (l *SketchLine) SetC(c *big.Float) { l.c.Set(c) }
 // GetType returns the sketch type
 func (l *SketchLine) GetType() Type { return l.elementType }
 
-// Is returns true if the two elements are equal
+// Is returns true if the two elements have the same id
 func (l *SketchLine) Is(o SketchElement) bool {
 	return l.id == o.GetID()
+}
+
+// Is returns true if the two elements are equal
+func (l *SketchLine) IsEqual(o SketchElement) bool {
+	if l.GetType() != o.GetType() {
+		return false
+	}
+	ol := o.AsLine()
+	return utils.StandardBigFloatCompare(&l.a, &ol.a) == 0 &&
+		utils.StandardBigFloatCompare(&l.b, &ol.b) == 0 &&
+		utils.StandardBigFloatCompare(&l.c, &ol.c) == 0
 }
 
 func (l *SketchLine) magnitude() *big.Float {
@@ -122,9 +133,13 @@ func (l *SketchLine) NearestPoint(x *big.Float, y *big.Float) *SketchPoint {
 	ay.Mul(&l.a, y)
 	ac.Mul(&l.a, &l.c)
 	bc.Mul(&l.b, &l.c)
+
+	// x := (l.b * ((l.b * x) - (l.a * y))) - l.a * l.c
 	px.Sub(&bx, &ay)
 	px.Mul(&l.b, &px)
 	px.Sub(&px, &ac)
+
+	// y := (l.a * ((l.a * y) - (l.b * x))) - l.b * l.c
 	py.Sub(&ay, &bx)
 	py.Mul(&l.a, &py)
 	py.Sub(&py, &bc)
@@ -344,16 +359,16 @@ func (l *SketchLine) VectorTo(o SketchElement) *Vector {
 		if utils.StandardBigFloatCompare(oline.magnitude(), &one) != 0 {
 			oline.Normalize()
 		}
-		x.Mul(&oline.a, &oline.c)
-		y.Mul(&oline.b, &oline.c)
+		x.SetPrec(utils.FloatPrecision).Mul(&oline.a, &oline.c)
+		y.SetPrec(utils.FloatPrecision).Mul(&oline.b, &oline.c)
 		point = NewSketchPoint(0, &x, &y)
 		x.Mul(&l.a, &l.c)
 		y.Mul(&l.b, &l.c)
 		myPoint = NewSketchPoint(0, &x, &y)
 	}
 
-	x.Sub(myPoint.GetX(), point.GetX())
-	y.Sub(myPoint.GetY(), point.GetY())
+	x.SetPrec(utils.FloatPrecision).Sub(myPoint.GetX(), point.GetX())
+	y.SetPrec(utils.FloatPrecision).Sub(myPoint.GetY(), point.GetY())
 	return &Vector{x, y}
 }
 
