@@ -1,6 +1,8 @@
 package dlineate
 
 import (
+	"math/big"
+
 	ic "github.com/marcuswu/dlineate/internal/constraint"
 	"github.com/marcuswu/dlineate/utils"
 )
@@ -18,13 +20,15 @@ func DistanceConstraint(p1 *Element, p2 *Element) *Constraint {
 }
 
 func (s *Sketch) addDistanceConstraint(p1 *Element, p2 *Element, v float64) *ic.Constraint {
+	var value big.Float
+	value.SetPrec(utils.FloatPrecision).SetFloat64(v)
 	switch p1.elementType {
 	case Point:
 		if p2.elementType != Point {
 			return s.addDistanceConstraint(p2, p1, v)
 		}
 
-		return s.sketch.AddConstraint(ic.Distance, p1.element, p2.element, v)
+		return s.sketch.AddConstraint(ic.Distance, p1.element, p2.element, &value)
 	case Circle:
 		if p2 == nil {
 			// If p2 is nil, we're setting the circle radius
@@ -44,14 +48,14 @@ func (s *Sketch) addDistanceConstraint(p1 *Element, p2 *Element, v float64) *ic.
 				p1.children[0].element.GetID(),
 				p1.children[1].element.GetID(),
 			)
-			return s.sketch.AddConstraint(ic.Distance, p1.children[0].element, p1.children[1].element, v)
+			return s.sketch.AddConstraint(ic.Distance, p1.children[0].element, p1.children[1].element, &value)
 		}
 		isCircle := p2.elementType == Circle
 		isArc := p2.elementType == Arc
 		if isArc || isCircle {
 			return s.addDistanceConstraint(p2, p1, v)
 		}
-		return s.sketch.AddConstraint(ic.Distance, p1.element, p2.element, v)
+		return s.sketch.AddConstraint(ic.Distance, p1.element, p2.element, &value)
 	case Arc:
 		if p2 == nil {
 			// Add a constraint to pkg/Sketch (not translatable to internal solver)
@@ -115,7 +119,7 @@ func (s *Sketch) resolveCurveDistance(e1 *Element, e2 *Element, c *Constraint) b
 	utils.Logger.Debug().
 		Float64("center x", e1.values[0]).
 		Float64("center y", e1.values[1]).
-		Float64("radius", eRadius).
+		Str("radius", eRadius.String()).
 		Msg("Resolved curve radius")
 	var constraint *ic.Constraint = nil
 	if e2 != nil {
@@ -123,12 +127,15 @@ func (s *Sketch) resolveCurveDistance(e1 *Element, e2 *Element, c *Constraint) b
 		if e1.elementType == Circle {
 			e1Element = e1.Center().element
 		}
-		constraint = s.sketch.AddConstraint(ic.Distance, e1Element, e2.element, eRadius+c.dataValue)
+		var dv big.Float
+		dv.SetPrec(utils.FloatPrecision).SetFloat64(c.dataValue)
+		dv.Add(&dv, eRadius)
+		constraint = s.sketch.AddConstraint(ic.Distance, e1Element, e2.element, &dv)
 		utils.Logger.Debug().
 			Uint("constraint id", constraint.GetID()).
 			Uint("element 1", constraint.Element1).
 			Uint("element 2", constraint.Element2).
-			Float64("value", constraint.Value).
+			Str("value", constraint.Value.String()).
 			Msg("Resolved curve radius")
 	}
 	utils.Logger.Debug().

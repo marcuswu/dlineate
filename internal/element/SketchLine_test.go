@@ -2,6 +2,7 @@ package element
 
 import (
 	"math"
+	"math/big"
 	"testing"
 
 	"github.com/marcuswu/dlineate/utils"
@@ -9,19 +10,23 @@ import (
 )
 
 func TestLineBasics(t *testing.T) {
-	l1 := NewSketchLine(0, 0, 1, 0)
+	var zero, one, two big.Float
+	zero.SetFloat64(0)
+	one.SetFloat64(1)
+	two.SetFloat64(2)
+	l1 := NewSketchLine(0, &zero, &one, &zero)
 
 	assert.Equal(t, uint(0), l1.GetID())
 	l1.SetID(1)
 	assert.Equal(t, uint(1), l1.GetID())
-	l1.SetA(1)
-	assert.Equal(t, 1.0, l1.GetA())
-	l1.SetB(2)
-	assert.Equal(t, 2.0, l1.GetB())
-	l1.SetC(1)
-	assert.Equal(t, 1.0, l1.GetC())
+	l1.SetA(&one)
+	assert.Equal(t, one.Cmp(l1.GetA()), 0)
+	l1.SetB(&two)
+	assert.Equal(t, two.Cmp(l1.GetB()), 0)
+	l1.SetC(&one)
+	assert.Equal(t, one.Cmp(l1.GetC()), 0)
 
-	l2 := NewSketchLine(1, 1, 0, 0)
+	l2 := NewSketchLine(1, &one, &zero, &zero)
 	assert.True(t, l1.Is(l2))
 	assert.False(t, l1.IsEquivalent(l2))
 }
@@ -30,32 +35,37 @@ func TestNormalize(t *testing.T) {
 	tests := []struct {
 		line *SketchLine
 	}{
-		{NewSketchLine(0, 5, 10, 3)},
-		{NewSketchLine(1, 3.5, 1.04, 3.7)},
-		{NewSketchLine(2, 8.2, 2.8, 9.1)},
+		{NewSketchLine(0, big.NewFloat(5), big.NewFloat(10), big.NewFloat(3))},
+		{NewSketchLine(1, big.NewFloat(3.5), big.NewFloat(1.04), big.NewFloat(3.7))},
+		{NewSketchLine(2, big.NewFloat(8.2), big.NewFloat(2.8), big.NewFloat(9.1))},
 	}
 	for _, tt := range tests {
 		slope := tt.line.GetSlope()
 		point := tt.line.PointNearestOrigin()
 		tt.line.Normalize()
-		assert.Zero(t, utils.StandardFloatCompare(slope, tt.line.GetSlope()))
-		assert.Equal(t, point, tt.line.PointNearestOrigin())
+		assert.Equal(t, 0, utils.StandardBigFloatCompare(slope, tt.line.GetSlope()))
+		assert.True(t, point.Is(tt.line.PointNearestOrigin()))
 	}
 }
 
 func TestAngleToLine(t *testing.T) {
-	l1 := NewSketchLine(0, -0.611735, -0.791063, 6.155367)
-	l2 := NewSketchLine(1, -0.563309, 0.826247, -3.804226)
+	// 72 * math.Pi / 180
+	angle := big.NewFloat(math.Pi)
+	angle.Quo(angle, big.NewFloat(180))
+	angle.Mul(angle, big.NewFloat(72))
+	l1 := NewSketchLine(0, big.NewFloat(0.5877852523), big.NewFloat(0.8090169944), big.NewFloat(-6.155367074))
+	l2 := NewSketchLine(1, big.NewFloat(-0.5877852523), big.NewFloat(0.8090169944), big.NewFloat(-3.804226065))
 
 	a := l1.AngleToLine(l2)
 	b := l2.AngleToLine(l1)
 
-	var angle = 108 * math.Pi / 180
-	if utils.StandardFloatCompare(a, -angle) != 0 {
-		t.Errorf("Expected angle to be -108º (%f), got %f\n", angle, a)
+	var negAngle big.Float
+	negAngle.Neg(angle)
+	if utils.StandardBigFloatCompare(a, angle) != 0 {
+		t.Errorf("Expected angle to be 108º (%s), got %s\n", negAngle.String(), a.String())
 	}
-	if utils.StandardFloatCompare(b, angle) != 0 {
-		t.Errorf("Expected angle to be -108º (%f), got %f\n", angle, b)
+	if utils.StandardBigFloatCompare(b, &negAngle) != 0 {
+		t.Errorf("Expected angle to be -108º (%s), got %s\n", angle.String(), b.String())
 	}
 }
 
@@ -65,12 +75,24 @@ func TestNearestPoint(t *testing.T) {
 		point   *SketchPoint
 		nearest *SketchPoint
 	}{
-		{NewSketchLine(0, 0, 1, 0), NewSketchPoint(0, 0, 0), NewSketchPoint(0, 0, 0)},
-		{NewSketchLine(0, 0, 1, 0), NewSketchPoint(0, 0, 1), NewSketchPoint(0, 0, 0)},
-		{NewSketchLine(0, 0, 1, 0), NewSketchPoint(0, 1, 1), NewSketchPoint(0, 1, 0)},
+		{
+			NewSketchLine(0, big.NewFloat(0), big.NewFloat(1), big.NewFloat(0)),
+			NewSketchPoint(0, big.NewFloat(0), big.NewFloat(0)),
+			NewSketchPoint(0, big.NewFloat(0), big.NewFloat(0)),
+		},
+		{
+			NewSketchLine(0, big.NewFloat(0), big.NewFloat(1), big.NewFloat(0)),
+			NewSketchPoint(0, big.NewFloat(0), big.NewFloat(1)),
+			NewSketchPoint(0, big.NewFloat(0), big.NewFloat(0)),
+		},
+		{
+			NewSketchLine(0, big.NewFloat(0), big.NewFloat(1), big.NewFloat(0)),
+			NewSketchPoint(0, big.NewFloat(1), big.NewFloat(1)),
+			NewSketchPoint(0, big.NewFloat(1), big.NewFloat(0)),
+		},
 	}
 	for _, tt := range tests {
-		assert.Equal(t, tt.nearest, tt.line.NearestPoint(tt.point.X, tt.point.Y))
+		assert.True(t, tt.nearest.Is(tt.line.NearestPoint(&tt.point.X, &tt.point.Y)))
 	}
 
 }
@@ -78,11 +100,18 @@ func TestNearestPoint(t *testing.T) {
 func TestTranslateDistance(t *testing.T) {
 	tests := []struct {
 		line       *SketchLine
-		distance   float64
+		distance   *big.Float
 		translated *SketchLine
 	}{
-		{NewSketchLine(0, 0, 1, 0), 4, NewSketchLine(0, 0, 1, -4)},
-		{NewSketchLine(0, 0, 1, 0), -4, NewSketchLine(0, 0, 1, 4)},
+		{
+			NewSketchLine(0, big.NewFloat(0), big.NewFloat(1), big.NewFloat(0)),
+			big.NewFloat(4),
+			NewSketchLine(0, big.NewFloat(0), big.NewFloat(1), big.NewFloat(-4)),
+		},
+		{
+			NewSketchLine(0, big.NewFloat(0), big.NewFloat(1), big.NewFloat(0)),
+			big.NewFloat(-4),
+			NewSketchLine(0, big.NewFloat(0), big.NewFloat(1), big.NewFloat(4))},
 	}
 	for _, tt := range tests {
 		assert.Equal(t, tt.translated, tt.line.TranslatedDistance(tt.distance))
@@ -94,17 +123,21 @@ func TestTranslateDistance(t *testing.T) {
 }
 
 func TestRotate(t *testing.T) {
+	pi := big.NewFloat(math.Pi)
 	tests := []struct {
 		line  *SketchLine
-		angle float64
+		angle *big.Float
 	}{
-		{NewSketchLine(0, 1, 4, 7), math.Pi / 6},
-		{NewSketchLine(0, 0.67, 1.455, 2.34), math.Pi / 2},
+		{NewSketchLine(0, big.NewFloat(1), big.NewFloat(4), big.NewFloat(7)), big.NewFloat(0).Quo(pi, big.NewFloat(6))},
+		{NewSketchLine(0, big.NewFloat(0.67), big.NewFloat(1.455), big.NewFloat(2.34)), big.NewFloat(0).Quo(pi, big.NewFloat(2))},
 	}
 	for _, tt := range tests {
 		original := CopySketchElement(tt.line).AsLine()
 		tt.line.Rotate(tt.angle)
-		assert.InDelta(t, tt.angle, original.AngleToLine(tt.line), utils.StandardCompare)
-		assert.InDelta(t, original.GetOriginDistance(), tt.line.GetOriginDistance(), utils.StandardCompare)
+
+		flipRotAngle := big.NewFloat(math.Pi)
+		flipRotAngle.Sub(flipRotAngle, tt.angle)
+		assert.Equal(t, 0, utils.StandardBigFloatCompare(tt.angle, original.AngleToLine(tt.line)))
+		assert.Equal(t, 0, utils.StandardBigFloatCompare(original.GetOriginDistance(), tt.line.GetOriginDistance()))
 	}
 }

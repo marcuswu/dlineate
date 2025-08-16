@@ -2,7 +2,9 @@ package element
 
 import (
 	"fmt"
-	"math"
+	"math/big"
+
+	"github.com/marcuswu/dlineate/utils"
 )
 
 // SketchPoint represents a point in a 2D Sketch
@@ -25,10 +27,16 @@ func (p *SketchPoint) GetID() uint {
 }
 
 // GetX gets the x value of the point
-func (p *SketchPoint) GetX() float64 { return p.X }
+func (p *SketchPoint) GetX() *big.Float {
+	var ret big.Float
+	return ret.Copy(&p.X)
+}
 
 // GetY gets the x value of the point
-func (p *SketchPoint) GetY() float64 { return p.Y }
+func (p *SketchPoint) GetY() *big.Float {
+	var ret big.Float
+	return ret.Copy(&p.Y)
+}
 
 // GetType gets the type of the element
 func (p *SketchPoint) GetType() Type {
@@ -56,7 +64,10 @@ func (p *SketchPoint) ReverseTranslateByElement(e SketchElement) {
 		point = e.(*SketchLine).PointNearestOrigin()
 	}
 
-	p.Translate(-point.GetX(), -point.GetY())
+	var transX, transY big.Float
+	transX.Neg(point.GetX())
+	transY.Neg(point.GetY())
+	p.Translate(&transX, &transY)
 }
 
 // Is returns true if the two elements are equal
@@ -64,29 +75,45 @@ func (p *SketchPoint) Is(o SketchElement) bool {
 	return p.id == o.GetID()
 }
 
+func (p *SketchPoint) IsEqual(o SketchElement) bool {
+	if p.GetType() != o.GetType() {
+		return false
+	}
+	op := o.AsPoint()
+	return utils.StandardBigFloatCompare(&p.X, &op.X) == 0 &&
+		utils.StandardBigFloatCompare(&p.Y, &op.Y) == 0
+}
+
 // SquareDistanceTo returns the squared distance to the other element
-func (p *SketchPoint) SquareDistanceTo(o SketchElement) float64 {
+func (p *SketchPoint) SquareDistanceTo(o SketchElement) *big.Float {
 	if o.GetType() == Line {
 		d := o.(*SketchLine).DistanceTo(p)
-		return d * d
+		return d.Mul(d, d)
 	}
-	a := o.(*SketchPoint).GetX() - p.X
-	b := o.(*SketchPoint).GetY() - p.Y
+	var a, b big.Float
+	a.Sub(o.(*SketchPoint).GetX(), &p.X)
+	b.Sub(o.(*SketchPoint).GetY(), &p.Y)
+	a.Mul(&a, &a)
+	b.Mul(&b, &b)
 
-	return (a * a) + (b * b)
+	return a.Add(&a, &b)
 }
 
 // DistanceTo returns the distance to the other element
-func (p *SketchPoint) DistanceTo(o SketchElement) float64 {
-	return math.Sqrt(p.SquareDistanceTo(o))
+func (p *SketchPoint) DistanceTo(o SketchElement) *big.Float {
+	var ret big.Float
+	return ret.Sqrt(p.SquareDistanceTo(o))
 }
 
 // SketchPoint represents a point in a 2D sketch
 
 // NewSketchPoint creates a new SketchPoint
-func NewSketchPoint(id uint, x float64, y float64) *SketchPoint {
+func NewSketchPoint(id uint, x *big.Float, y *big.Float) *SketchPoint {
+	var myx, myy big.Float
+	myx.Copy(x)
+	myy.Copy(y)
 	return &SketchPoint{
-		Vector:          Vector{x, y},
+		Vector:          Vector{myx, myy},
 		elementType:     Point,
 		id:              id,
 		constraintLevel: FullyConstrained,
@@ -111,7 +138,10 @@ func (p *SketchPoint) VectorTo(o SketchElement) *Vector {
 		point = o.(*SketchLine).NearestPoint(p.GetX(), p.GetY())
 	}
 
-	return &Vector{p.GetX() - point.GetX(), p.GetY() - point.GetY()}
+	var x, y big.Float
+	x.Sub(p.GetX(), point.GetX())
+	y.Sub(p.GetY(), point.GetY())
+	return &Vector{x, y}
 }
 
 // AsPoint returns a SketchElement as a *SketchPoint or nil
@@ -133,7 +163,7 @@ func (p *SketchPoint) SetConstraintLevel(cl ConstraintLevel) {
 }
 
 func (p *SketchPoint) String() string {
-	return fmt.Sprintf("Point(%d) (%f, %f)", p.GetID(), p.X, p.Y)
+	return fmt.Sprintf("Point(%d) (%s, %s)", p.GetID(), p.X.String(), p.Y.String())
 }
 
 func (p *SketchPoint) SetFixed(fixed bool) {

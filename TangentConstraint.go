@@ -67,7 +67,8 @@ func (s *Sketch) resolveTangentConstraint(c *Constraint) bool {
 			Str("element 1", c.elements[0].String()).
 			Str("element 2", c.elements[1].children[0].String()).
 			Msg("addDistanceConstraint")
-		constraint := s.addDistanceConstraint(c.elements[0], c.elements[1].children[0], radius)
+		rad, _ := radius.Float64()
+		constraint := s.addDistanceConstraint(c.elements[0], c.elements[1].children[0], rad)
 		utils.Logger.Debug().
 			Uint("constraint", constraint.GetID()).
 			Msg("resolveTangentConstraint: added constraint")

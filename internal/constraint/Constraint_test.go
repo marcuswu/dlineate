@@ -3,6 +3,7 @@ package constraint
 import (
 	"fmt"
 	"math"
+	"math/big"
 	"sort"
 	"strings"
 	"testing"
@@ -33,12 +34,12 @@ func TestConstraintIdAndValue(t *testing.T) {
 		name          string
 		constraint    *Constraint
 		expectedId    uint
-		expectedValue float64
+		expectedValue *big.Float
 	}{
-		{"Get constraint id, value", NewConstraint(0, Distance, 0, 0, 0.5, false), 0, 0.5},
+		{"Get constraint id, value", NewConstraint(0, Distance, 0, 0, big.NewFloat(0.5), false), 0, big.NewFloat(0.5)},
 	}
 
-	updatedValue := 3.14159265358979
+	updatedValue := big.NewFloat(math.Pi)
 	for _, tt := range tests {
 		id := tt.constraint.GetID()
 		value := tt.constraint.GetValue()
@@ -66,8 +67,8 @@ func TestConstraintElements(t *testing.T) {
 	}{
 		{
 			"Two constraint elements shared and is met (not equal)",
-			NewConstraint(0, Distance, 0, 1, 4, true),
-			NewConstraint(1, Distance, 0, 1, 4, true),
+			NewConstraint(0, Distance, 0, 1, big.NewFloat(4), true),
+			NewConstraint(1, Distance, 0, 1, big.NewFloat(4), true),
 			[]uint{0, 1, 2},
 			[]bool{true, true, false},
 			[]uint{1, 0, 0},
@@ -80,8 +81,8 @@ func TestConstraintElements(t *testing.T) {
 		},
 		{
 			"One constraint element shared and is not met (is equal)",
-			NewConstraint(2, Distance, 2, 0, 5, false),
-			NewConstraint(3, Distance, 0, 1, 4, true),
+			NewConstraint(2, Distance, 2, 0, big.NewFloat(5), false),
+			NewConstraint(3, Distance, 0, 1, big.NewFloat(4), true),
 			[]uint{2, 0},
 			[]bool{true, true},
 			[]uint{0, 2},
@@ -94,8 +95,8 @@ func TestConstraintElements(t *testing.T) {
 		},
 		{
 			"Second constraint element shared",
-			NewConstraint(4, Angle, 2, 3, math.Pi/2.0, true),
-			NewConstraint(4, Distance, 4, 5, 0, true),
+			NewConstraint(4, Angle, 2, 3, big.NewFloat(math.Pi/2.0), true),
+			NewConstraint(4, Distance, 4, 5, big.NewFloat(0), true),
 			[]uint{2, 3},
 			[]bool{true, true},
 			[]uint{3, 2},
@@ -143,11 +144,11 @@ func TestConstraintStringGraphviz(t *testing.T) {
 	}{
 		{
 			"Distance Constraint",
-			NewConstraint(0, Distance, 0, 1, 4, true),
+			NewConstraint(0, Distance, 0, 1, big.NewFloat(4), true),
 		},
 		{
 			"Angle Constraint",
-			NewConstraint(0, Angle, 1, 2, math.Pi/2, true),
+			NewConstraint(0, Angle, 1, 2, big.NewFloat(math.Pi/2), true),
 		},
 	}
 	for _, tt := range tests {
@@ -155,7 +156,7 @@ func TestConstraintStringGraphviz(t *testing.T) {
 		assert.True(t, strings.Contains(str, fmt.Sprintf("e1: %d", tt.constraint.Element1)))
 		assert.True(t, strings.Contains(str, fmt.Sprintf("e2: %d", tt.constraint.Element2)))
 		assert.True(t, strings.Contains(str, fmt.Sprintf("Constraint(%d)", tt.constraint.GetID())))
-		assert.True(t, strings.Contains(str, fmt.Sprintf("v: %f", tt.constraint.Value)))
+		assert.True(t, strings.Contains(str, fmt.Sprintf("v: %s", tt.constraint.Value.String())))
 
 		str = tt.constraint.ToGraphViz(7)
 		assert.True(t, strings.Contains(str, fmt.Sprintf("7-%d", tt.constraint.Element1)))
@@ -173,8 +174,8 @@ func TestConstraintStringGraphviz(t *testing.T) {
 
 func TestCopyAndSort(t *testing.T) {
 	constraintList := ConstraintList{
-		NewConstraint(1, Distance, 0, 1, 4, true),
-		NewConstraint(0, Angle, 1, 2, math.Pi/2, true),
+		NewConstraint(1, Distance, 0, 1, big.NewFloat(4), true),
+		NewConstraint(0, Angle, 1, 2, big.NewFloat(math.Pi/2), true),
 	}
 
 	constraintList = append(constraintList, CopyConstraint(constraintList[1]))

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"math/big"
 	"strings"
 
 	c "github.com/marcuswu/dlineate/internal/constraint"
@@ -72,20 +73,20 @@ func (e *Element) valuesFromSketch(s *Sketch) error {
 	switch e.elementType {
 	case Point:
 		p := e.element.AsPoint()
-		e.values[0] = p.GetX()
-		e.values[1] = p.GetY()
+		e.values[0], _ = p.GetX().Float64()
+		e.values[1], _ = p.GetY().Float64()
 	case Axis:
 		p := e.element.AsLine()
-		e.values[0] = p.GetA()
-		e.values[1] = p.GetB()
-		e.values[2] = p.GetC()
+		e.values[0], _ = p.GetA().Float64()
+		e.values[1], _ = p.GetB().Float64()
+		e.values[2], _ = p.GetC().Float64()
 	case Line:
 		p1 := e.children[0].element.AsPoint()
 		p2 := e.children[1].element.AsPoint()
-		e.values[0] = p1.GetX()
-		e.values[1] = p1.GetY()
-		e.values[2] = p2.GetX()
-		e.values[3] = p2.GetY()
+		e.values[0], _ = p1.GetX().Float64()
+		e.values[1], _ = p1.GetY().Float64()
+		e.values[2], _ = p2.GetX().Float64()
+		e.values[3], _ = p2.GetY().Float64()
 	case Circle:
 		/*
 			Circle radius is determined either by
@@ -94,8 +95,8 @@ func (e *Element) valuesFromSketch(s *Sketch) error {
 		*/
 		var err error = nil
 		c := e.children[0].element.AsPoint()
-		e.values[0] = c.GetX()
-		e.values[1] = c.GetY()
+		e.values[0], _ = c.GetX().Float64()
+		e.values[1], _ = c.GetY().Float64()
 		// find distance constraint on e
 		constraint, err := s.findConstraint(Distance, e)
 		if err != nil {
@@ -112,12 +113,12 @@ func (e *Element) valuesFromSketch(s *Sketch) error {
 		center := e.children[0].element.AsPoint()
 		start := e.children[1].element.AsPoint()
 		end := e.children[2].element.AsPoint()
-		e.values[0] = center.GetX()
-		e.values[1] = center.GetY()
-		e.values[2] = start.GetX()
-		e.values[3] = start.GetY()
-		e.values[4] = end.GetX()
-		e.values[5] = end.GetY()
+		e.values[0], _ = center.GetX().Float64()
+		e.values[1], _ = center.GetY().Float64()
+		e.values[2], _ = start.GetX().Float64()
+		e.values[3], _ = start.GetY().Float64()
+		e.values[4], _ = end.GetX().Float64()
+		e.values[5], _ = end.GetY().Float64()
 	}
 	e.valuePass = s.passes
 
@@ -138,7 +139,8 @@ func (e *Element) getCircleRadius(s *Sketch, c *Constraint) (float64, error) {
 			other, _ = s.sketch.GetElement(constraint.Element2)
 		}
 
-		return other.DistanceTo(e.children[0].element.AsPoint()), nil
+		dist, _ := other.DistanceTo(e.children[0].element.AsPoint()).Float64()
+		return dist, nil
 	}
 
 	return 0, errors.New("Constraint type for circle radius must be Distance or Coincident")
@@ -364,17 +366,28 @@ func (e *Element) PointVerticalFrom(x, y float64) (float64, float64, bool) {
 		log.Debug().Msg("element is not castable to Line")
 		return 0, 0, false
 	}
-	start := l.NearestPoint(0, 0)
+	start := l.NearestPoint(big.NewFloat(0), big.NewFloat(0))
+	var t1 big.Float
 	var newY float64
-	if utils.StandardFloatCompare(-l.GetA(), 0) == 0 {
+	t1.Neg(l.GetA())
+	if utils.StandardBigFloatCompare(&t1, big.NewFloat(0)) == 0 {
+		if l.GetB().Cmp(big.NewFloat(0)) == 0 {
+			// a and b shouldn't both be 0
+			return 0, 0, false
+		}
 		// horizontal line
-		newY = -l.GetC() / l.GetB()
-	} else if utils.StandardFloatCompare(l.GetB(), 0) == 0 {
+		c, _ := l.GetC().Float64()
+		b, _ := l.GetB().Float64()
+		newY = -c / b
+	} else if utils.StandardBigFloatCompare(l.GetB(), big.NewFloat(0)) == 0 {
 		log.Debug().Msg("incorrect slope")
 		return 0, 0, false // if our element is already a vertical line, a vertical distance constraint makes no sense
 	} else {
-		slope := l.GetSlope()
-		newY = (slope * (x - start.X)) + start.Y
+		// newY = (slope * (x - start.X)) + start.Y
+		slope, _ := l.GetSlope().Float64()
+		startX, _ := start.X.Float64()
+		startY, _ := start.Y.Float64()
+		newY = (slope * (x - startX)) + startY
 	}
 	return x, newY, true
 }
@@ -387,18 +400,35 @@ func (e *Element) PointHorizontalFrom(x, y float64) (float64, float64, bool) {
 	if l == nil {
 		return 0, 0, false
 	}
-	start := l.NearestPoint(0, 0)
+	var zero, t1 big.Float
+	zero.SetFloat64(0)
+	start := l.NearestPoint(&zero, &zero)
 	var newX float64
-	if utils.StandardFloatCompare(-l.GetA(), 0) == 0 {
+	t1.Neg(l.GetA())
+	if utils.StandardBigFloatCompare(&t1, &zero) == 0 {
 		return 0, 0, false // if our element is already a vertical line, a vertical distance constraint makes no sense
-	} else if utils.StandardFloatCompare(l.GetB(), 0) == 0 {
+	} else if utils.StandardBigFloatCompare(l.GetB(), &zero) == 0 {
 		// vertical line
-		newX = -l.GetC() / l.GetA()
+		c, _ := l.GetC().Float64()
+		a, _ := l.GetA().Float64()
+		newX = -c / a
 	} else {
-		slope := l.GetSlope()
-		newX = ((y - start.Y) / slope) + start.X
+		slope, _ := l.GetSlope().Float64()
+		startX, _ := start.X.Float64()
+		startY, _ := start.Y.Float64()
+		newX = ((y - startY) / slope) + startX
 	}
 	return newX, y, true
+}
+
+func (e *Element) DistanceBetweenPoints(other *Element) float64 {
+	if e.elementType != Point || other.elementType != Point {
+		return math.NaN()
+	}
+	p := e.element.AsPoint()
+	o := other.element.AsPoint()
+	dist, _ := p.DistanceTo(o).Float64()
+	return dist
 }
 
 func (e *Element) String() string {

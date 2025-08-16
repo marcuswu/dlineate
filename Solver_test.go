@@ -3,6 +3,7 @@ package dlineate
 import (
 	"bytes"
 	"errors"
+	"math/big"
 	"testing"
 
 	"github.com/marcuswu/dlineate/internal/constraint"
@@ -50,7 +51,7 @@ func TestResolveConstraint(t *testing.T) {
 
 	tests[0].constraint.constraintType = 100
 	tests[1].constraint.state = Resolved
-	ic := constraint.NewConstraint(20, constraint.Distance, l1.Start().element.GetID(), p1.element.GetID(), 2, false)
+	ic := constraint.NewConstraint(20, constraint.Distance, l1.Start().element.GetID(), p1.element.GetID(), big.NewFloat(2), false)
 	tests[2].constraint.constraints = append(tests[2].constraint.constraints, ic)
 
 	s.resolveConstraints()
@@ -142,8 +143,9 @@ func TestResolveCurveRadius(t *testing.T) {
 	}
 
 	r, ok := s.resolveCurveRadius(c1)
+	desired := new(big.Float).SetPrec(utils.FloatPrecision).SetFloat64(3.0)
 	assert.True(t, ok, "Curve radius should be resolved")
-	assert.Equal(t, 3.0, r, "Curve radius should be 3")
+	assert.Equal(t, 0, utils.StandardBigFloatCompare(desired, r), "Curve radius should be 3")
 }
 
 func TestSolve(t *testing.T) {

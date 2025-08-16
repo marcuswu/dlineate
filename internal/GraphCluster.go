@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	"math/big"
 
 	"github.com/marcuswu/dlineate/internal/accessors"
 	"github.com/marcuswu/dlineate/internal/constraint"
@@ -80,7 +81,7 @@ func (g *GraphCluster) SharedElements(gc *GraphCluster) *utils.Set {
 }
 
 // Translate translates all elements in the cluster by an x and y value
-func (g *GraphCluster) TranslateCluster(acc accessors.ElementAccessor, xDist float64, yDist float64) {
+func (g *GraphCluster) TranslateCluster(acc accessors.ElementAccessor, xDist *big.Float, yDist *big.Float) {
 	for _, e := range g.elements.Contents() {
 		element, ok := acc.GetElement(g.GetID(), e)
 		if !ok {
@@ -91,16 +92,20 @@ func (g *GraphCluster) TranslateCluster(acc accessors.ElementAccessor, xDist flo
 }
 
 // Rotate rotates all elements in the cluster around a point by an angle
-func (g *GraphCluster) RotateCluster(acc accessors.ElementAccessor, origin *el.SketchPoint, angle float64) {
-	v := el.Vector{X: origin.GetX(), Y: origin.GetY()}
+func (g *GraphCluster) RotateCluster(acc accessors.ElementAccessor, origin *el.SketchPoint, angle *big.Float) {
+	var x, y, negX, negY big.Float
+	x.Copy(origin.GetX())
+	y.Copy(origin.GetY())
+	negX.Neg(&x)
+	negY.Neg(&y)
 	for _, e := range g.elements.Contents() {
 		element, ok := acc.GetElement(g.GetID(), e)
 		if !ok {
 			continue
 		}
-		element.Translate(-v.X, -v.Y)
+		element.Translate(&negX, &negY)
 		element.Rotate(angle)
-		element.Translate(v.X, v.Y)
+		element.Translate(&x, &y)
 	}
 }
 
@@ -216,7 +221,8 @@ func (g *GraphCluster) Solve(ea accessors.ElementAccessor, ca accessors.Constrai
 	}
 	utils.Logger.Trace().
 		Str("state", state.String()).
-		Msg("State")
+		Uint("constraint", c1.GetID()).
+		Msg("State after constraint solve")
 	g.solved.Add(c1.GetID())
 
 	/*
@@ -322,7 +328,8 @@ func (g *GraphCluster) Solve(ea accessors.ElementAccessor, ca accessors.Constrai
 			state = s
 			utils.Logger.Trace().
 				Str("state", state.String()).
-				Msg("State")
+				Str("element", element.String()).
+				Msg("State after element solve")
 		}
 		g.solved.Add(c[0].GetID())
 		g.solved.Add(c[1].GetID())
@@ -334,7 +341,8 @@ func (g *GraphCluster) Solve(ea accessors.ElementAccessor, ca accessors.Constrai
 
 	utils.Logger.Info().
 		Str("state", state.String()).
-		Msg("finished")
+		Int("state", g.id).
+		Msg("cluster solve finished")
 	g.logElements(ea, zerolog.InfoLevel)
 	return state
 }
@@ -403,7 +411,7 @@ func (g *GraphCluster) mergeOne(ea accessors.ElementAccessor, other *GraphCluste
 	// Match up the first point
 	utils.Logger.Trace().Msg("matching up the first point")
 	direction := p1.VectorTo(p2)
-	other.TranslateCluster(ea, direction.X, direction.Y)
+	other.TranslateCluster(ea, &direction.X, &direction.Y)
 
 	// If both are points, rotate other to match the element in g
 	// Use a angle between the two points in both clusters to determine the angle to rotate
@@ -492,13 +500,15 @@ func (g *GraphCluster) solveMerge(ea accessors.ElementAccessor, ca accessors.Con
 			translation = e1.VectorTo(e2)
 		}
 		utils.Logger.Trace().
-			Float64("X", translation.X).
-			Float64("y", translation.Y).
+			Str("X", translation.X.String()).
+			Str("y", translation.Y.String()).
 			Msg("Cluster translation")
 
 		// translate element into place
-		other.TranslateCluster(ea, translation.X, translation.Y)
-		if utils.StandardFloatCompare(e2.DistanceTo(e1), 0) != 0 {
+		var zero big.Float
+		zero.SetPrec(utils.FloatPrecision).SetFloat64(0)
+		other.TranslateCluster(ea, &translation.X, &translation.Y)
+		if utils.StandardBigFloatCompare(e2.DistanceTo(e1), &zero) != 0 {
 			return solver.NonConvergent, eType
 		}
 		return solver.Solved, eType
@@ -528,18 +538,19 @@ func (g *GraphCluster) solveMerge(ea accessors.ElementAccessor, ca accessors.Con
 		solveElement, _ := ea.GetElement(other.GetID(), solveFor)
 		if anchorElement.GetType() == el.Line && solveElement.GetType() == el.Line {
 			angle := anchorElement.AsLine().AngleToLine(solveElement.AsLine())
+			angle.Neg(angle)
 			utils.Logger.Trace().
 				Uint("element 1", anchor).
 				Uint("element 2", solveFor).
-				Float64("angle", -angle).
+				Str("angle", angle.String()).
 				Msg("Creating constraint")
-			return constraint.NewConstraint(0, constraint.Angle, anchor, solveFor, -angle, false)
+			return constraint.NewConstraint(0, constraint.Angle, anchor, solveFor, angle, false)
 		}
 		dist := anchorElement.DistanceTo(solveElement)
 		utils.Logger.Trace().
 			Uint("element 1", anchor).
 			Uint("element 2", solveFor).
-			Float64("distance", dist).
+			Str("distance", dist.String()).
 			Msg("Creating constraint")
 		return constraint.NewConstraint(0, constraint.Distance, anchor, solveFor, dist, false)
 	}
@@ -568,8 +579,11 @@ func (g *GraphCluster) solveMerge(ea accessors.ElementAccessor, ca accessors.Con
 			Str("to", to.String()).
 			Msg("Move Cluster Params")
 		if pivot.GetType() == el.Line {
+			var neg big.Float
+			neg.SetPrec(utils.FloatPrecision).SetFloat64(-1)
 			move := from.VectorTo(to)
-			c.TranslateCluster(ea, -move.X, -move.Y)
+			move.Scaled(&neg)
+			c.TranslateCluster(ea, &move.X, &move.Y)
 			return
 		}
 
@@ -577,9 +591,20 @@ func (g *GraphCluster) solveMerge(ea accessors.ElementAccessor, ca accessors.Con
 		current, desired := from.VectorTo(pivot), to.VectorTo(pivot)
 		angle := desired.AngleTo(current)
 		angle2 := current.AngleTo(desired)
+		if from.GetType() == el.Line {
+			angle = from.AsLine().AngleToLine(to.AsLine())
+		}
+		new1 := el.CopySketchElement(from)
+		new1.Rotate(angle)
+		if new1.IsEqual(to) {
+			utils.Logger.Trace().
+				Str("angle", angle.String()).
+				Msg("Cluster Rotation")
+			c.RotateCluster(ea, pivot.AsPoint(), angle)
+			return
+		}
 		utils.Logger.Trace().
-			Float64("angle", angle).
-			Float64("angle 2", angle2).
+			Str("angle", angle2.String()).
 			Msg("Cluster Rotation")
 		c.RotateCluster(ea, pivot.AsPoint(), angle2)
 	}
@@ -913,16 +938,16 @@ func (g *GraphCluster) SharedElementsEquivalent(ea accessors.ElementAccessor, o 
 		if e1.AsLine() != nil {
 			l1 := e1.AsLine()
 			l2 := e2.AsLine()
-			return utils.StandardFloatCompare(l1.GetA(), l2.GetA()) == 0 &&
-				utils.StandardFloatCompare(l1.GetB(), l2.GetB()) == 0 &&
-				utils.StandardFloatCompare(l1.GetC(), l2.GetC()) == 0
+			return utils.StandardBigFloatCompare(l1.GetA(), l2.GetA()) == 0 &&
+				utils.StandardBigFloatCompare(l1.GetB(), l2.GetB()) == 0 &&
+				utils.StandardBigFloatCompare(l1.GetC(), l2.GetC()) == 0
 		}
 
 		p1 := e1.AsPoint()
 		p2 := e2.AsPoint()
 
-		return utils.StandardFloatCompare(p1.X, p2.X) == 0 &&
-			utils.StandardFloatCompare(p1.Y, p2.Y) == 0
+		return utils.StandardBigFloatCompare(p1.GetX(), p2.GetX()) == 0 &&
+			utils.StandardBigFloatCompare(p1.GetY(), p2.GetY()) == 0
 	}
 	equal := true
 	shared := ea.SharedElements(g.GetID(), o.GetID())

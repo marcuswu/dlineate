@@ -2,7 +2,7 @@ package constraint
 
 import (
 	"fmt"
-	"math"
+	"math/big"
 
 	el "github.com/marcuswu/dlineate/internal/element"
 	"github.com/marcuswu/dlineate/utils"
@@ -53,7 +53,7 @@ func (t Type) String() string {
 type Constraint struct {
 	id       uint
 	Type     Type
-	Value    float64
+	Value    big.Float
 	Element1 uint
 	Element2 uint
 	Solved   bool
@@ -65,13 +65,14 @@ func (c *Constraint) GetID() uint {
 }
 
 // GetValue returns the constraint's value
-func (c *Constraint) GetValue() float64 {
-	return c.Value
+func (c *Constraint) GetValue() *big.Float {
+	var ret big.Float
+	return ret.Copy(&c.Value)
 }
 
 // UpdateValue updates the constraint's value
-func (c *Constraint) UpdateValue(v float64) {
-	c.Value = v
+func (c *Constraint) UpdateValue(v *big.Float) {
+	c.Value.Set(v)
 }
 
 // HasElementID returns whether an element with the passed ID
@@ -130,12 +131,13 @@ func (c *Constraint) Shared(o *Constraint) (uint, bool) {
 }
 
 func (c *Constraint) IsMet(e1 el.SketchElement, e2 el.SketchElement) bool {
+	var temp big.Float
 	current := e1.DistanceTo(e2)
 	if c.Type == Angle {
 		current = e1.AsLine().AngleToLine(e2.AsLine())
 	}
 
-	comparison := utils.StandardFloatCompare(math.Abs(current), math.Abs(c.Value))
+	comparison := utils.StandardBigFloatCompare(temp.Abs(current), temp.Abs(&c.Value))
 	if comparison != 0 {
 		c.Solved = false
 	} else {
@@ -150,7 +152,7 @@ func (c *Constraint) String() string {
 	if c.Type == Angle {
 		units = " rad"
 	}
-	return fmt.Sprintf("Constraint(%d) type: %v, e1: %d, e2: %d, v: %f%s", c.GetID(), c.Type, c.Element1, c.Element2, c.Value, units)
+	return fmt.Sprintf("Constraint(%d) type: %v, e1: %d, e2: %d, v: %s%s", c.GetID(), c.Type, c.Element1, c.Element2, c.Value.String(), units)
 }
 
 func (c *Constraint) ToGraphViz(cId int) string {
@@ -166,11 +168,13 @@ func (c *Constraint) Equals(o Constraint) bool {
 }
 
 // NewConstraint creates a new constraint
-func NewConstraint(id uint, constraintType Type, a uint, b uint, v float64, solved bool) *Constraint {
+func NewConstraint(id uint, constraintType Type, a uint, b uint, v *big.Float, solved bool) *Constraint {
+	var val big.Float
+	val.Copy(v)
 	return &Constraint{
 		id:       id,
 		Type:     constraintType,
-		Value:    v,
+		Value:    val,
 		Element1: a,
 		Element2: b,
 		Solved:   false,
@@ -179,12 +183,13 @@ func NewConstraint(id uint, constraintType Type, a uint, b uint, v float64, solv
 
 // CopyConstraint creates a deep copy of a Constraint
 func CopyConstraint(c *Constraint) *Constraint {
+	var temp big.Float
 	return NewConstraint(
 		c.GetID(),
 		c.Type,
 		c.Element1,
 		c.Element2,
-		c.Value,
+		temp.Copy(&c.Value),
 		c.Solved,
 	)
 }
