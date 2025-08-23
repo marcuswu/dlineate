@@ -2,15 +2,15 @@ package dlineate
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"math"
 	"math/big"
 	"os"
 
+	svg "github.com/ajstarks/svgo/float"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	"github.com/tdewolff/canvas"
-	"github.com/tdewolff/canvas/renderers/svg"
 
 	core "github.com/marcuswu/dlineate/internal"
 	"github.com/marcuswu/dlineate/internal/constraint"
@@ -598,33 +598,27 @@ func (s *Sketch) WriteImage(out io.Writer, args ...float64) error {
 		scale = scaleY
 	}
 
-	c := canvas.New(width, height)
-	ctx := canvas.NewContext(c)
-	ctx.SetCoordSystem(canvas.CartesianI)
-	ctx.SetCoordRect(canvas.Rect{X0: minx, Y0: miny, X1: vw, Y1: vh}, width, height)
+	canvas := svg.New(out)
+	canvas.Start(width, height,
+		fmt.Sprintf("viewBox=\"%f %f %f %f\"", 0., 0., width, height),
+		fmt.Sprintf("style=\"background-color:#fff;enable-background:new %f %f %f %f;\"", minx, miny, width, height),
+	)
+	canvas.ScaleXY(1, -1)
+	canvas.Translate(-minx*scaleX, -height-(miny*scaleY))
 
-	ctx.SetStrokeColor(canvas.Gray)
-	ctx.SetStrokeWidth(0.5)
-	ctx.MoveTo(0, 0)
-	ctx.LineTo((maxx * scale), 0)
-	ctx.Close()
-	ctx.Stroke()
-	ctx.MoveTo(0, (miny * scale))
-	ctx.LineTo(0, (maxy * scale))
-	ctx.Close()
-	ctx.Stroke()
+	style := "fill:none;stroke:#00f;stroke-width:.5"
+	canvas.Line(0, 0, (maxx * scale), 0, style)
+	canvas.Line(0, (miny * scale), 0, (maxy * scale), style)
 
 	for _, e := range s.Elements {
-		e.DrawToSVG(s, ctx, scale)
+		e.DrawToSVG(s, canvas, scale)
 	}
 
-	c.Fit(5.0)
+	canvas.Gend()
+	canvas.Gend()
+	canvas.End()
 
-	svg := svg.New(out, c.W, c.H, &svg.Options{})
-
-	c.RenderTo(svg)
-
-	return svg.Close()
+	return nil
 }
 
 func (s *Sketch) ExportGraphViz(filename string) error {

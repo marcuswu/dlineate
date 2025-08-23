@@ -7,12 +7,12 @@ import (
 	"math/big"
 	"strings"
 
+	svg "github.com/ajstarks/svgo/float"
 	c "github.com/marcuswu/dlineate/internal/constraint"
 	"github.com/marcuswu/dlineate/internal/element"
 	el "github.com/marcuswu/dlineate/internal/element"
 	"github.com/marcuswu/dlineate/utils"
 	"github.com/rs/zerolog/log"
-	"github.com/tdewolff/canvas"
 )
 
 // Type of a Constraint(Distance or Angle)
@@ -271,34 +271,30 @@ func (e *Element) minMaxXY() (float64, float64, float64, float64) {
 	return minX, minY, maxX, maxY
 }
 
-func (e *Element) DrawToSVG(s *Sketch, ctx *canvas.Context, mult float64) {
-	ctx.SetStrokeColor(canvas.Blue)
+func (e *Element) DrawToSVG(s *Sketch, canvas *svg.SVG, mult float64) {
+	style := "stroke:blue"
 	if e.elementType != Axis && e.ConstraintLevel() == el.FullyConstrained {
-		ctx.SetStrokeColor(canvas.Black)
+		style = "stroke:black"
 	}
 	if e.elementType != Axis && e.ConstraintLevel() == el.OverConstrained {
-		ctx.SetStrokeColor(canvas.Red)
+		style = "stroke:red"
 	}
-	ctx.StrokeWidth = 0.5
+	style += ";stroke-width:0.5;fill:none"
 	switch e.elementType {
 	case Point:
-		// May want to draw a small filled circle
-		ctx.MoveTo(e.values[0]*mult+0.5, e.values[1]*mult)
-		ctx.Arc(0.5, 0.5, 0, 0, 360)
+		canvas.Circle(e.values[0]*mult, e.values[1]*mult, 0.5, style)
 	case Line:
 		x1 := e.values[0] * mult
 		y1 := e.values[1] * mult
-		ctx.MoveTo(x1, y1)
 		x2 := e.values[2] * mult
 		y2 := e.values[3] * mult
-		ctx.LineTo(x2, y2)
+		canvas.Line(x1, y1, x2, y2, style)
 	case Circle:
 		cx := e.values[0] * mult
 		cy := e.values[1] * mult
 		// find distance constraint on e
 		r := e.values[2] * mult
-		ctx.MoveTo(cx, cy)
-		ctx.Arc(r, r, 0, 0, 360)
+		canvas.Circle(cx, cy, r, style)
 	case Arc:
 		cx := e.values[0] * mult
 		cy := e.values[1] * mult
@@ -322,10 +318,8 @@ func (e *Element) DrawToSVG(s *Sketch, ctx *canvas.Context, mult float64) {
 		}
 
 		sweep := theta1 < theta0
-		ctx.MoveTo(sx, sy)
-		ctx.ArcTo(r, r, angle, large, sweep, ex, ey)
+		canvas.Arc(sx, sy, r, r, angle, large, sweep, ex, ey, style)
 	}
-	ctx.Stroke()
 	e.valuePass = s.passes
 }
 
