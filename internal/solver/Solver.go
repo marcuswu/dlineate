@@ -359,7 +359,7 @@ func pointFromPointLine(originalP1 el.SketchElement, originalL2 el.SketchElement
 	actualP3.Translate(&xTranslate, &yTranslate)
 	actualP3.Rotate(angle)
 
-	utils.Logger.Error().
+	utils.Logger.Debug().
 		Str("p3", actualP3.String()).
 		Msg("pointFromPointLine: Final")
 

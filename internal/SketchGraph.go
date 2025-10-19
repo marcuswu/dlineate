@@ -222,8 +222,14 @@ func (g *SketchGraph) createCluster(first uint, id int) *GraphCluster {
 			Msgf("createCluster(%d): adding element", clusterNum)
 		level := el.FullyConstrained
 		if len(cIds) > 2 {
+			cidSet := utils.NewSet()
+			cidSet.AddList(cIds)
 			level = el.OverConstrained
 			// These constraints are conflicting, add them to the conflicting list
+			utils.Logger.Error().
+				Int("cluster", clusterNum).
+				Str("constraints", cidSet.String()).
+				Msgf("createCluster(%d): found conflicting constraints", clusterNum)
 			g.conflicting.AddList(cIds)
 		}
 		g.elementAccessor.SetConstraintLevel(eId, level)
@@ -391,6 +397,12 @@ func (g *SketchGraph) createClusters() {
 }
 
 func (g *SketchGraph) logConstraintsElements(level zerolog.Level) {
+	numElements := g.elementAccessor.Count()
+	numConstraints := g.constraintAccessor.Count()
+	expectedConstraints := (numElements * 2) - 3
+	utils.Logger.WithLevel(level).
+		Bool("fully constrained", expectedConstraints == numConstraints).
+		Msgf("C (%d) = 2 * E (%d) - 3", numConstraints, numElements)
 	g.elementAccessor.LogElements(level)
 	g.constraintAccessor.LogConstraints(level)
 	utils.Logger.WithLevel(level).Msg("")

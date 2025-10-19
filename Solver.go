@@ -452,6 +452,10 @@ func (s *Sketch) Solve() error {
 		}
 	}
 	utils.Logger.Info().
+		Int("element count", len(s.eToC)).
+		Int("expected constraint count", (2*len(s.eToC))-3).
+		Msg("Graph state")
+	utils.Logger.Info().
 		Int("total", len(s.constraints)).
 		Int("unresolved", unresolved).
 		Int("unsolved", unsolved).
@@ -510,6 +514,7 @@ func (s *Sketch) Solve() error {
 	}
 
 	if s.sketch.Conflicting().Count() > 0 {
+		log.Error().Str("Conflicting Constraints", s.sketch.Conflicting().String()).Msg("Found conflicting constraints")
 		solveState = solver.OverConstrained
 	}
 
