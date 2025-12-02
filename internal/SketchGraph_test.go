@@ -92,13 +92,13 @@ func TestFindStartConstraint(t *testing.T) {
 	sketch.AddConstraint(constraint.Distance, e1, e2, big.NewFloat(1))
 	sketch.AddConstraint(constraint.Distance, e3, e4, big.NewFloat(1))
 
-	start := sketch.findStartConstraint()
+	start := sketch.findStartConstraint(utils.NewSet())
 	assert.Contains(t, []uint{0, 1, 2}, start)
 
 	sketch.freeEdges.Remove(e1.GetID())
 	sketch.freeEdges.Remove(e2.GetID())
 
-	start = sketch.findStartConstraint()
+	start = sketch.findStartConstraint(utils.NewSet())
 	assert.Contains(t, []uint{1, 2}, start)
 }
 
@@ -380,10 +380,10 @@ func TestFindMergeForCluster(t *testing.T) {
 	for _, c := range s.clusters {
 		c.Solve(s.elementAccessor, s.constraintAccessor)
 	}
-	a, b := s.findMergeForCluster(s.clusters[0])
+	md := s.findMerge() //s.clusters[0])
 
-	assert.Contains(t, []int{1, 2}, a, "First merge cluster is 5 or 6")
-	assert.Contains(t, []int{1, 2}, b, "Second merge cluster is 5 or 6")
+	assert.Contains(t, []int{1, 2}, md.cluster1, "First merge cluster is 5 or 6")
+	assert.Contains(t, []int{1, 2}, md.cluster2, "Second merge cluster is 5 or 6")
 }
 
 func TestGraphToGraphViz(t *testing.T) {
@@ -451,9 +451,9 @@ func TestGraphToGraphViz(t *testing.T) {
 	gvString := s.ToGraphViz()
 	assert.Contains(t, gvString, "subgraph cluster_0")
 	assert.Contains(t, gvString, "label = \"Cluster 0\"")
-	assert.Contains(t, gvString, c1.ToGraphViz(0), "GraphViz output contains constraint 1")
-	assert.Contains(t, gvString, c2.ToGraphViz(0), "GraphViz output contains constraint 2")
-	assert.Contains(t, gvString, c3.ToGraphViz(0), "GraphViz output contains constraint 3")
+	assert.Contains(t, gvString, c1.ToGraphViz(0, 0), "GraphViz output contains constraint 1")
+	assert.Contains(t, gvString, c2.ToGraphViz(0, 0), "GraphViz output contains constraint 2")
+	assert.Contains(t, gvString, c3.ToGraphViz(0, 0), "GraphViz output contains constraint 3")
 	assert.Contains(t, gvString, e1.ToGraphViz(0), "GraphViz output contains element 1")
 	assert.Contains(t, gvString, e2.ToGraphViz(0), "GraphViz output contains element 2")
 	assert.Contains(t, gvString, e3.ToGraphViz(0), "GraphViz output contains element 3")
@@ -461,13 +461,13 @@ func TestGraphToGraphViz(t *testing.T) {
 
 	assert.Contains(t, gvString, "subgraph cluster_1")
 	assert.Contains(t, gvString, "label = \"Cluster 1\"")
-	assert.Contains(t, gvString, c4.ToGraphViz(1), "GraphViz output contains constraint 4")
-	assert.Contains(t, gvString, c5.ToGraphViz(1), "GraphViz output contains constraint 5")
+	assert.Contains(t, gvString, c4.ToGraphViz(1, 1), "GraphViz output contains constraint 4")
+	assert.Contains(t, gvString, c5.ToGraphViz(1, 1), "GraphViz output contains constraint 5")
 	assert.Contains(t, gvString, p1.ToGraphViz(1), "GraphViz output contains point 1")
 	assert.Contains(t, gvString, p2.ToGraphViz(1), "GraphViz output contains point 2")
 	assert.Contains(t, gvString, l1.ToGraphViz(1), "GraphViz output contains line 1")
 
 	assert.Contains(t, gvString, e5.ToGraphViz(-1), "GraphViz output contains element 5")
 	assert.Contains(t, gvString, e6.ToGraphViz(-1), "GraphViz output contains element 6")
-	assert.Contains(t, gvString, c6.ToGraphViz(-1), "GraphViz output contains constraint 6")
+	assert.Contains(t, gvString, c6.ToGraphViz(-1, -1), "GraphViz output contains constraint 6")
 }

@@ -158,12 +158,12 @@ func TestConstraintStringGraphviz(t *testing.T) {
 		assert.True(t, strings.Contains(str, fmt.Sprintf("Constraint(%d)", tt.constraint.GetID())))
 		assert.True(t, strings.Contains(str, fmt.Sprintf("v: %s", tt.constraint.Value.String())))
 
-		str = tt.constraint.ToGraphViz(7)
+		str = tt.constraint.ToGraphViz(7, 7)
 		assert.True(t, strings.Contains(str, fmt.Sprintf("7-%d", tt.constraint.Element1)))
 		assert.True(t, strings.Contains(str, fmt.Sprintf("7-%d", tt.constraint.Element2)))
 		assert.True(t, strings.Contains(str, fmt.Sprintf("%v (%d)", tt.constraint.Type, tt.constraint.GetID())))
 
-		str = tt.constraint.ToGraphViz(-1)
+		str = tt.constraint.ToGraphViz(-1, -1)
 		assert.False(t, strings.Contains(str, fmt.Sprintf("-1-%d", tt.constraint.Element1)))
 		assert.True(t, strings.Contains(str, fmt.Sprintf("%d", tt.constraint.Element1)))
 		assert.False(t, strings.Contains(str, fmt.Sprintf("-1-%d", tt.constraint.Element2)))

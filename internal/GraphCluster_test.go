@@ -769,7 +769,15 @@ func TestSolveMerge(t *testing.T) {
 	l9.SetB(new(big.Float).SetPrec(prec).SetFloat64(0.5071821044))
 	l9.SetC(new(big.Float).SetPrec(prec).SetFloat64(-5.581155393))
 
-	state := g0.solveMerge(ea, ca, g1, g2)
+	md := MergeData{
+		clusterId1: g0.id,
+		clusterId2: g1.id,
+		clusterId3: g2.id,
+		cluster1:   g0,
+		cluster2:   g1,
+		cluster3:   g2,
+	}
+	state := g0.solveMerge(ea, ca, md)
 
 	if state != solver.Solved {
 		t.Error("Expected solved state(4), got", state)
@@ -953,7 +961,13 @@ func TestMergeOne(t *testing.T) {
 	ea.AddElementToCluster(e.GetID(), o.GetID())
 	o.AddElement(e.GetID())
 
-	state := g.solveMerge(ea, ca, o, nil)
+	md := MergeData{
+		clusterId1: g.id,
+		clusterId2: o.id,
+		cluster1:   g,
+		cluster2:   o,
+	}
+	state := g.solveMerge(ea, ca, md)
 	assert.Equal(t, solver.NonConvergent, state, "Merge containing only one shared element should fail to solve")
 
 	e = el.NewSketchLine(2, big.NewFloat(0.999552), big.NewFloat(-0.029929), big.NewFloat(0))
@@ -961,7 +975,13 @@ func TestMergeOne(t *testing.T) {
 	ea.AddElementToCluster(e.GetID(), o.GetID())
 	o.AddElement(e.GetID())
 
-	state = g.solveMerge(ea, ca, o, nil)
+	md = MergeData{
+		clusterId1: g.id,
+		clusterId2: o.id,
+		cluster1:   g,
+		cluster2:   o,
+	}
+	state = g.solveMerge(ea, ca, md)
 	assert.Equal(t, solver.NonConvergent, state, "Merge where shared elements are both lines should fail to solve")
 
 	o = NewGraphCluster(1)
@@ -1013,7 +1033,13 @@ func TestMergeOne(t *testing.T) {
 	ea.AddElement(e)
 	ea.AddElementToCluster(e.GetID(), o.GetID())
 	o.AddElement(e.GetID())
-	state = g.solveMerge(ea, ca, o, nil)
+	md = MergeData{
+		clusterId1: g.id,
+		clusterId2: o.id,
+		cluster1:   g,
+		cluster2:   o,
+	}
+	state = g.solveMerge(ea, ca, md)
 	assert.Equal(t, solver.Solved, state, "Merge should solve successfully")
 
 	g = NewGraphCluster(0)
@@ -1030,7 +1056,13 @@ func TestMergeOne(t *testing.T) {
 	ea.AddElementToCluster(e.GetID(), g.GetID())
 	g.AddElement(e.GetID())
 
-	state = g.solveMerge(ea, ca, o, nil)
+	md = MergeData{
+		clusterId1: g.id,
+		clusterId2: o.id,
+		cluster1:   g,
+		cluster2:   o,
+	}
+	state = g.solveMerge(ea, ca, md)
 	assert.Equal(t, solver.Solved, state, "Merge with two shared points should solve successfully")
 }
 
@@ -1091,7 +1123,15 @@ func TestSolveMergeEdgeCases(t *testing.T) {
 	ea.AddElementToCluster(e.GetID(), o2.GetID())
 	o2.AddElement(e.GetID())
 
-	state := g.solveMerge(ea, ca, o1, o2)
+	md := MergeData{
+		clusterId1: g.id,
+		clusterId2: o1.id,
+		clusterId3: o2.id,
+		cluster1:   g,
+		cluster2:   o1,
+		cluster3:   o2,
+	}
+	state := g.solveMerge(ea, ca, md)
 	assert.Equal(t, solver.NonConvergent, state, "Three cluster solve with only two shared elements should fail")
 
 	ea.Clear()
@@ -1150,7 +1190,15 @@ func TestSolveMergeEdgeCases(t *testing.T) {
 	ea.AddElementToCluster(e.GetID(), o2.GetID())
 	o2.AddElement(e.GetID())
 
-	state = g.solveMerge(ea, ca, o1, o2)
+	md = MergeData{
+		clusterId1: g.id,
+		clusterId2: o1.id,
+		clusterId3: o2.id,
+		cluster1:   g,
+		cluster2:   o1,
+		cluster3:   o2,
+	}
+	state = g.solveMerge(ea, ca, md)
 	assert.Equal(t, solver.Solved, state, "Three cluster solve with three lines")
 
 	ea.Clear()
@@ -1218,7 +1266,15 @@ func TestSolveMergeEdgeCases(t *testing.T) {
 	ea.AddElementToCluster(e.GetID(), o2.GetID())
 	o2.AddElement(e.GetID())
 
-	state = g.solveMerge(ea, ca, o1, o2)
+	md = MergeData{
+		clusterId1: g.id,
+		clusterId2: o1.id,
+		clusterId3: o2.id,
+		cluster1:   g,
+		cluster2:   o1,
+		cluster3:   o2,
+	}
+	state = g.solveMerge(ea, ca, md)
 	assert.Equal(t, solver.Solved, state, "Three cluster solve with three shared elements should solve")
 
 	ea.ReplaceElement(g.GetID(), 0, el.NewSketchLine(0, big.NewFloat(1), big.NewFloat(1), big.NewFloat(1)))
@@ -1226,7 +1282,7 @@ func TestSolveMergeEdgeCases(t *testing.T) {
 	line, _ := ea.GetElement(-1, 9)
 	line.AsLine().SetB(big.NewFloat(0.235))
 	line.AsLine().SetC(big.NewFloat(2))
-	state = g.solveMerge(ea, ca, o1, o2)
+	state = g.solveMerge(ea, ca, md)
 	assert.Equal(t, solver.NonConvergent, state, "Three cluster solve with non-convergent lines")
 
 	ea.ReplaceElement(o1.GetID(), 2, el.NewSketchLine(2, big.NewFloat(1), big.NewFloat(0), big.NewFloat(0)))
@@ -1235,7 +1291,7 @@ func TestSolveMergeEdgeCases(t *testing.T) {
 	ea.ReplaceElement(o2.GetID(), 1, el.NewSketchLine(1, big.NewFloat(1), big.NewFloat(0), big.NewFloat(6)))
 	ea.ReplaceElement(g.GetID(), 0, el.NewSketchPoint(0, big.NewFloat(-10), big.NewFloat(1)))
 	ea.ReplaceElement(o1.GetID(), 0, el.NewSketchPoint(0, big.NewFloat(3), big.NewFloat(2)))
-	state = g.solveMerge(ea, ca, o1, o2)
+	state = g.solveMerge(ea, ca, md)
 	assert.Equal(t, solver.NonConvergent, state, "Fail to solve final element")
 
 	ea.Clear()
@@ -1298,7 +1354,15 @@ func TestSolveMergeEdgeCases(t *testing.T) {
 	ea.AddElementToCluster(e.GetID(), o2.GetID())
 	o2.AddElement(e.GetID())
 
-	state = g.solveMerge(ea, ca, o1, o2)
+	md = MergeData{
+		clusterId1: g.id,
+		clusterId2: o1.id,
+		clusterId3: o2.id,
+		cluster1:   g,
+		cluster2:   o1,
+		cluster3:   o2,
+	}
+	state = g.solveMerge(ea, ca, md)
 	assert.Equal(t, solver.NonConvergent, state, "Nonconvergent where an element has too many parents")
 }
 
@@ -1328,9 +1392,9 @@ func TestToGraphViz(t *testing.T) {
 	gvString := g.ToGraphViz(ea, ca)
 	assert.Contains(t, gvString, "subgraph cluster_0")
 	assert.Contains(t, gvString, "label = \"Cluster 0\"")
-	assert.Contains(t, gvString, c1.ToGraphViz(0), "GraphViz output contains constraint 1")
-	assert.Contains(t, gvString, c2.ToGraphViz(0), "GraphViz output contains constraint 2")
-	assert.Contains(t, gvString, c3.ToGraphViz(0), "GraphViz output contains constraint 3")
+	assert.Contains(t, gvString, c1.ToGraphViz(0, 0), "GraphViz output contains constraint 1")
+	assert.Contains(t, gvString, c2.ToGraphViz(0, 0), "GraphViz output contains constraint 2")
+	assert.Contains(t, gvString, c3.ToGraphViz(0, 0), "GraphViz output contains constraint 3")
 	assert.Contains(t, gvString, e1.ToGraphViz(0), "GraphViz output contains element 1")
 	assert.Contains(t, gvString, e2.ToGraphViz(0), "GraphViz output contains element 2")
 	assert.Contains(t, gvString, e3.ToGraphViz(0), "GraphViz output contains element 3")

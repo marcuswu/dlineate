@@ -5,7 +5,6 @@ import (
 
 	"github.com/marcuswu/dlineate/internal/constraint"
 	el "github.com/marcuswu/dlineate/internal/element"
-	"github.com/marcuswu/dlineate/internal/solver"
 	iutils "github.com/marcuswu/dlineate/internal/utils"
 	"github.com/marcuswu/dlineate/utils"
 	"github.com/rs/zerolog"
@@ -16,6 +15,29 @@ func (g *SketchGraph) BuildClusters() {
 	if len(g.clusters) == 0 {
 		g.createClusters()
 	}
+	g.buildFreeEdgeMap()
+}
+
+func (g *SketchGraph) buildFreeEdgeMap() {
+	for _, c := range g.freeEdges.Contents() {
+		constraint, _ := g.constraintAccessor.GetConstraint(c)
+		e1Cluster, e1HasCluster := g.elementAccessor.Cluster(constraint.Element1)
+		e2Cluster, e2HasCluster := g.elementAccessor.Cluster(constraint.Element2)
+		if e1HasCluster && e2HasCluster {
+			s, ok := g.freeEdgeMap[e1Cluster]
+			if !ok {
+				s = utils.NewSet()
+				g.freeEdgeMap[e1Cluster] = s
+			}
+			s.Add(c)
+			s, ok = g.freeEdgeMap[e2Cluster]
+			if !ok {
+				s = utils.NewSet()
+				g.freeEdgeMap[e2Cluster] = s
+			}
+			s.Add(c)
+		}
+	}
 }
 
 func (g *SketchGraph) createClusters() {
@@ -23,11 +45,24 @@ func (g *SketchGraph) createClusters() {
 	utils.Logger.Info().
 		Int("unassigned constraints", g.freeEdges.Count()).
 		Msg("Creating clusters")
-	for g.freeEdges.Count() > 0 {
-		cluster := g.createCluster(g.findStartConstraint(), id)
+	// iterations := 0
+	skipConstraints := utils.NewSet()
+	for g.usedNodes.Count() < g.elementAccessor.Count() {
+		// iterations++
+		// if iterations > 10 {
+		// 	break
+		// }
+		utils.Logger.Info().
+			Str("assigned nodes", g.usedNodes.String()).
+			Msg("Creating a cluster")
+		// for g.freeEdges.Count() > 0 {
+		startFrom := g.findStartConstraint(skipConstraints)
+		cluster := g.createCluster(startFrom, id)
 		if cluster == nil {
-			g.state = solver.NonConvergent
-			break
+			/*g.state = solver.NonConvergent
+			break*/
+			skipConstraints.Add(startFrom)
+			continue
 		}
 		id++
 		utils.Logger.Info().Str("free constraints", g.freeEdges.String()).Msgf("%d unassigned constraints left\n", g.freeEdges.Count())
@@ -46,9 +81,12 @@ func (g *SketchGraph) createClusters() {
 //  2. find a constraint where one element is in another cluster in the hopes that
 //     a future third cluster will connect the existing one and the one about to
 //     be created.
-func (g *SketchGraph) findStartConstraint() uint {
+func (g *SketchGraph) findStartConstraint(skip *utils.Set) uint {
 	constraints := make([]uint, 0)
 	for _, constraintId := range g.freeEdges.Contents() {
+		if skip.Contains(constraintId) {
+			continue
+		}
 		constraint, ok := g.constraintAccessor.GetConstraint(constraintId)
 		if !ok {
 			continue
@@ -98,11 +136,11 @@ func (g *SketchGraph) findStartConstraint() uint {
 	return retVal
 }
 
-// Creates a cluster with an id and an initial constraint.
-// Start with an initial constraint (first), add those elements
-// Next, find two constraints connected to one element where each of those
-// constraints is connected to an element in our new cluster
-// Continue doing that until no further constraints can be added
+// Creates a cluster with two parameters: an id and an initial constraint (first).
+//  1. Start with an initial constraint, add those elements
+//  2. Next, find two constraints connected to one element where each of them
+//     is connected to an element in our new cluster
+//  3. Continue doing that until no further constraints can be added
 func (g *SketchGraph) createCluster(first uint, id int) *GraphCluster {
 	c := NewGraphCluster(id)
 
@@ -154,6 +192,13 @@ func (g *SketchGraph) createCluster(first uint, id int) *GraphCluster {
 		}
 	}
 
+	// We were unable to add anything other than the initial constraint
+	if len(c.constraints) == 1 {
+		utils.Logger.Debug().Msgf("createCluster(%d): cancelling cluster", clusterNum)
+		g.cancelCluster(c)
+		return nil
+	}
+
 	utils.Logger.Info().
 		Int("cluster", clusterNum).
 		Int("element count", c.elements.Count()).
@@ -175,6 +220,18 @@ func (g *SketchGraph) addConstraintToCluster(c *GraphCluster, constraint *constr
 	g.addElementToCluster(c, constraint.Element2)
 	c.AddConstraint(constraint)
 	g.freeEdges.Remove(constraint.GetID())
+}
+
+func (g *SketchGraph) cancelCluster(c *GraphCluster) {
+	for _, e := range c.elements.Contents() {
+		if !g.elementAccessor.IsShared(e) {
+			g.usedNodes.Remove(e)
+		}
+	}
+	g.elementAccessor.MergeToRoot(c.GetID())
+	for _, c := range c.constraints {
+		g.freeEdges.Add(c)
+	}
 }
 
 // findConstraints finds two constraints to add to the specified cluster.

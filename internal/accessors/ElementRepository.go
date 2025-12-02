@@ -56,6 +56,14 @@ func (r *ElementRepository) clustersContaining(eId uint) *utils.Set {
 	return set
 }
 
+func (r *ElementRepository) Cluster(eId uint) (uint, bool) {
+	set := r.clustersContaining(eId)
+	if set.Count() > 0 {
+		return set.Contents()[0], set.Count() == 1
+	}
+	return 0, false
+}
+
 func (r *ElementRepository) IsShared(eId uint) bool {
 	set := r.clustersContaining(eId)
 	return set.Count() > 1

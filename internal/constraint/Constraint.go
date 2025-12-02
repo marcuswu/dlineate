@@ -155,11 +155,11 @@ func (c *Constraint) String() string {
 	return fmt.Sprintf("Constraint(%d) type: %v, e1: %d, e2: %d, v: %s%s", c.GetID(), c.Type, c.Element1, c.Element2, c.Value.String(), units)
 }
 
-func (c *Constraint) ToGraphViz(cId int) string {
-	if cId < 0 {
+func (c *Constraint) ToGraphViz(cId1, cId2 int) string {
+	if cId1 < 0 && cId2 < 0 {
 		return fmt.Sprintf("\t%d -- %d [label=\"%v (%d)\"]\n", c.Element1, c.Element2, c.Type, c.id)
 	}
-	return fmt.Sprintf("\t\"%d-%d\" -- \"%d-%d\" [label=\"%v (%d)\"]\n", cId, c.Element1, cId, c.Element2, c.Type, c.id)
+	return fmt.Sprintf("\t\"%d-%d\" -- \"%d-%d\" [label=\"%v (%d)\"]\n", cId1, c.Element1, cId2, c.Element2, c.Type, c.id)
 }
 
 // Equals returns whether two constraints are equal

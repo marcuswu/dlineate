@@ -32,7 +32,7 @@ func (ss SolveState) String() string {
 	}
 }
 
-func typeCounts(c1 *constraint.Constraint, c2 *constraint.Constraint, ea accessors.ElementAccessor) (int, int) {
+func TypeCounts(c1 *constraint.Constraint, c2 *constraint.Constraint, ea accessors.ElementAccessor) (int, int) {
 	numPoints := 0
 	numLines := 0
 	elements := make([]el.SketchElement, 0, 4)

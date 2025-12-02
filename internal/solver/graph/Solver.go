@@ -1,4 +1,4 @@
-package solver
+package graph
 
 import (
 	"math/big"
@@ -6,10 +6,11 @@ import (
 	"github.com/marcuswu/dlineate/internal/accessors"
 	"github.com/marcuswu/dlineate/internal/constraint"
 	el "github.com/marcuswu/dlineate/internal/element"
+	"github.com/marcuswu/dlineate/internal/solver"
 	"github.com/marcuswu/dlineate/utils"
 )
 
-func SolveConstraint(cluster int, ea accessors.ElementAccessor, c *constraint.Constraint) SolveState {
+func SolveConstraint(cluster int, ea accessors.ElementAccessor, c *constraint.Constraint) solver.SolveState {
 	if c.Type == constraint.Distance {
 		return SolveDistanceConstraint(cluster, ea, c)
 	}
@@ -19,7 +20,7 @@ func SolveConstraint(cluster int, ea accessors.ElementAccessor, c *constraint.Co
 	}
 
 	if ea.IsFixed(solveElement) {
-		return Solved
+		return solver.Solved
 	}
 
 	newLine, state := SolveAngleConstraint(cluster, ea, c, solveElement)
@@ -33,14 +34,14 @@ func SolveConstraint(cluster int, ea accessors.ElementAccessor, c *constraint.Co
 	return state
 }
 
-func SolveConstraints(cluster int, ea accessors.ElementAccessor, c1 *constraint.Constraint, c2 *constraint.Constraint, solveFor el.SketchElement) SolveState {
+func SolveConstraints(cluster int, ea accessors.ElementAccessor, c1 *constraint.Constraint, c2 *constraint.Constraint, solveFor el.SketchElement) solver.SolveState {
 	uniqueElements := utils.NewSet()
 	uniqueElements.Add(c1.Element1)
 	uniqueElements.Add(c1.Element2)
 	uniqueElements.Add(c2.Element1)
 	uniqueElements.Add(c2.Element2)
 	if uniqueElements.Count() != 3 {
-		return OverConstrained
+		return solver.OverConstrained
 	}
 
 	if solveFor.GetType() == el.Point {
@@ -50,7 +51,7 @@ func SolveConstraints(cluster int, ea accessors.ElementAccessor, c1 *constraint.
 	return SolveForLine(cluster, ea, c1, c2)
 }
 
-func ConstraintResult(cluster int, ea accessors.ElementAccessor, c1 *constraint.Constraint, c2 *constraint.Constraint, solveFor el.SketchElement) (el.SketchElement, SolveState) {
+func ConstraintResult(cluster int, ea accessors.ElementAccessor, c1 *constraint.Constraint, c2 *constraint.Constraint, solveFor el.SketchElement) (el.SketchElement, solver.SolveState) {
 	if solveFor.GetType() == el.Point {
 		return PointResult(cluster, ea, c1, c2)
 	}
@@ -59,7 +60,7 @@ func ConstraintResult(cluster int, ea accessors.ElementAccessor, c1 *constraint.
 }
 
 // SolveConstraints solve two constraints and return the solution state
-func SolveForPoint(cluster int, ea accessors.ElementAccessor, c1 *constraint.Constraint, c2 *constraint.Constraint) SolveState {
+func SolveForPoint(cluster int, ea accessors.ElementAccessor, c1 *constraint.Constraint, c2 *constraint.Constraint) solver.SolveState {
 	newP3, state := PointResult(cluster, ea, c1, c2)
 
 	if newP3 == nil {
@@ -80,11 +81,11 @@ func SolveForPoint(cluster int, ea accessors.ElementAccessor, c1 *constraint.Con
 }
 
 // PointResult returns the result of solving two constraints sharing one point
-func PointResult(cluster int, ea accessors.ElementAccessor, c1 *constraint.Constraint, c2 *constraint.Constraint) (*el.SketchPoint, SolveState) {
-	numPoints, _ := typeCounts(c1, c2, ea)
+func PointResult(cluster int, ea accessors.ElementAccessor, c1 *constraint.Constraint, c2 *constraint.Constraint) (*el.SketchPoint, solver.SolveState) {
+	numPoints, _ := solver.TypeCounts(c1, c2, ea)
 	// 4 points -> PointFromPoints
 	var point *el.SketchPoint = nil
-	var solveState SolveState = NonConvergent
+	var solveState solver.SolveState = solver.NonConvergent
 	if numPoints == 4 {
 		point, solveState = PointFromPoints(cluster, ea, c1, c2)
 	}
@@ -98,7 +99,7 @@ func PointResult(cluster int, ea accessors.ElementAccessor, c1 *constraint.Const
 		point, solveState = PointFromLineLine(cluster, ea, c1, c2)
 	}
 
-	if solveState == Solved {
+	if solveState == solver.Solved {
 		c1.Solved = true
 		c2.Solved = true
 	}
@@ -107,12 +108,12 @@ func PointResult(cluster int, ea accessors.ElementAccessor, c1 *constraint.Const
 }
 
 // SolveDistanceConstraint solves a distance constraint and returns the solution state
-func SolveDistanceConstraint(cluster int, ea accessors.ElementAccessor, c *constraint.Constraint) SolveState {
+func SolveDistanceConstraint(cluster int, ea accessors.ElementAccessor, c *constraint.Constraint) solver.SolveState {
 	if c.Type != constraint.Distance {
 		utils.Logger.Error().
 			Uint("constraint", c.GetID()).
 			Msgf("SolveDistanceConstraint: was not sent a distance constraint")
-		return NonConvergent
+		return solver.NonConvergent
 	}
 
 	var solveElement el.SketchElement
@@ -124,7 +125,7 @@ func SolveDistanceConstraint(cluster int, ea accessors.ElementAccessor, c *const
 			Uint("element 1", c.Element1).
 			Uint("element 2", c.Element2).
 			Msgf("SolveDistanceConstraint: Element 1 not found")
-		return NonConvergent
+		return solver.NonConvergent
 	}
 	e2, ok := ea.GetElement(cluster, c.Element2)
 	if !ok {
@@ -133,11 +134,11 @@ func SolveDistanceConstraint(cluster int, ea accessors.ElementAccessor, c *const
 			Uint("element 1", c.Element1).
 			Uint("element 2", c.Element2).
 			Msgf("SolveDistanceConstraint: Element 2 not found")
-		return NonConvergent
+		return solver.NonConvergent
 	}
 
 	if e1.IsFixed() && e2.IsFixed() {
-		return Solved
+		return solver.Solved
 	}
 
 	solveElement, other = e1, e2
@@ -155,17 +156,17 @@ func SolveDistanceConstraint(cluster int, ea accessors.ElementAccessor, c *const
 
 	if dist.Cmp(&zero) == 0 && c.GetValue().Cmp(&zero) > 0 {
 		utils.Logger.Error().Msg("SolveDistanceConstraint: points are coincident, but they shouldn't be. Infinite solutions.")
-		return NonConvergent
+		return solver.NonConvergent
 	}
 
 	if utils.StandardBigFloatCompare(dist, &zero) == 0 && c.GetValue().Cmp(&zero) == 0 {
 		c.Solved = true
-		return Solved
+		return solver.Solved
 	}
 
 	translation, ok := direction.UnitVector()
 	if !ok {
-		return NonConvergent
+		return solver.NonConvergent
 	}
 	translation.Scaled(temp.Sub(c.GetValue(), dist))
 
@@ -174,12 +175,12 @@ func SolveDistanceConstraint(cluster int, ea accessors.ElementAccessor, c *const
 	solveElement.Translate(&x, &y)
 	c.Solved = true
 
-	return Solved
+	return solver.Solved
 }
 
 // GetPointFromPoints calculates where a 3rd point exists in relation to two others with
 // distance constraints from the first two
-func GetPointFromPoints(p1 el.SketchElement, originalP2 el.SketchElement, originalP3 el.SketchElement, p1Radius *big.Float, p2Radius *big.Float) (*el.SketchPoint, SolveState) {
+func GetPointFromPoints(p1 el.SketchElement, originalP2 el.SketchElement, originalP3 el.SketchElement, p1Radius *big.Float, p2Radius *big.Float) (*el.SketchPoint, solver.SolveState) {
 	// Don't mutate the originals
 	p2 := el.CopySketchElement(originalP2)
 	p3 := el.CopySketchElement(originalP3)
@@ -192,7 +193,7 @@ func GetPointFromPoints(p1 el.SketchElement, originalP2 el.SketchElement, origin
 			Uint("point 1", p1.GetID()).
 			Uint("point 2", p2.GetID()).
 			Msg("GetPointFromPoints no solution because the points are too far apart")
-		return nil, NonConvergent
+		return nil, solver.NonConvergent
 	}
 
 	if utils.StandardBigFloatCompare(pointDistance, &constraintDist) == 0 {
@@ -201,7 +202,7 @@ func GetPointFromPoints(p1 el.SketchElement, originalP2 el.SketchElement, origin
 		x.Sub(&p1.AsPoint().X, &translate.X)
 		y.Sub(&p1.AsPoint().Y, &translate.Y)
 		newP3 := el.NewSketchPoint(p3.GetID(), &x, &y)
-		return newP3, Solved
+		return newP3, solver.Solved
 	}
 
 	// Solve for p3
@@ -251,12 +252,12 @@ func GetPointFromPoints(p1 el.SketchElement, originalP2 el.SketchElement, origin
 	actualP3.TranslateByElement(p1)
 
 	// return actualP3
-	return actualP3, Solved
+	return actualP3, solver.Solved
 }
 
 // PointFromPoints calculates a new p3 representing p3 moved to satisfy
 // distance constraints from p1 and p2
-func PointFromPoints(cluster int, ea accessors.ElementAccessor, c1 *constraint.Constraint, c2 *constraint.Constraint) (*el.SketchPoint, SolveState) {
+func PointFromPoints(cluster int, ea accessors.ElementAccessor, c1 *constraint.Constraint, c2 *constraint.Constraint) (*el.SketchPoint, solver.SolveState) {
 	c1e1, _ := ea.GetElement(cluster, c1.Element1)
 	c1e2, _ := ea.GetElement(cluster, c1.Element2)
 	c2e1, _ := ea.GetElement(cluster, c2.Element1)
@@ -282,7 +283,7 @@ func PointFromPoints(cluster int, ea accessors.ElementAccessor, c1 *constraint.C
 	return GetPointFromPoints(p1, p2, p3, p1Radius, p2Radius)
 }
 
-func pointFromPointLine(originalP1 el.SketchElement, originalL2 el.SketchElement, originalP3 el.SketchElement, pointDist *big.Float, lineDist *big.Float) (*el.SketchPoint, SolveState) {
+func pointFromPointLine(originalP1 el.SketchElement, originalL2 el.SketchElement, originalP3 el.SketchElement, pointDist *big.Float, lineDist *big.Float) (*el.SketchPoint, solver.SolveState) {
 	p1 := el.CopySketchElement(originalP1).(*el.SketchPoint)
 	l2 := el.CopySketchElement(originalL2).(*el.SketchLine)
 	p3 := el.CopySketchElement(originalP3).(*el.SketchPoint)
@@ -331,7 +332,7 @@ func pointFromPointLine(originalP1 el.SketchElement, originalL2 el.SketchElement
 			Str("point distance", pointDist.String()).
 			Str("p1.y", temp1.String()).
 			Msg("pointFromPointLine: Nonconvergent")
-		return nil, NonConvergent
+		return nil, solver.NonConvergent
 	}
 
 	// 5. Find points where circle at p1 with radius pointDist intersects with x axis
@@ -363,11 +364,11 @@ func pointFromPointLine(originalP1 el.SketchElement, originalL2 el.SketchElement
 		Str("p3", actualP3.String()).
 		Msg("pointFromPointLine: Final")
 
-	return actualP3, Solved
+	return actualP3, solver.Solved
 }
 
 // PointFromPointLine construct a point from a point and a line. c2 must contain the line.
-func PointFromPointLine(cluster int, ea accessors.ElementAccessor, c1 *constraint.Constraint, c2 *constraint.Constraint) (*el.SketchPoint, SolveState) {
+func PointFromPointLine(cluster int, ea accessors.ElementAccessor, c1 *constraint.Constraint, c2 *constraint.Constraint) (*el.SketchPoint, solver.SolveState) {
 	c1e1, _ := ea.GetElement(cluster, c1.Element1)
 	c1e2, _ := ea.GetElement(cluster, c1.Element2)
 	c2e1, _ := ea.GetElement(cluster, c2.Element1)
@@ -403,7 +404,7 @@ func PointFromPointLine(cluster int, ea accessors.ElementAccessor, c1 *constrain
 	return pointFromPointLine(p1, l2, p3, pointDist, lineDist)
 }
 
-func pointFromLineLine(l1 *el.SketchLine, l2 *el.SketchLine, p3 *el.SketchPoint, line1Dist *big.Float, line2Dist *big.Float) (*el.SketchPoint, SolveState) {
+func pointFromLineLine(l1 *el.SketchLine, l2 *el.SketchLine, p3 *el.SketchPoint, line1Dist *big.Float, line2Dist *big.Float) (*el.SketchPoint, solver.SolveState) {
 	sameSlope := utils.StandardBigFloatCompare(l1.GetA(), l2.GetA()) == 0 && utils.StandardBigFloatCompare(l1.GetB(), l2.GetB()) == 0
 	// If l1 and l2 are parallel, and the distance between the lines isn't line1Dist + line2Dist, we can't solve
 	distanceBetween := l1.DistanceTo(l2)
@@ -415,7 +416,7 @@ func pointFromLineLine(l1 *el.SketchLine, l2 *el.SketchLine, p3 *el.SketchPoint,
 			Uint("line 1", l1.GetID()).
 			Uint("line 2", l2.GetID()).
 			Msg("pointFromLineLine no solution to find a point because the lines are parallel")
-		return nil, NonConvergent
+		return nil, solver.NonConvergent
 	}
 
 	// If l1 & l2 are parallel and it's solvable, there are infinite solutions
@@ -428,7 +429,7 @@ func pointFromLineLine(l1 *el.SketchLine, l2 *el.SketchLine, p3 *el.SketchPoint,
 		translate.Scaled(&scale)
 		x.Add(p3.GetX(), &translate.X)
 		y.Add(p3.GetY(), &translate.Y)
-		return el.NewSketchPoint(p3.GetID(), &x, &y), Solved
+		return el.NewSketchPoint(p3.GetID(), &x, &y), solver.Solved
 	}
 	// Translate l1 line1Dist
 	var neg big.Float
@@ -461,11 +462,11 @@ func pointFromLineLine(l1 *el.SketchLine, l2 *el.SketchLine, p3 *el.SketchPoint,
 		closest = intersect4
 	}
 
-	return closest, Solved
+	return closest, solver.Solved
 }
 
 // PointFromLineLine construct a point from two lines. c2 must contain the point.
-func PointFromLineLine(cluster int, ea accessors.ElementAccessor, c1 *constraint.Constraint, c2 *constraint.Constraint) (*el.SketchPoint, SolveState) {
+func PointFromLineLine(cluster int, ea accessors.ElementAccessor, c1 *constraint.Constraint, c2 *constraint.Constraint) (*el.SketchPoint, solver.SolveState) {
 	c1e1, _ := ea.GetElement(cluster, c1.Element1)
 	c1e2, _ := ea.GetElement(cluster, c1.Element2)
 	c2e1, _ := ea.GetElement(cluster, c2.Element1)

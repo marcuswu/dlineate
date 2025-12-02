@@ -9,6 +9,7 @@ import (
 type ElementAccessor interface {
 	GetElement(cId int, eId uint) (el.SketchElement, bool)
 	IsFixed(eId uint) bool
+	Cluster(eId uint) (uint, bool)
 	IsShared(eId uint) bool
 	AddElement(el.SketchElement) el.SketchElement
 	AddElementToCluster(uint, int)

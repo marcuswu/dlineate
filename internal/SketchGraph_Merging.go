@@ -7,6 +7,17 @@ import (
 	"github.com/marcuswu/dlineate/utils"
 )
 
+type MergeData struct {
+	clusterId1  int
+	clusterId2  int
+	clusterId3  int
+	cluster1    *GraphCluster
+	cluster2    *GraphCluster
+	cluster3    *GraphCluster
+	constraints []uint
+	elements    []uint
+}
+
 func (g *SketchGraph) mergeClusters() {
 	getClusterIndex := func(cId int) int {
 		for i, c := range g.clusters {
@@ -25,19 +36,20 @@ func (g *SketchGraph) mergeClusters() {
 		g.clusters[cIndex], g.clusters[last] = g.clusters[last], g.clusters[cIndex]
 		g.clusters = g.clusters[:last]
 	}
-	for first, second, third := g.findMerge(); len(g.clusters) > 1 && first >= 0 && g.state == solver.Solved; first, second, third = g.findMerge() {
+	for mergeData := g.findMerge(); len(g.clusters) > 1 && mergeData.clusterId1 >= 0 && g.state == solver.Solved; mergeData = g.findMerge() {
+		first, second, third := mergeData.clusterId1, mergeData.clusterId2, mergeData.clusterId3
 		utils.Logger.Debug().
 			Int("first cluster", first).
 			Int("second cluster", second).
 			Int("third cluster", third).
 			Msg("Found merge")
-		c1 := g.clusters[first]
-		c2 := g.clusters[second]
-		var c3 *GraphCluster = nil
+		mergeData.cluster1 = g.clusters[first]
+		mergeData.cluster2 = g.clusters[second]
 		if third > 0 {
-			c3 = g.clusters[third]
+			mergeData.cluster3 = g.clusters[third]
 		}
-		mergeState := c1.solveMerge(g.elementAccessor, g.constraintAccessor, c2, c3)
+		c1, c2, c3 := mergeData.cluster1, mergeData.cluster2, mergeData.cluster3
+		mergeState := c1.solveMerge(g.elementAccessor, g.constraintAccessor, mergeData)
 		utils.Logger.Debug().
 			Str("state", fmt.Sprintf("%v", mergeState)).
 			Msg("Completed merge")
@@ -75,21 +87,7 @@ func (g *SketchGraph) mergeClusters() {
 	}
 }
 
-func (g *SketchGraph) findMergeForCluster(c *GraphCluster) (int, int) {
-	connectedClusters := func(g *SketchGraph, c *GraphCluster) map[int][]uint {
-		connected := make(map[int][]uint)
-		for _, other := range g.clusters {
-			if other.id == c.id {
-				continue
-			}
-			shared := c.SharedElements(other).Contents()
-			if len(shared) < 1 {
-				continue
-			}
-			connected[other.GetID()] = shared
-		}
-		return connected
-	}
+func (g *SketchGraph) findSharedMergeForCluster(c *GraphCluster, sharedMap []map[int][]uint) MergeData {
 	getCluster := func(cId int) *GraphCluster {
 		for _, c := range g.clusters {
 			if c.GetID() == cId {
@@ -100,11 +98,13 @@ func (g *SketchGraph) findMergeForCluster(c *GraphCluster) (int, int) {
 	}
 
 	// These are the clusters connected to c
-	// We want to find either:
-	// * One cluster connected to c by two elements
+	// We want to find one of these possible scenarios:
 	// * Two clusters connected to c by one element each
-	//   and each other by one
-	connected := connectedClusters(g, c)
+	//   and each other by one item
+	// * One cluster connected to c by two elements
+	// Where item may be a shared element or a constraint
+	// connected := connectedClusters(g, c)
+	connected := sharedMap[c.id]
 	for ci, shared := range connected {
 		c2 := getCluster(ci)
 		if c2 == nil {
@@ -118,7 +118,13 @@ func (g *SketchGraph) findMergeForCluster(c *GraphCluster) (int, int) {
 			utils.Logger.Debug().
 				Int("cluster", ci).
 				Msg("Found connected cluster for merge")
-			return ci, -1
+			return MergeData{
+				clusterId1:  c.id,
+				clusterId2:  ci,
+				clusterId3:  -1,
+				constraints: []uint{},
+				elements:    shared,
+			}
 		}
 
 		if len(shared) == 1 {
@@ -140,33 +146,117 @@ func (g *SketchGraph) findMergeForCluster(c *GraphCluster) (int, int) {
 						Int("cluster 1", ci).
 						Int("cluster 2", oi).
 						Msg("Found connected clusters for merge")
-					return ci, oi
+					return MergeData{
+						clusterId1:  c.id,
+						clusterId2:  ci,
+						clusterId3:  oi,
+						constraints: []uint{},
+						elements:    append(append(shared, oshared...), ciOiShared.Contents()...),
+					}
 				}
 			}
 		}
 	}
 
-	return -1, -1
+	return MergeData{
+		clusterId1:  -1,
+		clusterId2:  -1,
+		clusterId3:  -1,
+		elements:    []uint{},
+		constraints: []uint{},
+	}
 }
 
+/*
+// Find mergeable clusters using constraints
+//   - Two clusters sharing one element and one constraint
+//   - Two clusters with one distance and one angle constraint
+func (g *SketchGraph) findConstraintMerge(c *GraphCluster, sharedMap []map[int][]uint) MergeData {
+	constraintIds := g.freeEdgeMap[uint(c.id)]
+	for clusterId, freeEdges := range g.freeEdgeMap {
+		sharedCs := constraintIds.Intersect(freeEdges)
+		sharedEs := sharedMap[c.id][int(clusterId)]
+		if sharedCs.Count() == 1 && len(sharedEs) == 1 {
+			return MergeData{
+				clusterId1:  c.id,
+				clusterId2:  int(clusterId),
+				clusterId3:  -1,
+				elements:    sharedEs,
+				constraints: sharedCs.Contents(),
+			}
+		}
+
+		// >= accounts for overconstrained
+		if sharedCs.Count() >= 2 {
+			return MergeData{
+				clusterId1:  c.id,
+				clusterId2:  int(clusterId),
+				clusterId3:  -1,
+				elements:    sharedEs,
+				constraints: sharedCs.Contents(),
+			}
+		}
+	}
+
+	return MergeData{
+		clusterId1:  -1,
+		clusterId2:  -1,
+		clusterId3:  -1,
+		elements:    []uint{},
+		constraints: []uint{},
+	}
+}
+*/
+
 // Find and return clusters which can be merged.
-// This can either be:
-//   - Three clusters each sharing an element with one other
+// This can be:
+//   - Three clusters each sharing an element with each other
 //   - Two clusters sharing two elements with each other
+//   - Two clusters sharing one element and any constraint
+//   - Two clusters with one distance and one angle constraint
 //
-// Returns the index(es) of the mergable clusters
-func (g *SketchGraph) findMerge() (int, int, int) {
-	for i, c := range g.clusters {
-		// Merge cluster 0 last manually
+// Where item may be a shared element or a constraint
+// Returns the indexes of the mergable clusters
+// func (g *SketchGraph) findMerge() (int, int, int) {
+func (g *SketchGraph) findMerge() MergeData {
+	// double for loop up front to do it once per merge
+	shared := make([]map[int][]uint, len(g.clusters))
+	for _, c := range g.clusters {
+		shared[c.id] = make(map[int][]uint)
+		for _, other := range g.clusters {
+			if other.id == c.id {
+				continue
+			}
+			sharedEs := c.SharedElements(other).Contents()
+			if len(sharedEs) < 1 {
+				continue
+			}
+			shared[c.id][other.GetID()] = sharedEs
+		}
+	}
+	for _, c := range g.clusters {
+		// utils.Logger.Debug().
+		// 	Int("start cluster", c.id).
+		// 	Msg("Looking for free constraint merge")
+		// mergeData := g.findConstraintMerge(c, shared)
+		// if mergeData.clusterId1 >= 0 {
+		// 	return mergeData
+		// }
 		utils.Logger.Debug().
 			Int("start cluster", c.id).
-			Msg("Looking for merge")
-		c1, c2 := g.findMergeForCluster(c)
-		if c1 >= 0 {
-			return i, c1, c2
+			Msg("Looking for shared element merge")
+		mergeData := g.findSharedMergeForCluster(c, shared)
+		if mergeData.clusterId1 >= 0 {
+			return mergeData
 		}
 	}
 
 	utils.Logger.Debug().Msg("No merge found")
-	return -1, -1, -1
+	return MergeData{
+		clusterId1:  -1,
+		clusterId2:  -1,
+		clusterId3:  -1,
+		elements:    []uint{},
+		constraints: []uint{},
+	}
 }

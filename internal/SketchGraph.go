@@ -23,6 +23,7 @@ type SketchGraph struct {
 	state            solver.SolveState
 	degreesOfFreedom uint
 	conflicting      *utils.Set
+	freeEdgeMap      map[uint]*utils.Set
 }
 
 func NewSketch() *SketchGraph {
@@ -35,6 +36,7 @@ func NewSketch() *SketchGraph {
 	g.state = solver.None
 	g.degreesOfFreedom = 6
 	g.conflicting = utils.NewSet()
+	g.freeEdgeMap = make(map[uint]*utils.Set)
 	return g
 }
 
@@ -191,6 +193,9 @@ func (g *SketchGraph) ResetClusters() {
 	g.usedNodes.Clear()
 	g.state = solver.None
 	g.elementAccessor.ClearClusters()
+	for k := range g.freeEdgeMap {
+		delete(g.freeEdgeMap, k)
+	}
 
 	for _, cId := range g.constraintAccessor.IdSet().Contents() {
 		c, _ := g.constraintAccessor.GetConstraint(cId)
@@ -203,63 +208,6 @@ func (g *SketchGraph) ResetClusters() {
 
 func (g *SketchGraph) Conflicting() *utils.Set {
 	return g.conflicting
-}
-
-func (g *SketchGraph) ToGraphViz() string {
-	edges := ""
-	uniqueSharedElements := make(map[string]interface{})
-	sharedElements := ""
-
-	// Output clusters
-	for _, c := range g.clusters {
-		edges = edges + c.ToGraphViz(g.elementAccessor, g.constraintAccessor)
-		for _, other := range g.clusters {
-			if c.id == other.id {
-				continue
-			}
-			shared := c.SharedElements(other)
-			if shared.Count() == 0 {
-				continue
-			}
-			first := c.id
-			second := other.id
-			if second < first {
-				first, second = second, first
-			}
-			for _, e := range shared.Contents() {
-				key := fmt.Sprintf("\t\"%d-%d\" -- \"%d-%d\"\n", first, e, second, e)
-				if _, ok := uniqueSharedElements[key]; ok {
-					continue
-				}
-				sharedElements = sharedElements + key
-				uniqueSharedElements[key] = 0
-			}
-		}
-	}
-
-	// Output free constraints
-	for _, c := range g.freeEdges.Contents() {
-		constraint, _ := g.constraintAccessor.GetConstraint(c)
-		edges = edges + constraint.ToGraphViz(-1)
-	}
-
-	// Output free elements
-	freeNodes := utils.NewSet()
-	for _, id := range g.elementAccessor.IdSet().Contents() {
-		freeNodes.Add(id)
-	}
-	freeNodes = freeNodes.Difference(g.usedNodes)
-	for _, eId := range freeNodes.Contents() {
-		element, _ := g.elementAccessor.GetElement(-1, eId)
-		edges = edges + element.ToGraphViz(-1)
-	}
-
-	return fmt.Sprintf(`
-	graph {
-		compound=true
-		%s
-		%s
-	}`, edges, sharedElements)
 }
 
 func (g *SketchGraph) Solve() solver.SolveState {
@@ -313,4 +261,67 @@ func (g *SketchGraph) IsSolved() bool {
 	}
 
 	return solved
+}
+
+func (g *SketchGraph) ToGraphViz() string {
+	edges := ""
+	uniqueSharedElements := make(map[string]interface{})
+	sharedElements := ""
+
+	// Output clusters
+	for _, c := range g.clusters {
+		edges = edges + c.ToGraphViz(g.elementAccessor, g.constraintAccessor)
+		for _, other := range g.clusters {
+			if c.id == other.id {
+				continue
+			}
+			shared := c.SharedElements(other)
+			if shared.Count() == 0 {
+				continue
+			}
+			first := c.id
+			second := other.id
+			if second < first {
+				first, second = second, first
+			}
+			for _, e := range shared.Contents() {
+				key := fmt.Sprintf("\t\"%d-%d\" -- \"%d-%d\"\n", first, e, second, e)
+				if _, ok := uniqueSharedElements[key]; ok {
+					continue
+				}
+				sharedElements = sharedElements + key
+				uniqueSharedElements[key] = 0
+			}
+		}
+	}
+
+	// Output free constraints
+	for _, c := range g.freeEdges.Contents() {
+		constraint, _ := g.constraintAccessor.GetConstraint(c)
+		e1Cluster, e1HasCluster := g.elementAccessor.Cluster(constraint.Element1)
+		e2Cluster, e2HasCluster := g.elementAccessor.Cluster(constraint.Element2)
+		if !e1HasCluster || !e2HasCluster {
+			edges = edges + constraint.ToGraphViz(-1, -1)
+		} else {
+			edges = edges + constraint.ToGraphViz(int(e1Cluster), int(e2Cluster))
+		}
+	}
+
+	// Output free elements
+	freeNodes := utils.NewSet()
+	for _, id := range g.elementAccessor.IdSet().Contents() {
+		freeNodes.Add(id)
+	}
+	freeNodes = freeNodes.Difference(g.usedNodes)
+	for _, eId := range freeNodes.Contents() {
+		element, _ := g.elementAccessor.GetElement(-1, eId)
+		edges = edges + element.ToGraphViz(-1)
+	}
+
+	return fmt.Sprintf(`
+	graph {
+		compound=true
+		%s
+		%s
+	}`, edges, sharedElements)
 }
