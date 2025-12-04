@@ -1,4 +1,4 @@
-package core
+package graph
 
 import (
 	"fmt"
@@ -8,7 +8,6 @@ import (
 	"github.com/marcuswu/dlineate/internal/constraint"
 	el "github.com/marcuswu/dlineate/internal/element"
 	"github.com/marcuswu/dlineate/internal/solver"
-	"github.com/marcuswu/dlineate/internal/solver/graph"
 	"github.com/marcuswu/dlineate/utils"
 	"github.com/rs/zerolog"
 )
@@ -48,6 +47,28 @@ func (c *GraphCluster) moveCluster(ea accessors.ElementAccessor, pivot el.Sketch
 		Str("angle", angle2.String()).
 		Msg("Cluster Rotation")
 	c.RotateCluster(ea, pivot.AsPoint(), angle2)
+}
+
+func (g *GraphCluster) mergeConstraint(ea accessors.ElementAccessor, anchor uint, solveFor uint) *constraint.Constraint {
+	anchorElement, _ := ea.GetElement(g.GetID(), anchor)
+	solveElement, _ := ea.GetElement(g.GetID(), solveFor)
+	if anchorElement.GetType() == el.Line && solveElement.GetType() == el.Line {
+		angle := anchorElement.AsLine().AngleToLine(solveElement.AsLine())
+		angle.Neg(angle)
+		utils.Logger.Trace().
+			Uint("element 1", anchor).
+			Uint("element 2", solveFor).
+			Str("angle", angle.String()).
+			Msg("Creating constraint")
+		return constraint.NewConstraint(0, constraint.Angle, anchor, solveFor, angle, false)
+	}
+	dist := anchorElement.DistanceTo(solveElement)
+	utils.Logger.Trace().
+		Uint("element 1", anchor).
+		Uint("element 2", solveFor).
+		Str("distance", dist.String()).
+		Msg("Creating constraint")
+	return constraint.NewConstraint(0, constraint.Distance, anchor, solveFor, dist, false)
 }
 
 func (g *GraphCluster) solveMerge(ea accessors.ElementAccessor, ca accessors.ConstraintAccessor, mergeData MergeData) solver.SolveState {
@@ -121,35 +142,13 @@ func (g *GraphCluster) solveMerge(ea accessors.ElementAccessor, ca accessors.Con
 	ea.CopyToCluster(g.GetID(), c1.GetID(), gc1Shared)
 	ea.CopyToCluster(g.GetID(), c2.GetID(), gc2Shared)
 
-	constraintFor := func(ea accessors.ElementAccessor, other *GraphCluster, anchor uint, solveFor uint) *constraint.Constraint {
-		anchorElement, _ := ea.GetElement(other.GetID(), anchor)
-		solveElement, _ := ea.GetElement(other.GetID(), solveFor)
-		if anchorElement.GetType() == el.Line && solveElement.GetType() == el.Line {
-			angle := anchorElement.AsLine().AngleToLine(solveElement.AsLine())
-			angle.Neg(angle)
-			utils.Logger.Trace().
-				Uint("element 1", anchor).
-				Uint("element 2", solveFor).
-				Str("angle", angle.String()).
-				Msg("Creating constraint")
-			return constraint.NewConstraint(0, constraint.Angle, anchor, solveFor, angle, false)
-		}
-		dist := anchorElement.DistanceTo(solveElement)
-		utils.Logger.Trace().
-			Uint("element 1", anchor).
-			Uint("element 2", solveFor).
-			Str("distance", dist.String()).
-			Msg("Creating constraint")
-		return constraint.NewConstraint(0, constraint.Distance, anchor, solveFor, dist, false)
-	}
-
 	// Update to use free constraints if they exist
-	c1Constraint := constraintFor(ea, c1, gc1Shared, c1c2Shared)
-	c2Constraint := constraintFor(ea, c2, gc2Shared, c1c2Shared)
+	c1Constraint := c1.mergeConstraint(ea, gc1Shared, c1c2Shared)
+	c2Constraint := c2.mergeConstraint(ea, gc2Shared, c1c2Shared)
 	c1Shared, _ := ea.GetElement(c1.GetID(), c1c2Shared)
 	c2Shared, _ := ea.GetElement(c2.GetID(), c1c2Shared)
 
-	newC1C2Shared, state := graph.ConstraintResult(g.GetID(), ea, c1Constraint, c2Constraint, c1Shared)
+	newC1C2Shared, state := solver.ConstraintResult(g.GetID(), ea, c1Constraint, c2Constraint, c1Shared)
 	if state == solver.Solved {
 		utils.Logger.Trace().
 			Str("shared element", newC1C2Shared.String()).
@@ -284,56 +283,56 @@ func (g *GraphCluster) mergeTwoShared(ea accessors.ElementAccessor, mergeData Me
 
 	first := sharedElements[0]
 	firstEl, firstOk := ea.GetElement(g.GetID(), first)
+	firstOther, firstOtherOk := ea.GetElement(other.GetID(), first)
 	second := sharedElements[1]
 	secondEl, secondOk := ea.GetElement(g.GetID(), second)
+	secondOther, secondOtherOk := ea.GetElement(other.GetID(), second)
 
-	if !firstOk || !secondOk {
+	if !firstOk || !secondOk || !firstOtherOk || !secondOtherOk {
 		return solver.NonConvergent
 	}
 
-	if firstEl.GetType() == el.Line {
-		first, second = second, first
-		firstEl, secondEl = secondEl, firstEl
-	}
-	if firstEl.GetType() == el.Line {
-		first, second = second, first
-		firstEl, secondEl = secondEl, firstEl
+	return other.translateToElements(ea, firstOther, firstEl, secondOther, secondEl)
+}
+
+func (g *GraphCluster) translateToElements(ea accessors.ElementAccessor, e1Local, e1Other, e2Local, e2Other el.SketchElement) solver.SolveState {
+	if e1Local.GetType() == el.Line {
+		e1Local, e2Local = e2Local, e1Local
+		e1Other, e2Other = e2Other, e1Other
 	}
 
 	// If both elements are lines, nonconvergent (I think)
 	// TODO: line up one. If the other doesn't align, then nonconvergent
-	if firstEl.GetType() == el.Line {
+	if e1Local.GetType() == el.Line {
 		utils.Logger.Error().Msg("In a merge one and both shared elements are line type")
 		return solver.NonConvergent
 	}
 
-	p1 := firstEl
-	p2, _ := ea.GetElement(other.GetID(), first)
+	p1 := e1Local
+	p2 := e1Other
 
 	// If there's a line, first rotate the lines into the same angle, then match first element
-	if p2.GetType() == el.Line {
-		l, _ := ea.GetElement(g.GetID(), second)
-		ol, _ := ea.GetElement(other.GetID(), second)
-		angle := ol.AsLine().AngleToLine(l.AsLine())
-		other.RotateCluster(ea, p1.AsPoint(), angle)
+	if e2Local.GetType() == el.Line {
+		l := e2Local
+		ol := e2Other
+		angle := l.AsLine().AngleToLine(ol.AsLine())
+		g.RotateCluster(ea, p1.AsPoint(), angle)
 		utils.Logger.Trace().Msg("Rotated to make line the same angle")
 	}
 
 	// Match up the first point
 	utils.Logger.Trace().Msg("matching up the first point")
-	direction := p1.VectorTo(p2)
-	other.TranslateCluster(ea, &direction.X, &direction.Y)
+	direction := p2.VectorTo(p1)
+	g.TranslateCluster(ea, &direction.X, &direction.Y)
 
 	// If both are points, rotate other to match the element in g
 	// Use a angle between the two points in both clusters to determine the angle to rotate
-	if secondEl.GetType() == el.Point {
+	if e2Local.GetType() == el.Point {
 		utils.Logger.Trace().Msg("both elements were points, rotating to match the points together")
-		otherFirst, _ := ea.GetElement(other.GetID(), first)
-		otherSecond, _ := ea.GetElement(other.GetID(), second)
-		v1 := secondEl.VectorTo(firstEl)
-		v2 := otherSecond.VectorTo(otherFirst)
-		angle := v1.AngleTo(v2)
-		other.RotateCluster(ea, p1.AsPoint(), angle)
+		v1 := e2Local.VectorTo(e1Local)
+		v2 := e2Other.VectorTo(e1Other)
+		angle := v2.AngleTo(v1)
+		g.RotateCluster(ea, p1.AsPoint(), angle)
 	}
 
 	return solver.Solved
@@ -388,7 +387,7 @@ func (g *GraphCluster) mergeOneShared(ea accessors.ElementAccessor, ca accessors
 	} else {
 		r1 := sharedE.DistanceTo(e2)
 		r2 := &c.Value
-		p3, newState := graph.GetPointFromPoints(e1, sharedE, e2, r1, r2)
+		p3, newState := solver.GetPointFromPoints(e1, sharedE, e2, r1, r2)
 		state = newState
 		if state == solver.NonConvergent {
 			return state

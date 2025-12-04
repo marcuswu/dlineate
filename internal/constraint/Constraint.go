@@ -2,6 +2,7 @@ package constraint
 
 import (
 	"fmt"
+	"math"
 	"math/big"
 
 	el "github.com/marcuswu/dlineate/internal/element"
@@ -145,6 +146,49 @@ func (c *Constraint) IsMet(e1 el.SketchElement, e2 el.SketchElement) bool {
 	}
 
 	return c.Solved
+}
+
+func (c *Constraint) Error(e1 el.SketchElement, e2 el.SketchElement) float64 {
+	var temp big.Float
+	current := e1.DistanceTo(e2)
+	if c.Type == Angle {
+		current = e1.AsLine().AngleToLine(e2.AsLine())
+		pi := big.NewFloat(math.Pi)
+		// Normalize angle to [0, pi)
+		if utils.StandardBigFloatCompare(current, pi) >= 0 {
+			current.Sub(current, pi)
+		}
+		temp.Sub(current, &c.Value)
+		if utils.StandardBigFloatCompare(&c.Value, big.NewFloat(0)) != 0 {
+			temp.Quo(&temp, &c.Value)
+		}
+		temp.Abs(&temp)
+		result, _ := temp.Float64()
+		if temp.IsInf() {
+			utils.Logger.Error().
+				Uint("constraint id", c.GetID()).
+				Uint("element 1", c.Element1).
+				Uint("element 2", c.Element2).
+				Str("current", current.String()).
+				Str("value", c.Value.String()).
+				Msg("Constraint error is infinite")
+		}
+		return result
+	}
+
+	temp.Sub(current, &c.Value)
+	temp.Abs(&temp)
+	if temp.IsInf() {
+		utils.Logger.Error().
+			Uint("constraint id", c.GetID()).
+			Uint("element 1", c.Element1).
+			Uint("element 2", c.Element2).
+			Str("current", current.String()).
+			Str("value", c.Value.String()).
+			Msg("Constraint error is infinite")
+	}
+	result, _ := temp.Float64()
+	return result
 }
 
 func (c *Constraint) String() string {

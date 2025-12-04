@@ -1,4 +1,4 @@
-package core
+package graph
 
 import (
 	"fmt"
@@ -8,7 +8,6 @@ import (
 	"github.com/marcuswu/dlineate/internal/constraint"
 	el "github.com/marcuswu/dlineate/internal/element"
 	"github.com/marcuswu/dlineate/internal/solver"
-	"github.com/marcuswu/dlineate/internal/solver/graph"
 	"github.com/marcuswu/dlineate/utils"
 	"github.com/rs/zerolog"
 )
@@ -233,7 +232,7 @@ func (g *GraphCluster) Solve(ea accessors.ElementAccessor, ca accessors.Constrai
 		Msg("Solving first constraint")
 	isFixed := ea.IsFixed(c1.Element1) && ea.IsFixed(c1.Element2)
 	if !isFixed {
-		state = graph.SolveConstraint(g.id, ea, c1)
+		state = solver.SolveConstraint(g.id, ea, c1)
 	}
 	utils.Logger.Trace().
 		Str("state", state.String()).
@@ -332,7 +331,7 @@ func (g *GraphCluster) Solve(ea accessors.ElementAccessor, ca accessors.Constrai
 			Msg("Solving constraints")
 		s := solver.Solved
 		if !element.IsFixed() {
-			s = graph.SolveConstraints(g.id, ea, c[0], c[1], element)
+			s = solver.SolveConstraints(g.id, ea, c[0], c[1], element)
 		}
 		if state == solver.Solved {
 			utils.Logger.Trace().

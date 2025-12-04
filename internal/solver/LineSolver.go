@@ -1,4 +1,4 @@
-package graph
+package solver
 
 import (
 	"errors"
@@ -8,11 +8,10 @@ import (
 	"github.com/marcuswu/dlineate/internal/accessors"
 	"github.com/marcuswu/dlineate/internal/constraint"
 	el "github.com/marcuswu/dlineate/internal/element"
-	"github.com/marcuswu/dlineate/internal/solver"
 	"github.com/marcuswu/dlineate/utils"
 )
 
-func SolveForLine(cluster int, ea accessors.ElementAccessor, c1 *constraint.Constraint, c2 *constraint.Constraint) solver.SolveState {
+func SolveForLine(cluster int, ea accessors.ElementAccessor, c1 *constraint.Constraint, c2 *constraint.Constraint) SolveState {
 	line, solveState := LineResult(cluster, ea, c1, c2)
 
 	if line == nil {
@@ -34,49 +33,49 @@ func SolveForLine(cluster int, ea accessors.ElementAccessor, c1 *constraint.Cons
 	return solveState
 }
 
-func LineResult(cluster int, ea accessors.ElementAccessor, c1 *constraint.Constraint, c2 *constraint.Constraint) (*el.SketchLine, solver.SolveState) {
+func LineResult(cluster int, ea accessors.ElementAccessor, c1 *constraint.Constraint, c2 *constraint.Constraint) (*el.SketchLine, SolveState) {
 	/*
 		There are three possibilities:
 		 * three lines -- only possible during a merge and should already be solved
 		 * two lines and a point: The two lines must have an angle constraint between them
 		 * two points and a line
 	*/
-	_, numLines := solver.TypeCounts(c1, c2, ea)
+	_, numLines := TypeCounts(c1, c2, ea)
 	// 2 lines, 1 point -> LineFromPointLine
 	var line *el.SketchLine = nil
-	var solveState solver.SolveState = solver.NonConvergent
+	var solveState SolveState = NonConvergent
 
 	// If all are lines, this is coming from a merge and it's successful if the shared line is already solved
 	if numLines == 4 {
 		lineId, ok := c1.Shared(c2)
 		if !ok {
-			return nil, solver.NonConvergent
+			return nil, NonConvergent
 		}
 		lineEl, ok := ea.GetElement(cluster, lineId)
 		if !ok {
-			return nil, solver.NonConvergent
+			return nil, NonConvergent
 		}
 		line = lineEl.AsLine()
 		c1OtherId, ok := c1.Other(lineId)
 		if !ok {
-			return line, solver.NonConvergent
+			return line, NonConvergent
 		}
 		c1Other, ok := ea.GetElement(cluster, c1OtherId)
 		if !ok {
-			return line, solver.NonConvergent
+			return line, NonConvergent
 		}
 		c2OtherId, ok := c2.Other(lineId)
 		if !ok {
-			return line, solver.NonConvergent
+			return line, NonConvergent
 		}
 		c2Other, ok := ea.GetElement(cluster, c2OtherId)
 		if !ok {
-			return line, solver.NonConvergent
+			return line, NonConvergent
 		}
 		if !c1.IsMet(line, c1Other) || !c2.IsMet(line, c2Other) {
-			return line, solver.NonConvergent
+			return line, NonConvergent
 		}
-		return line, solver.Solved
+		return line, Solved
 	}
 
 	if numLines == 3 {
@@ -100,7 +99,7 @@ func LineResult(cluster int, ea accessors.ElementAccessor, c1 *constraint.Constr
 		}
 	}
 
-	if solveState == solver.Solved {
+	if solveState == Solved {
 		c1.Solved = true
 		c2.Solved = true
 	}
@@ -109,23 +108,23 @@ func LineResult(cluster int, ea accessors.ElementAccessor, c1 *constraint.Constr
 }
 
 // MoveLineToPoint solves a constraint between a line and a point where the line needs to move
-func MoveLineToPoint(ea accessors.ElementAccessor, c *constraint.Constraint) solver.SolveState {
+func MoveLineToPoint(ea accessors.ElementAccessor, c *constraint.Constraint) SolveState {
 	if c.Type != constraint.Distance {
 		utils.Logger.Error().
 			Uint("constraint", c.GetID()).
 			Msg("MoveLineToPoint constraint was not Distance type")
-		return solver.NonConvergent
+		return NonConvergent
 	}
 
 	var point *el.SketchPoint
 	var line *el.SketchLine
 	e1, ok := ea.GetElement(-1, c.Element1)
 	if !ok {
-		return solver.NonConvergent
+		return NonConvergent
 	}
 	e2, ok := ea.GetElement(-1, c.Element2)
 	if !ok {
-		return solver.NonConvergent
+		return NonConvergent
 	}
 	var e1Type = e1.GetType()
 	var e2Type = e2.GetType()
@@ -133,7 +132,7 @@ func MoveLineToPoint(ea accessors.ElementAccessor, c *constraint.Constraint) sol
 		utils.Logger.Error().
 			Uint("constraint", c.GetID()).
 			Msg("MoveLineToPoint did not have the correct element types")
-		return solver.NonConvergent
+		return NonConvergent
 	}
 	if e1Type == el.Point && e2Type == el.Line {
 		point = e1.(*el.SketchPoint)
@@ -164,17 +163,17 @@ func MoveLineToPoint(ea accessors.ElementAccessor, c *constraint.Constraint) sol
 
 	c.Solved = true
 
-	return solver.Solved
+	return Solved
 }
 
-func LineFromPoints(cluster int, ea accessors.ElementAccessor, c1 *constraint.Constraint, c2 *constraint.Constraint) (*el.SketchLine, solver.SolveState) {
+func LineFromPoints(cluster int, ea accessors.ElementAccessor, c1 *constraint.Constraint, c2 *constraint.Constraint) (*el.SketchLine, SolveState) {
 	l, ok := c1.Shared(c2)
 	if !ok {
-		return nil, solver.NonConvergent
+		return nil, NonConvergent
 	}
 	e, ok := ea.GetElement(cluster, l)
 	if !ok {
-		return nil, solver.NonConvergent
+		return nil, NonConvergent
 	}
 	line := e.AsLine()
 
@@ -183,19 +182,19 @@ func LineFromPoints(cluster int, ea accessors.ElementAccessor, c1 *constraint.Co
 			Uint("constraint 1", c1.GetID()).
 			Uint("constraint 2", c2.GetID()).
 			Msg("LineFromPoints could not find the line to work with.")
-		return line, solver.NonConvergent
+		return line, NonConvergent
 	}
 
 	p1e, _ := c1.Other(line.GetID())
 	p2e, _ := c2.Other(line.GetID())
 	e, ok = ea.GetElement(cluster, p1e)
 	if !ok || e.GetType() != el.Point {
-		return line, solver.NonConvergent
+		return line, NonConvergent
 	}
 	p1 := e.AsPoint()
 	e, ok = ea.GetElement(cluster, p2e)
 	if !ok || e.GetType() != el.Point {
-		return line, solver.NonConvergent
+		return line, NonConvergent
 	}
 	p2 := e.AsPoint()
 	if p1 == nil || p2 == nil {
@@ -203,7 +202,7 @@ func LineFromPoints(cluster int, ea accessors.ElementAccessor, c1 *constraint.Co
 			Uint("constraint 1", c1.GetID()).
 			Uint("constraint 2", c2.GetID()).
 			Msg("LineFromPoints could not find the points to work with.")
-		return line, solver.NonConvergent
+		return line, NonConvergent
 	}
 	p1Dist := c1.Value
 	p2Dist := c2.Value
@@ -240,7 +239,7 @@ func LineFromPoints(cluster int, ea accessors.ElementAccessor, c1 *constraint.Co
 			line.SetB(&lb2)
 			line.SetC(&lc2)
 		}
-		return line, solver.Solved
+		return line, Solved
 	}
 
 	// Rotate line to horizontal (and rotate points the same)
@@ -319,14 +318,14 @@ func LineFromPoints(cluster int, ea accessors.ElementAccessor, c1 *constraint.Co
 	tanC := make([]big.Float, 4)
 	a, b, c, err := calcTangent(&X, &Y, &R, big.NewFloat(1), true)
 	if err != nil {
-		return nil, solver.NonConvergent
+		return nil, NonConvergent
 	}
 	tanA[0].Set(a)
 	tanB[0].Set(b)
 	tanC[0].Set(c)
 	a, b, c, err = calcTangent(&X, &Y, &R, big.NewFloat(-1), true)
 	if err != nil {
-		return nil, solver.NonConvergent
+		return nil, NonConvergent
 	}
 	tanA[1].Set(a)
 	tanB[1].Set(b)
@@ -344,7 +343,7 @@ func LineFromPoints(cluster int, ea accessors.ElementAccessor, c1 *constraint.Co
 		R.Quo(&combinedDistances, d)
 		a, b, c, err = calcTangent(&X, &Y, &R, big.NewFloat(1), false)
 		if err != nil {
-			return nil, solver.NonConvergent
+			return nil, NonConvergent
 		}
 		// tanA[2], tanB[2], tanC[2] = a, b, c
 		tanA[2].Set(a)
@@ -352,7 +351,7 @@ func LineFromPoints(cluster int, ea accessors.ElementAccessor, c1 *constraint.Co
 		tanC[2].Set(c)
 		a, b, c, err = calcTangent(&X, &Y, &R, big.NewFloat(-1), false)
 		if err != nil {
-			return nil, solver.NonConvergent
+			return nil, NonConvergent
 		}
 		tanA[3].Set(a)
 		tanB[3].Set(b)
@@ -383,10 +382,10 @@ func LineFromPoints(cluster int, ea accessors.ElementAccessor, c1 *constraint.Co
 	line.SetB(&chosenB)
 	line.SetC(&chosenC)
 
-	return line, solver.Solved
+	return line, Solved
 }
 
-func LineFromPointLine(cluster int, ea accessors.ElementAccessor, c1 *constraint.Constraint, c2 *constraint.Constraint) (*el.SketchLine, solver.SolveState) {
+func LineFromPointLine(cluster int, ea accessors.ElementAccessor, c1 *constraint.Constraint, c2 *constraint.Constraint) (*el.SketchLine, SolveState) {
 	var targetLine *el.SketchLine = nil
 	var point *el.SketchPoint = nil
 	distC := c1
@@ -399,7 +398,7 @@ func LineFromPointLine(cluster int, ea accessors.ElementAccessor, c1 *constraint
 	// The distance constraint with have the point and the shared line
 	e, ok := ea.GetElement(cluster, distC.First())
 	if !ok {
-		return nil, solver.NonConvergent
+		return nil, NonConvergent
 	}
 	targetLine = e.AsLine()
 	if targetLine == nil {
@@ -407,7 +406,7 @@ func LineFromPointLine(cluster int, ea accessors.ElementAccessor, c1 *constraint
 	}
 	e, ok = ea.GetElement(cluster, distC.Second())
 	if !ok {
-		return nil, solver.NonConvergent
+		return nil, NonConvergent
 	}
 	if point == nil {
 		point = e.AsPoint()
@@ -418,7 +417,7 @@ func LineFromPointLine(cluster int, ea accessors.ElementAccessor, c1 *constraint
 	// Solve angle
 	newLine, state := SolveAngleConstraint(cluster, ea, angleC, targetLine.GetID())
 
-	if state != solver.Solved {
+	if state != Solved {
 		return newLine, state
 	}
 
@@ -444,22 +443,22 @@ func LineFromPointLine(cluster int, ea accessors.ElementAccessor, c1 *constraint
 }
 
 // SolveAngleConstraint solve an angle constraint between two lines
-func SolveAngleConstraint(cluster int, ea accessors.ElementAccessor, c *constraint.Constraint, e uint) (*el.SketchLine, solver.SolveState) {
+func SolveAngleConstraint(cluster int, ea accessors.ElementAccessor, c *constraint.Constraint, e uint) (*el.SketchLine, SolveState) {
 	if c.Type != constraint.Angle {
 		utils.Logger.Error().
 			Uint("constraint", c.GetID()).
 			Msgf("SolveAngleConstraint was not sent an angle constraint")
-		return nil, solver.NonConvergent
+		return nil, NonConvergent
 	}
 
 	element, ok := ea.GetElement(cluster, c.Element1)
 	if !ok {
-		return nil, solver.NonConvergent
+		return nil, NonConvergent
 	}
 	l1 := element.(*el.SketchLine)
 	element, ok = ea.GetElement(cluster, c.Element2)
 	if !ok {
-		return nil, solver.NonConvergent
+		return nil, NonConvergent
 	}
 	l2 := element.(*el.SketchLine)
 	var negDesired big.Float
@@ -504,8 +503,8 @@ func SolveAngleConstraint(cluster int, ea accessors.ElementAccessor, c *constrai
 
 	angle1.SetPrec(utils.FloatPrecision).Copy(newLine.AngleToLine(l1))
 	if utils.StandardBigFloatCompare(angle1, &desired) != 0 && utils.StandardBigFloatCompare(angle1, &negDesired) != 0 {
-		return nil, solver.NonConvergent
+		return nil, NonConvergent
 	}
 	c.Solved = true
-	return newLine, solver.Solved
+	return newLine, Solved
 }

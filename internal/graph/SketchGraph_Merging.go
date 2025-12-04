@@ -1,4 +1,4 @@
-package core
+package graph
 
 import (
 	"fmt"
@@ -18,7 +18,7 @@ type MergeData struct {
 	elements    []uint
 }
 
-func (g *SketchGraph) mergeClusters() {
+func (g *SketchGraph) removeCluster(cId int) {
 	getClusterIndex := func(cId int) int {
 		for i, c := range g.clusters {
 			if c.GetID() == cId {
@@ -27,15 +27,16 @@ func (g *SketchGraph) mergeClusters() {
 		}
 		return -1
 	}
-	removeCluster := func(g *SketchGraph, cId int) {
-		cIndex := getClusterIndex(cId)
-		if cIndex < 0 || len(g.clusters) == 0 {
-			return
-		}
-		last := len(g.clusters) - 1
-		g.clusters[cIndex], g.clusters[last] = g.clusters[last], g.clusters[cIndex]
-		g.clusters = g.clusters[:last]
+	cIndex := getClusterIndex(cId)
+	if cIndex < 0 || len(g.clusters) == 0 {
+		return
 	}
+	last := len(g.clusters) - 1
+	g.clusters[cIndex], g.clusters[last] = g.clusters[last], g.clusters[cIndex]
+	g.clusters = g.clusters[:last]
+}
+
+func (g *SketchGraph) mergeClusters() {
 	for mergeData := g.findMerge(); len(g.clusters) > 1 && mergeData.clusterId1 >= 0 && g.state == solver.Solved; mergeData = g.findMerge() {
 		first, second, third := mergeData.clusterId1, mergeData.clusterId2, mergeData.clusterId3
 		utils.Logger.Debug().
@@ -64,10 +65,10 @@ func (g *SketchGraph) mergeClusters() {
 		}
 		// Remove second and third clusters
 		g.elementAccessor.MergeElements(c1.GetID(), c2.GetID())
-		removeCluster(g, c2.GetID())
+		g.removeCluster(c2.GetID())
 		if third > 0 {
 			g.elementAccessor.MergeElements(c1.GetID(), c3.GetID())
-			removeCluster(g, c3.GetID())
+			g.removeCluster(c3.GetID())
 		}
 	}
 
@@ -79,7 +80,7 @@ func (g *SketchGraph) mergeClusters() {
 	clusters := g.clusters
 	for _, c := range clusters {
 		g.elementAccessor.MergeToRoot(c.GetID())
-		removeCluster(g, c.GetID())
+		g.removeCluster(c.GetID())
 	}
 
 	if !g.IsSolved() {
@@ -248,6 +249,21 @@ func (g *SketchGraph) findMerge() MergeData {
 		mergeData := g.findSharedMergeForCluster(c, shared)
 		if mergeData.clusterId1 >= 0 {
 			return mergeData
+		}
+	}
+
+	// The numeric solver solution cannot be merged by the caller of this function
+	// Instead, the numeric solver will execute the merge itself. This function returns no merge
+	// The numeric solver will solve all remaining clusters together and merge them into one
+	// It is possible that there could be a path to solve some clusters and continue normal
+	// merging after that, but that is more complex and can be considered later
+	if len(g.clusters) > 1 {
+		utils.Logger.Debug().
+			Int("clusters", len(g.clusters)).
+			Msg("Looking for numeric merge")
+		state := g.numericMerge()
+		if state != solver.Solved || !g.IsSolved() {
+			g.state = solver.NonConvergent
 		}
 	}
 

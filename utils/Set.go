@@ -16,6 +16,12 @@ func NewSet() *Set {
 	return s
 }
 
+func NewSetFromList(values []uint) *Set {
+	s := NewSet()
+	s.AddList(values)
+	return s
+}
+
 // Add Adds a value to the set
 func (s *Set) Add(value uint) {
 	s.m[value] = exists

@@ -9,6 +9,7 @@ import (
 const FloatPrecision = 200
 const StandardBigCompare = 0.0000001
 const StandardCompare = 0.00001
+const MaxNumericIterations = 10000
 
 // BigFloatCompare returns 0 if floats are equal, -1 if a < b, 1 if a > b using a tolerance
 func BigFloatCompare(a *big.Float, b *big.Float, tolerance float64) int {

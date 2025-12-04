@@ -12,8 +12,8 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
-	core "github.com/marcuswu/dlineate/internal"
 	"github.com/marcuswu/dlineate/internal/constraint"
+	core "github.com/marcuswu/dlineate/internal/graph"
 	"github.com/marcuswu/dlineate/internal/solver"
 	"github.com/marcuswu/dlineate/utils"
 )

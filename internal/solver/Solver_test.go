@@ -1,4 +1,4 @@
-package graph
+package solver
 
 import (
 	"math"
@@ -8,7 +8,6 @@ import (
 	"github.com/marcuswu/dlineate/internal/accessors"
 	"github.com/marcuswu/dlineate/internal/constraint"
 	el "github.com/marcuswu/dlineate/internal/element"
-	"github.com/marcuswu/dlineate/internal/solver"
 	"github.com/marcuswu/dlineate/utils"
 	"github.com/stretchr/testify/assert"
 )
@@ -21,7 +20,7 @@ func TestPointFromPoints(t *testing.T) {
 		p2     *el.SketchPoint
 		p2Dist *big.Float
 		p3     *el.SketchPoint
-		state  solver.SolveState
+		state  SolveState
 	}{
 		{
 			"Test Nonconvergent",
@@ -30,7 +29,7 @@ func TestPointFromPoints(t *testing.T) {
 			el.NewSketchPoint(1, big.NewFloat(3), big.NewFloat(5)),
 			big.NewFloat(3.0),
 			el.NewSketchPoint(2, big.NewFloat(0), big.NewFloat(2)),
-			solver.NonConvergent,
+			NonConvergent,
 		},
 		{
 			"Test 1",
@@ -39,7 +38,7 @@ func TestPointFromPoints(t *testing.T) {
 			el.NewSketchPoint(1, big.NewFloat(3), big.NewFloat(5)),
 			big.NewFloat(5.0),
 			el.NewSketchPoint(2, big.NewFloat(0), big.NewFloat(2)),
-			solver.Solved,
+			Solved,
 		},
 		{
 			"Test exact distance",
@@ -48,13 +47,13 @@ func TestPointFromPoints(t *testing.T) {
 			el.NewSketchPoint(1, big.NewFloat(3), big.NewFloat(5)),
 			big.NewFloat(3.0),
 			el.NewSketchPoint(2, big.NewFloat(2), big.NewFloat(2)),
-			solver.Solved,
+			Solved,
 		},
 	}
 	for _, tt := range tests {
 		newP3, state := GetPointFromPoints(tt.p1, tt.p2, tt.p3, tt.p1Dist, tt.p2Dist)
 		assert.Equal(t, state, tt.state, tt.name)
-		if tt.state == solver.NonConvergent {
+		if tt.state == NonConvergent {
 			continue
 		}
 		assert.Equal(t, tt.p3.GetID(), newP3.GetID(), tt.name)
@@ -92,7 +91,7 @@ func TestPointFromPointsExt(t *testing.T) {
 
 	newP3, state := PointFromPoints(-1, ea, c1, c2)
 
-	if state != solver.Solved {
+	if state != Solved {
 		t.Error("Expected solved state got ", state)
 	}
 
@@ -106,7 +105,7 @@ func TestPointFromPointsExt(t *testing.T) {
 
 	newP3, state = PointFromPoints(-1, ea, c2, c1)
 
-	if state != solver.Solved {
+	if state != Solved {
 		t.Error("Expected solved state got ", state)
 	}
 
@@ -122,7 +121,7 @@ func TestPointFromPointsExt(t *testing.T) {
 
 	newP3, state = PointFromPoints(-1, ea, c1, c2)
 
-	if state != solver.Solved {
+	if state != Solved {
 		t.Error("Expected solved state got ", state)
 	}
 
@@ -149,7 +148,7 @@ func TestPointFromPointsExt(t *testing.T) {
 
 	newP3, state = PointFromPoints(-1, ea, c1, c2)
 
-	if state != solver.Solved {
+	if state != Solved {
 		t.Error("Expected solved state got ", state)
 	}
 
@@ -175,7 +174,7 @@ func TestPointFromPointsExt(t *testing.T) {
 
 	newP3, state = PointFromPoints(-1, ea, c1, c2)
 
-	if state != solver.Solved {
+	if state != Solved {
 		t.Error("Expected solved state got ", state)
 	}
 
@@ -205,13 +204,13 @@ func TestPointFromPointLine(t *testing.T) {
 
 	_, state := pointFromPointLine(p1, l2, p3, big.NewFloat(1), big.NewFloat(1))
 
-	if state != solver.NonConvergent {
+	if state != NonConvergent {
 		t.Error("Expected non-convergent state got ", state)
 	}
 
 	newP3, state := pointFromPointLine(p1, l2, p3, big.NewFloat(1), big.NewFloat(2))
 
-	if state != solver.Solved {
+	if state != Solved {
 		t.Error("Expected solved state got ", state)
 	}
 
@@ -227,7 +226,7 @@ func TestPointFromPointLine(t *testing.T) {
 
 	_, state = pointFromPointLine(p1, l2, p3, big.NewFloat(1), big.NewFloat(5))
 
-	if state != solver.NonConvergent {
+	if state != NonConvergent {
 		t.Error("Expected non convergent state got ", state)
 	}
 }
@@ -257,7 +256,7 @@ func TestPointFromPointLineExt(t *testing.T) {
 
 	newP3, state := PointFromPointLine(-1, ea, c1, c2)
 
-	if state != solver.Solved {
+	if state != Solved {
 		t.Error("Expected solved state got ", state)
 	}
 
@@ -271,7 +270,7 @@ func TestPointFromPointLineExt(t *testing.T) {
 
 	newP3, state = PointFromPointLine(-1, ea, c2, c1)
 
-	if state != solver.Solved {
+	if state != Solved {
 		t.Error("Expected solved state got ", state)
 	}
 
@@ -287,7 +286,7 @@ func TestPointFromPointLineExt(t *testing.T) {
 
 	newP3, state = PointFromPointLine(-1, ea, c1, c2)
 
-	if state != solver.Solved {
+	if state != Solved {
 		t.Error("Expected solved state got ", state)
 	}
 
@@ -314,7 +313,7 @@ func TestPointFromPointLineExt(t *testing.T) {
 
 	newP3, state = PointFromPointLine(-1, ea, c1, c2)
 
-	if state != solver.Solved {
+	if state != Solved {
 		t.Error("Expected solved state got ", state)
 	}
 
@@ -340,7 +339,7 @@ func TestPointFromPointLineExt(t *testing.T) {
 
 	newP3, state = PointFromPointLine(-1, ea, c1, c2)
 
-	if state != solver.Solved {
+	if state != Solved {
 		t.Error("Expected solved state got ", state)
 	}
 
@@ -371,7 +370,7 @@ func TestPointFromLineLine(t *testing.T) {
 		l2     *el.SketchLine
 		l2Dist *big.Float
 		p3     *el.SketchPoint
-		state  solver.SolveState
+		state  SolveState
 	}{
 		{
 			"Test Nonconvergent",
@@ -380,7 +379,7 @@ func TestPointFromLineLine(t *testing.T) {
 			el.NewSketchLine(1, big.NewFloat(1), big.NewFloat(1), big.NewFloat(1)),
 			big.NewFloat(1.0),
 			el.NewSketchPoint(2, big.NewFloat(0.7), big.NewFloat(1)),
-			solver.NonConvergent,
+			NonConvergent,
 		},
 		{
 			"Test Parallel",
@@ -389,7 +388,7 @@ func TestPointFromLineLine(t *testing.T) {
 			el.NewSketchLine(1, big.NewFloat(0), big.NewFloat(1), big.NewFloat(0)),
 			big.NewFloat(2.0),
 			el.NewSketchPoint(2, big.NewFloat(0.7), big.NewFloat(1.8)),
-			solver.Solved,
+			Solved,
 		},
 		{
 			"Test Intersect 1",
@@ -398,7 +397,7 @@ func TestPointFromLineLine(t *testing.T) {
 			el.NewSketchLine(1, big.NewFloat(-1), big.NewFloat(1), big.NewFloat(1)),
 			big.NewFloat(2.0),
 			el.NewSketchPoint(2, big.NewFloat(0.7), big.NewFloat(1)),
-			solver.Solved,
+			Solved,
 		},
 		{
 			"Test Intersect 2",
@@ -407,7 +406,7 @@ func TestPointFromLineLine(t *testing.T) {
 			el.NewSketchLine(1, big.NewFloat(-1), big.NewFloat(1), big.NewFloat(1)),
 			big.NewFloat(2.0),
 			el.NewSketchPoint(2, big.NewFloat(3), big.NewFloat(0)),
-			solver.Solved,
+			Solved,
 		},
 		{
 			"Test Intersect 3",
@@ -416,7 +415,7 @@ func TestPointFromLineLine(t *testing.T) {
 			el.NewSketchLine(1, big.NewFloat(-1), big.NewFloat(1), big.NewFloat(1)),
 			big.NewFloat(2.0),
 			el.NewSketchPoint(2, big.NewFloat(-1), big.NewFloat(0)),
-			solver.Solved,
+			Solved,
 		},
 		{
 			"Test Intersect 4",
@@ -425,13 +424,13 @@ func TestPointFromLineLine(t *testing.T) {
 			el.NewSketchLine(1, big.NewFloat(-1), big.NewFloat(1), big.NewFloat(1)),
 			big.NewFloat(2.0),
 			el.NewSketchPoint(2, big.NewFloat(1), big.NewFloat(-2)),
-			solver.Solved,
+			Solved,
 		},
 	}
 	for _, tt := range tests {
 		newP3, state := pointFromLineLine(tt.l1, tt.l2, tt.p3, tt.l1Dist, tt.l2Dist)
 		assert.Equal(t, state, tt.state, tt.name)
-		if tt.state == solver.NonConvergent {
+		if tt.state == NonConvergent {
 			continue
 		}
 		assert.Equal(t, tt.p3.GetID(), newP3.GetID(), tt.name)
@@ -467,7 +466,7 @@ func TestPointFromLineLineExt(t *testing.T) {
 
 	newP3, state := PointFromLineLine(-1, ea, c1, c2)
 
-	if state != solver.Solved {
+	if state != Solved {
 		t.Error("Expected solved state got ", state)
 	}
 
@@ -481,7 +480,7 @@ func TestPointFromLineLineExt(t *testing.T) {
 
 	newP3, state = PointFromLineLine(-1, ea, c2, c1)
 
-	if state != solver.Solved {
+	if state != Solved {
 		t.Error("Expected solved state got ", state)
 	}
 
@@ -497,7 +496,7 @@ func TestPointFromLineLineExt(t *testing.T) {
 
 	newP3, state = PointFromLineLine(-1, ea, c1, c2)
 
-	if state != solver.Solved {
+	if state != Solved {
 		t.Error("Expected solved state got ", state)
 	}
 
@@ -524,7 +523,7 @@ func TestPointFromLineLineExt(t *testing.T) {
 
 	newP3, state = PointFromLineLine(-1, ea, c1, c2)
 
-	if state != solver.Solved {
+	if state != Solved {
 		t.Error("Expected solved state got ", state)
 	}
 
@@ -550,7 +549,7 @@ func TestPointFromLineLineExt(t *testing.T) {
 
 	newP3, state = PointFromLineLine(-1, ea, c1, c2)
 
-	if state != solver.Solved {
+	if state != Solved {
 		t.Error("Expected solved state got ", state)
 	}
 
@@ -595,10 +594,10 @@ func TestSolveConstraints(t *testing.T) {
 		c1       *constraint.Constraint
 		c2       *constraint.Constraint
 		solveFor el.SketchElement
-		state    solver.SolveState
+		state    SolveState
 	}{
-		{"Test Solve For Point", c0, c1, el.NewSketchPoint(1, big.NewFloat(0.1), big.NewFloat(1)), solver.Solved},
-		{"Test Solve For Line", c2, c3, el.NewSketchLine(4, big.NewFloat(0.151089), big.NewFloat(0.988520), big.NewFloat(-0.139610)), solver.Solved},
+		{"Test Solve For Point", c0, c1, el.NewSketchPoint(1, big.NewFloat(0.1), big.NewFloat(1)), Solved},
+		{"Test Solve For Line", c2, c3, el.NewSketchLine(4, big.NewFloat(0.151089), big.NewFloat(0.988520), big.NewFloat(-0.139610)), Solved},
 	}
 	for _, tt := range tests {
 		solved := SolveConstraints(-1, ea, tt.c1, tt.c2, tt.solveFor)
@@ -636,18 +635,18 @@ func TestSolveDistanceConstraint(t *testing.T) {
 		name    string
 		c1      *constraint.Constraint
 		desired *el.SketchPoint
-		state   solver.SolveState
+		state   SolveState
 	}{
-		{"Angle constraint passed", c0, nil, solver.NonConvergent},
-		{"Coincident point values with constraint value > 0", c1, nil, solver.NonConvergent},
-		{"Coincident point values already solved", c2, el.NewSketchPoint(4, big.NewFloat(1), big.NewFloat(1)), solver.Solved},
-		{"Test 1", c3, el.NewSketchPoint(6, big.NewFloat(1), big.NewFloat(0)), solver.Solved},
-		{"Test 2", c4, el.NewSketchPoint(9, big.NewFloat(1), big.NewFloat(2)), solver.Solved},
+		{"Angle constraint passed", c0, nil, NonConvergent},
+		{"Coincident point values with constraint value > 0", c1, nil, NonConvergent},
+		{"Coincident point values already solved", c2, el.NewSketchPoint(4, big.NewFloat(1), big.NewFloat(1)), Solved},
+		{"Test 1", c3, el.NewSketchPoint(6, big.NewFloat(1), big.NewFloat(0)), Solved},
+		{"Test 2", c4, el.NewSketchPoint(9, big.NewFloat(1), big.NewFloat(2)), Solved},
 	}
 	for _, tt := range tests {
 		state := SolveDistanceConstraint(-1, ea, tt.c1)
 		assert.Equal(t, tt.state, state, tt.name)
-		if tt.state != solver.Solved {
+		if tt.state != Solved {
 			continue
 		}
 		assert.True(t, ca.IsMet(tt.c1.GetID(), -1, ea), tt.name)
@@ -689,17 +688,17 @@ func TestPointResult(t *testing.T) {
 		c1      *constraint.Constraint
 		c2      *constraint.Constraint
 		desired *el.SketchPoint
-		state   solver.SolveState
+		state   SolveState
 	}{
-		{"Test PointFromPoints", c0, c1, el.NewSketchPoint(1, big.NewFloat(0.5153829827), big.NewFloat(0.125273559)), solver.Solved},
-		{"Test PointFromLineLine", c2, c3, el.NewSketchPoint(5, big.NewFloat(0.745352826), big.NewFloat(1.03892205)), solver.Solved},
+		{"Test PointFromPoints", c0, c1, el.NewSketchPoint(1, big.NewFloat(0.5153829827), big.NewFloat(0.125273559)), Solved},
+		{"Test PointFromLineLine", c2, c3, el.NewSketchPoint(5, big.NewFloat(0.745352826), big.NewFloat(1.03892205)), Solved},
 	}
 	for _, tt := range tests {
 		newPoint, state := PointResult(-1, ea, tt.c1, tt.c2)
 		assert.Equal(t, state, tt.state, tt.name)
 		e, _ := tt.c1.Shared(tt.c2)
 		shared, _ := ea.GetElement(-1, e)
-		if shared == nil || tt.state == solver.NonConvergent {
+		if shared == nil || tt.state == NonConvergent {
 			continue
 		}
 		shared.AsPoint().X = newPoint.X
@@ -726,9 +725,9 @@ func TestSolveForPoint(t *testing.T) {
 		c1      *constraint.Constraint
 		c2      *constraint.Constraint
 		desired *el.SketchPoint
-		state   solver.SolveState
+		state   SolveState
 	}{
-		{"Test Nonconvergent", c0, c1, nil, solver.NonConvergent},
+		{"Test Nonconvergent", c0, c1, nil, NonConvergent},
 	}
 	for _, tt := range tests {
 		state := SolveForPoint(-1, ea, tt.c1, tt.c2)
@@ -758,15 +757,15 @@ func TestConstraintResult(t *testing.T) {
 		c1      *constraint.Constraint
 		c2      *constraint.Constraint
 		desired el.SketchElement
-		state   solver.SolveState
+		state   SolveState
 	}{
-		{"Test Point Solve", c0, c1, el.NewSketchPoint(1, big.NewFloat(0.515383), big.NewFloat(0.125274)), solver.Solved},
-		{"Test Line Solve", c2, c3, el.NewSketchLine(4, big.NewFloat(0.151089), big.NewFloat(0.988520), big.NewFloat(-0.139610)), solver.Solved},
+		{"Test Point Solve", c0, c1, el.NewSketchPoint(1, big.NewFloat(0.515383), big.NewFloat(0.125274)), Solved},
+		{"Test Line Solve", c2, c3, el.NewSketchLine(4, big.NewFloat(0.151089), big.NewFloat(0.988520), big.NewFloat(-0.139610)), Solved},
 	}
 	for _, tt := range tests {
 		result, state := ConstraintResult(-1, ea, tt.c1, tt.c2, tt.desired)
 		assert.Equal(t, state, tt.state, tt.name)
-		if tt.state == solver.NonConvergent {
+		if tt.state == NonConvergent {
 			continue
 		}
 		c1e, _ := ea.GetElement(-1, tt.desired.GetID())
@@ -809,10 +808,10 @@ func TestSolveConstraint(t *testing.T) {
 	tests := []struct {
 		name  string
 		c1    *constraint.Constraint
-		state solver.SolveState
+		state SolveState
 	}{
-		{"Solve Angle Constraint", c0, solver.Solved},
-		{"Solve Distance Constraint", c1, solver.Solved},
+		{"Solve Angle Constraint", c0, Solved},
+		{"Solve Distance Constraint", c1, Solved},
 	}
 	for _, tt := range tests {
 		state := SolveConstraint(-1, ea, tt.c1)
