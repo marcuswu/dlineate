@@ -178,13 +178,14 @@ func (c *Constraint) Error(e1 el.SketchElement, e2 el.SketchElement) float64 {
 
 	temp.Sub(current, &c.Value)
 	temp.Abs(&temp)
+	// temp.Mul(&temp, &temp)
 	if temp.IsInf() {
 		utils.Logger.Error().
 			Uint("constraint id", c.GetID()).
-			Uint("element 1", c.Element1).
-			Uint("element 2", c.Element2).
-			Str("current", current.String()).
-			Str("value", c.Value.String()).
+			Str("element 1", e1.String()).
+			Str("element 2", e2.String()).
+			Str("current", current.Text('f', 4)).
+			Str("value", c.Value.Text('f', 4)).
 			Msg("Constraint error is infinite")
 	}
 	result, _ := temp.Float64()
