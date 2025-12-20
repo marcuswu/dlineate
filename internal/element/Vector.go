@@ -60,7 +60,7 @@ func (v *Vector) Magnitude() *big.Float {
 
 // AngleTo returns the angle to another vector in radians
 // https://stackoverflow.com/a/21484228
-// With this math, counter clockwise is positive
+// With this math, counter-clockwise is positive
 func (v *Vector) AngleTo(u *Vector) *big.Float {
 	// Probably should think about how to handle accuracy values from the conversion
 	vX, _ := v.X.Float64()

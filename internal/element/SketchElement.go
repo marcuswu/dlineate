@@ -88,7 +88,10 @@ func CopySketchElement(e SketchElement) SketchElement {
 		return n
 	}
 	l := e.(*SketchLine)
-	n = NewSketchLine(l.GetID(), l.GetA(), l.GetB(), l.GetC())
+	nl := NewSketchLine(l.GetID(), l.GetA(), l.GetB(), l.GetC())
+	nl.Start = l.Start
+	nl.End = l.End
+	n = nl
 	n.SetConstraintLevel(e.ConstraintLevel())
 	return n
 }

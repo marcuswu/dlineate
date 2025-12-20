@@ -149,22 +149,37 @@ func (c *Constraint) IsMet(e1 el.SketchElement, e2 el.SketchElement) bool {
 }
 
 func (c *Constraint) Error(e1 el.SketchElement, e2 el.SketchElement) float64 {
-	var temp big.Float
-	current := e1.DistanceTo(e2)
-	if c.Type == Angle {
-		current = e1.AsLine().AngleToLine(e2.AsLine())
-		pi := big.NewFloat(math.Pi)
-		// Normalize angle to [0, pi)
-		if utils.StandardBigFloatCompare(current, pi) >= 0 {
-			current.Sub(current, pi)
+	var result float64
+	switch c.Type {
+	case Angle:
+		// Returns a value between -Pi and Pi
+		current := e1.AsLine().AngleToLine(e2.AsLine())
+
+		Lv, _ := current.Float64()
+		Sv, _ := c.Value.Float64()
+		if Sv > Lv {
+			Lv, Sv = Sv, Lv
 		}
-		temp.Sub(current, &c.Value)
-		if utils.StandardBigFloatCompare(&c.Value, big.NewFloat(0)) != 0 {
-			temp.Quo(&temp, &c.Value)
+
+		// Compare crossing -Pi / Pi boundary counting -Pi as equal to Pi
+		// Always positive in the range [0, 2pi)
+		dist1 := (Sv + math.Pi) + (math.Pi - Lv)
+
+		// Direct compare -- always positive in the range [0, 2pi)
+		dist2 := Lv - Sv
+
+		// Take the smaller of the two values. This results in an error in the range [0, pi)
+		result = dist1
+		if dist2 < result {
+			result = dist2
 		}
-		temp.Abs(&temp)
-		result, _ := temp.Float64()
-		if temp.IsInf() {
+		// utils.Logger.Debug().
+		// 	Uint("constraint id", c.GetID()).
+		// 	Float64("angle difference", result).
+		// 	Str("current", current.String()).
+		// 	Str("desired", c.Value.String()).
+		// 	Msg("checking angle constraint error")
+		if math.IsInf(result, 0) {
 			utils.Logger.Error().
 				Uint("constraint id", c.GetID()).
 				Uint("element 1", c.Element1).
@@ -173,22 +188,29 @@ func (c *Constraint) Error(e1 el.SketchElement, e2 el.SketchElement) float64 {
 				Str("value", c.Value.String()).
 				Msg("Constraint error is infinite")
 		}
-		return result
+	case Distance:
+		other := e2
+		// If using the numerical solver, e2 could be a segment so convert
+		if e2.GetType() == el.Line {
+			other = e2.AsLine()
+		}
+		current := e1.DistanceTo(other)
+		Lv, _ := current.Float64()
+		Sv, _ := c.Value.Float64()
+		if Sv > Lv {
+			Lv, Sv = Sv, Lv
+		}
+		result = Lv - Sv
+		if math.IsInf(result, 0) {
+			utils.Logger.Error().
+				Uint("constraint id", c.GetID()).
+				Str("element 1", e1.String()).
+				Str("element 2", e2.String()).
+				Str("current", current.Text('f', 4)).
+				Str("value", c.Value.Text('f', 4)).
+				Msg("Constraint error is infinite")
+		}
 	}
-
-	temp.Sub(current, &c.Value)
-	temp.Abs(&temp)
-	// temp.Mul(&temp, &temp)
-	if temp.IsInf() {
-		utils.Logger.Error().
-			Uint("constraint id", c.GetID()).
-			Str("element 1", e1.String()).
-			Str("element 2", e2.String()).
-			Str("current", current.Text('f', 4)).
-			Str("value", c.Value.Text('f', 4)).
-			Msg("Constraint error is infinite")
-	}
-	result, _ := temp.Float64()
 	return result
 }
 

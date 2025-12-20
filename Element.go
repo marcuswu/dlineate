@@ -166,6 +166,14 @@ func (e *Element) replaceElement(original uint, new element.SketchElement) {
 	if e.element.GetID() == original {
 		e.element = new
 	}
+	if l, p := e.element.AsLine(), new.AsPoint(); l != nil && p != nil {
+		if l.Start.GetID() == original {
+			l.Start = p
+		}
+		if l.End.GetID() == original {
+			l.End = p
+		}
+	}
 	for _, c := range e.children {
 		c.replaceElement(original, new)
 	}

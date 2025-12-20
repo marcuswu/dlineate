@@ -108,6 +108,13 @@ func (g *SketchGraph) AddAxis(a *big.Float, b *big.Float, c *big.Float) el.Sketc
 		Uint("id", elementID).
 		Msg("Adding axis")
 	ax := el.NewSketchLine(elementID, a, b, c)
+	elementID = g.elementAccessor.NextId()
+	x := big.NewFloat(0).Mul(a, big.NewFloat(1))
+	y := big.NewFloat(0).Mul(b, big.NewFloat(1))
+	end := el.NewSketchPoint(elementID, x, y)
+	origin, _ := g.elementAccessor.GetElement(-1, 0)
+	ax.Start = origin.AsPoint()
+	ax.End = end
 	// g.freeNodes.Add(elementID)
 	g.elementAccessor.AddElement(ax)
 

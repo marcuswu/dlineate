@@ -128,29 +128,24 @@ func (s *Sketch) AddLine(x1 float64, y1 float64, x2 float64, y2 float64) *Elemen
 	l := emptyElement()
 	l.id = s.nextElementID()
 	l.elementType = Line
-	var a, b, c, t big.Float
 
-	a.SetPrec(utils.FloatPrecision).SetFloat64(y2 - y1) // y' - y
-	b.SetPrec(utils.FloatPrecision).SetFloat64(x1 - x2) // x - x'
-	c.SetPrec(utils.FloatPrecision).Neg(&a)
-	t.SetPrec(utils.FloatPrecision).SetFloat64(x1)
-	// c = -ax - by from ax + by + c = 0
-	c.Mul(&c, &t)
-	t.SetFloat64(y1)
-	t.Mul(&t, &b)
-	c.Sub(&c, &t)
+	a, b, c := utils.BigFloatLineFromPoints(x1, y1, x2, y2)
+
 	l.values = append(l.values, x1)
 	l.values = append(l.values, y1)
 	l.values = append(l.values, x2)
 	l.values = append(l.values, y2)
 
-	l.element = s.sketch.AddLine(&a, &b, &c) // AddLine normalizes a, b, c
+	l.element = s.sketch.AddLine(a, b, c) // AddLine normalizes a, b, c
+	le := l.element.AsLine()
 	s.Elements = append(s.Elements, l)
 
 	start := s.AddPoint(l.values[0], l.values[1])
 	start.isChild = true
 	end := s.AddPoint(l.values[2], l.values[3])
 	end.isChild = true
+	le.Start = start.element.AsPoint()
+	le.End = end.element.AsPoint()
 	l.children = append(l.children, start)
 	s.eToC[start.id] = make([]*Constraint, 0)
 	l.children = append(l.children, end)

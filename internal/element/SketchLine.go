@@ -17,6 +17,11 @@ type SketchLine struct {
 	c               big.Float
 	constraintLevel ConstraintLevel
 	fixed           bool
+	// These dont matter for graph based solving, but references are needed
+	// for numerical solving since that solves based on points and lines are
+	// not a concept
+	Start *SketchPoint
+	End   *SketchPoint
 }
 
 // NewSketchLine creates a new SketchLine
@@ -206,7 +211,17 @@ func (l *SketchLine) TranslatedDistance(dist *big.Float) *SketchLine {
 		l.Normalize()
 	}
 	c.Sub(l.GetC(), dist)
-	return &SketchLine{Line, l.GetID(), *l.GetA(), *l.GetB(), c, l.constraintLevel, l.fixed}
+	return &SketchLine{
+		elementType:     Line,
+		id:              l.GetID(),
+		a:               *l.GetA(),
+		b:               *l.GetB(),
+		c:               c,
+		constraintLevel: l.constraintLevel,
+		fixed:           l.fixed,
+		Start:           l.Start,
+		End:             l.End,
+	}
 }
 
 // Translated returns a line translated by an x and y value
@@ -231,7 +246,17 @@ func (l *SketchLine) Translated(tx *big.Float, ty *big.Float) *SketchLine {
 	// and (tx, ty) is a vector to translate the line,
 	// then the dot product of the vectors is the change to C to move the line by tx, ty
 	// newC := l.GetC() + (l.GetA() * tx) + (l.GetB() * ty)
-	return &SketchLine{Line, l.GetID(), x, y, newc, l.constraintLevel, l.fixed}
+	return &SketchLine{
+		elementType:     Line,
+		id:              l.GetID(),
+		a:               x,
+		b:               y,
+		c:               newc,
+		constraintLevel: l.constraintLevel,
+		fixed:           l.fixed,
+		Start:           l.Start,
+		End:             l.End,
+	}
 }
 
 // Translate translates the location of this line by an x and y distance
@@ -282,6 +307,7 @@ func (l *SketchLine) AngleTo(u *Vector) *big.Float {
 }
 
 // AngleToLine returns the angle the line needs to rotate to be equivalent to to another line in radians
+// The resulting angle will be -pi to pi
 func (l *SketchLine) AngleToLine(o *SketchLine) *big.Float {
 	var lx, ly, ox, oy big.Float
 	lx.Set(l.GetB())
@@ -302,7 +328,10 @@ func (l *SketchLine) Rotated(angle *big.Float) *SketchLine {
 	y.Set(l.GetB())
 	n := &Vector{x, y}
 	n.Rotate(angle)
-	return NewSketchLine(l.GetID(), n.GetX(), n.GetY(), l.GetC())
+	ln := NewSketchLine(l.GetID(), n.GetX(), n.GetY(), l.GetC())
+	ln.Start = l.Start
+	ln.End = l.End
+	return ln
 }
 
 // Rotate returns a line representing this line rotated around the origin by angle radians

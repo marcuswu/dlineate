@@ -1,6 +1,9 @@
 package accessors
 
 import (
+	"cmp"
+	"slices"
+
 	el "github.com/marcuswu/dlineate/internal/element"
 	"github.com/marcuswu/dlineate/utils"
 	"github.com/rs/zerolog"
@@ -11,6 +14,7 @@ type ElementRepository struct {
 	clusterElements map[int]map[uint]el.SketchElement
 	aliases         map[uint]uint
 	nextId          uint
+	elementClusters map[uint]*utils.Set
 }
 
 func NewElementRepository() *ElementRepository {
@@ -24,6 +28,7 @@ func (r *ElementRepository) Clear() {
 	r.elements = make(map[uint]el.SketchElement, 0)
 	r.clusterElements = make(map[int]map[uint]el.SketchElement, 0)
 	r.aliases = make(map[uint]uint)
+	r.elementClusters = make(map[uint]*utils.Set)
 }
 
 func (r *ElementRepository) ClearClusters() {
@@ -46,31 +51,23 @@ func (r *ElementRepository) GetElement(cId int, eId uint) (el.SketchElement, boo
 	return e, ok
 }
 
-func (r *ElementRepository) clustersContaining(eId uint) *utils.Set {
-	set := utils.NewSet()
-	for cId, cMap := range r.clusterElements {
-		if _, ok := cMap[eId]; ok {
-			set.Add(uint(cId))
-		}
-	}
-	return set
-}
-
 func (r *ElementRepository) Cluster(eId uint) (uint, bool) {
-	set := r.clustersContaining(eId)
-	if set.Count() > 0 {
-		return set.Contents()[0], set.Count() == 1
+	set := r.elementClusters[eId].Contents()
+	slices.SortFunc(set, func(a, b uint) int { return cmp.Compare(a, b) })
+	if len(set) > 0 {
+		return set[0], len(set) == 1
 	}
 	return 0, false
 }
 
 func (r *ElementRepository) IsShared(eId uint) bool {
-	set := r.clustersContaining(eId)
+	set := r.elementClusters[eId]
 	return set.Count() > 1
 }
 
 func (r *ElementRepository) AddElement(e el.SketchElement) el.SketchElement {
 	r.elements[e.GetID()] = e
+	r.elementClusters[e.GetID()] = utils.NewSet()
 	return e
 }
 
@@ -81,7 +78,7 @@ func (r *ElementRepository) AddElementToCluster(eId uint, cId int) {
 	if _, ok := r.clusterElements[cId]; !ok {
 		r.clusterElements[cId] = make(map[uint]el.SketchElement)
 	}
-	clusters := r.clustersContaining(eId)
+	clusters := r.elementClusters[eId]
 	switch clusters.Count() {
 	case 0:
 		// regular element
@@ -95,6 +92,7 @@ func (r *ElementRepository) AddElementToCluster(eId uint, cId int) {
 		// copies have already been made -- just create the current copy
 		r.clusterElements[cId][eId] = el.CopySketchElement(r.elements[eId])
 	}
+	r.elementClusters[eId].Add(uint(cId))
 }
 
 func (r *ElementRepository) RemoveElement(rem uint) {

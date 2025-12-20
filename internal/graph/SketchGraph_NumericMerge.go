@@ -40,6 +40,18 @@ func (g *SketchGraph) numericMerge() solver.SolveState {
 	g.EnsureRigid(elements, constraints, g.constraintAccessor)
 
 	utils.Logger.Debug().
+		Uints("Id", elements.Contents()).
+		Msg("Elements in numeric solver")
+	utils.Logger.Debug().
+		Msg("Constraints in numeric solver:")
+	for _, c := range constraints.Contents() {
+		constraint, _ := g.constraintAccessor.GetConstraint(c)
+		utils.Logger.Debug().
+			Str("constraint", constraint.String()).
+			Msg("Constraint")
+	}
+
+	utils.Logger.Debug().
 		Int("total elements", elements.Count()).
 		Int("total constraints", constraints.Count()).
 		Msg("Numeric merge: total elements and constraints")
@@ -49,16 +61,41 @@ func (g *SketchGraph) numericMerge() solver.SolveState {
 
 	elementList := elements.Contents()
 	for _, eId := range elementList {
-		element, _ := g.elementAccessor.GetElement(-1, eId)
-		numericSolver.AddElement(el.CopySketchElement(element))
+		cId, ok := g.elementAccessor.Cluster(eId)
+		cluster := int(cId)
+		if !ok {
+			cluster = -1
+		}
+		element, _ := g.elementAccessor.GetElement(cluster, eId)
+		solveElement := el.CopySketchElement(element)
+		if element.GetType() == el.Line {
+			l := element.AsLine()
+			solveElement = numeric.NewSegmentFromLine(element.AsLine())
+			solverConstraints := constraints.Contents()
+			for _, cId := range solverConstraints {
+				constraint, _ := g.constraintAccessor.GetConstraint(cId)
+				if constraint.HasElementID(eId) &&
+					(constraint.HasElementID(l.Start.GetID()) ||
+						constraint.HasElementID(l.End.GetID())) {
+					constraints.Remove(cId)
+				}
+			}
+		}
+		utils.Logger.Debug().
+			Str("element", solveElement.String()).
+			Msg("Adding Element")
+		numericSolver.AddElement(solveElement)
 	}
 
 	for _, cId := range constraints.Contents() {
 		constraint, _ := g.constraintAccessor.GetConstraint(cId)
+		utils.Logger.Debug().
+			Str("constraint", constraint.String()).
+			Msg("Adding Constraint")
 		numericSolver.AddConstraint(constraint)
 	}
 
-	solved := numericSolver.Solve(utils.FloatPrecision, utils.MaxNumericIterations)
+	solved := numericSolver.Solve(utils.StandardCompare, utils.MaxNumericIterations)
 
 	utils.Logger.Debug().
 		Bool("solved", solved).
@@ -79,18 +116,24 @@ func (g *SketchGraph) numericMerge() solver.SolveState {
 			return solver.NonConvergent
 		}
 		sharedElementsList := sharedElements.Contents()
+		// If the first element is a line, use its two points
 		e1Local, _ := g.elementAccessor.GetElement(c.GetID(), sharedElementsList[0])
-		e1Other, _ := numericSolver.GetElement(sharedElementsList[0])
-		i := 1
-		e2Local, _ := g.elementAccessor.GetElement(c.GetID(), sharedElementsList[i])
-		// Make sure that we don't get two lines
-		for ; (e1Local.GetType() != el.Point && e2Local.GetType() != el.Point) && i < len(sharedElementsList); i++ {
-			e2Local, _ = g.elementAccessor.GetElement(c.GetID(), sharedElementsList[i])
+		var e2Local el.SketchElement = nil
+		if e1Local.GetType() == el.Line {
+			e2Local = e1Local.AsLine().End
+			e1Local = e1Local.AsLine().Start
 		}
-		if e1Local.GetType() == el.Line && e2Local.GetType() == el.Line {
-			return solver.NonConvergent
+		e1Other, _ := numericSolver.GetElement(e1Local.GetID())
+		if e2Local == nil {
+			e2Local, _ = g.elementAccessor.GetElement(c.GetID(), sharedElementsList[1])
+			// If first element was a point and second element is a line, use its two points instead
+			if e2Local.GetType() == el.Line {
+				e1Local = e2Local.AsLine().Start
+				e2Local = e2Local.AsLine().End
+			}
 		}
-		e2Other, _ := numericSolver.GetElement(sharedElementsList[i])
+		e2Other, _ := numericSolver.GetElement(e1Local.GetID())
+		// Should now have two points to translate and rotate to
 		solveState := c.translateToElements(g.elementAccessor, e1Local, e1Other, e2Local, e2Other)
 		g.elementAccessor.MergeToRoot(c.GetID())
 		g.removeCluster(c.GetID())
@@ -140,6 +183,7 @@ func (g *SketchGraph) EnsureRigid(elements *utils.Set, constraints *utils.Set, c
 							Uint("element 2", eId2).
 							Str("value", constraint.GetValue().String()).
 							Msg("Found constraint")
+						constraints.Add(constraint.GetID())
 						hasConstraint = true
 						break
 					}
