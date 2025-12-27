@@ -104,30 +104,22 @@ func toGraphViz(e SketchElement, cId int) string {
 }
 
 func ElementValues(e SketchElement) []float64 {
-	if e.GetType() == Point {
-		p := e.(*SketchPoint)
-		x, _ := p.GetX().Float64()
-		y, _ := p.GetY().Float64()
-		return []float64{x, y}
+	if e.GetType() != Point {
+		return []float64{}
 	}
-	l := e.(*SketchLine)
-	a, _ := l.GetA().Float64()
-	b, _ := l.GetB().Float64()
-	c, _ := l.GetC().Float64()
-	return []float64{a, b, c}
+	p := e.(*SketchPoint)
+	x, _ := p.GetX().Float64()
+	y, _ := p.GetY().Float64()
+	return []float64{x, y}
 }
 
 func SetElementValues(e SketchElement, values []float64) {
-	if e.GetType() == Point {
-		p := e.(*SketchPoint)
-		p.X.SetFloat64(values[0])
-		p.Y.SetFloat64(values[1])
+	if e.GetType() != Point {
 		return
 	}
-	l := e.(*SketchLine)
-	l.a.SetFloat64(values[0])
-	l.b.SetFloat64(values[1])
-	l.c.SetFloat64(values[2])
+	p := e.(*SketchPoint)
+	p.X.SetFloat64(values[0])
+	p.Y.SetFloat64(values[1])
 }
 
 // IdentityMap is a map of id to SketchElement

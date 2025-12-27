@@ -53,8 +53,8 @@ func TestSolveTriangle(t *testing.T) {
 
 	c1 := constraint.NewConstraint(solver.Constraints.NextId(), constraint.Distance, p1.GetID(), p2.GetID(), big.NewFloat(1), false)
 	solver.AddConstraint(c1)
-	c2 := constraint.NewConstraint(solver.Constraints.NextId(), constraint.Distance, p1.GetID(), p2.GetID(), big.NewFloat(1), false)
-	solver.AddConstraint(c2)
+	// c2 := constraint.NewConstraint(solver.Constraints.NextId(), constraint.Distance, l1.GetID(), xa.GetID(), big.NewFloat(0), false)
+	// solver.AddConstraint(c2)
 
 	// p2-p3 and p3-p1 distance constraints
 	// Uncomment here and comment angles below to solve by distances
@@ -81,6 +81,9 @@ func TestSolveTriangle(t *testing.T) {
 	// Output final positions of points
 	for _, eId := range solver.Elements.IdSet().Contents() {
 		e, _ := solver.Elements.GetElement(-1, eId)
+		if e.IsFixed() || e.GetType() != el.Point {
+			continue
+		}
 		utils.Logger.Info().
 			Uint("element id", e.GetID()).
 			Str("element", e.String()).
@@ -129,12 +132,6 @@ func TestSolveModifiedRectangle(t *testing.T) {
 	p2 := addPoint(solver, 0, 1, true)
 	p4 := addPoint(solver, 1, 0, true)
 
-	// p7 := addPoint(solver, 2, 11, false)
-	// p10 := addPoint(solver, 2, 0, false)
-	// p13 := addPoint(solver, -2, 11, false)
-	// p14 := addPoint(solver, 0, -4.7, false) // arc center
-	// p16 := addPoint(solver, -2, 0, false)
-
 	p7 := addPoint(solver, 2.1, 9.2, false)    // top right
 	p10 := addPoint(solver, 2.11, 1.9, false)  // bottom right
 	p13 := addPoint(solver, -2.02, 9.1, false) // top left
@@ -170,7 +167,7 @@ func TestSolveModifiedRectangle(t *testing.T) {
 
 	// Add elements and constraints to the solver here
 	// Arc center 4.7 from X axis
-	c0 := constraint.NewConstraint(solver.Constraints.NextId(), constraint.Distance, s1.GetID(), p14.GetID(), big.NewFloat(4.7), false)
+	c0 := constraint.NewConstraint(solver.Constraints.NextId(), constraint.Distance, p0.GetID(), p14.GetID(), big.NewFloat(4.7), false)
 	solver.AddConstraint(c0)
 	// top horizontal length is 4
 	c9 := constraint.NewConstraint(solver.Constraints.NextId(), constraint.Distance, p13.GetID(), p7.GetID(), big.NewFloat(4), false)
@@ -194,8 +191,8 @@ func TestSolveModifiedRectangle(t *testing.T) {
 	c15 := constraint.NewConstraint(solver.Constraints.NextId(), constraint.Distance, s3.GetID(), p14.GetID(), big.NewFloat(0), false)
 	solver.AddConstraint(c15)
 	// arc center is 6.5 from right vertical end
-	// c17 := constraint.NewConstraint(solver.Constraints.NextId(), constraint.Distance, p14.GetID(), p10.GetID(), big.NewFloat(6.5), false)
-	// solver.AddConstraint(c17)
+	c17 := constraint.NewConstraint(solver.Constraints.NextId(), constraint.Distance, p14.GetID(), p10.GetID(), big.NewFloat(6.5), false)
+	solver.AddConstraint(c17)
 	// arc center is 6.5 from left vertical start
 	c18 := constraint.NewConstraint(solver.Constraints.NextId(), constraint.Distance, p14.GetID(), p16.GetID(), big.NewFloat(6.5), false)
 	solver.AddConstraint(c18)
@@ -205,13 +202,16 @@ func TestSolveModifiedRectangle(t *testing.T) {
 	// Output final positions of points
 	for _, eId := range solver.Elements.IdSet().Contents() {
 		e, _ := solver.Elements.GetElement(-1, eId)
+		if e.IsFixed() || e.GetType() != el.Point {
+			continue
+		}
 		utils.Logger.Info().
 			Uint("element id", e.GetID()).
 			Str("element", e.String()).
 			Msg("Final element position")
 	}
 
-	offBy := c0.Error(s1, p14)
+	offBy := c0.Error(p0, p14)
 	utils.Logger.Info().
 		Float64("error", offBy).
 		Msg("Constraint 0")
@@ -235,7 +235,7 @@ func TestSolveModifiedRectangle(t *testing.T) {
 	utils.Logger.Info().
 		Float64("error", offBy).
 		Msg("Constraint 13")
-	offBy = c14.Error(s11, s3)
+	offBy = c14.Error(s3, s11)
 	utils.Logger.Info().
 		Float64("error", offBy).
 		Msg("Constraint 14")
@@ -244,35 +244,15 @@ func TestSolveModifiedRectangle(t *testing.T) {
 		Float64("error", offBy).
 		Msg("Constraint 15")
 
-	// offBy = c17.Error(p14, p10)
-	// utils.Logger.Info().
-	// 	Float64("error", offBy).
-	// 	Msg("Constraint 17")
+	offBy = c17.Error(p14, p10)
+	utils.Logger.Info().
+		Float64("error", offBy).
+		Msg("Constraint 17")
 	offBy = c18.Error(p14, p16)
 	utils.Logger.Info().
 		Float64("error", offBy).
 		Msg("Constraint 18")
 
-	// p0, _ = solver.Elements.GetElement(-1, p0.GetID())
-	// p2, _ = solver.Elements.GetElement(-1, p2.GetID())
-	// p4, _ = solver.Elements.GetElement(-1, p4.GetID())
-	// p7, _ = solver.Elements.GetElement(-1, p7.GetID())
-	// p10, _ = solver.Elements.GetElement(-1, p10.GetID())
-	// p13, _ = solver.Elements.GetElement(-1, p13.GetID())
-	// p14, _ = solver.Elements.GetElement(-1, p14.GetID())
-	// p16, _ = solver.Elements.GetElement(-1, p16.GetID())
-	// d1, _ := p1.AsPoint().DistanceTo(p2).Float64()
-	// d2, _ := p2.AsPoint().DistanceTo(p3).Float64()
-	// d3, _ := p3.AsPoint().DistanceTo(p1).Float64()
-	// a1, _ := l1.AsLine().AngleToLine(l2.AsLine()).Float64()
-	// a2, _ := l2.AsLine().AngleToLine(l3.AsLine()).Float64()
-	// utils.Logger.Info().
-	// 	Float64("d1", d1).
-	// 	Float64("d2", d2).
-	// 	Float64("d3", d3).
-	// 	Float64("a1", a1).
-	// 	Float64("a2", a2).
-	// 	Msg("Final distances and angles:")
 	if !solved {
 		t.Errorf("Could not solve with a good error margin")
 	}

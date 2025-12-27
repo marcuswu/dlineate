@@ -179,6 +179,7 @@ func (c *Constraint) Error(e1 el.SketchElement, e2 el.SketchElement) float64 {
 		// 	Str("current", current.String()).
 		// 	Str("desired", c.Value.String()).
 		// 	Msg("checking angle constraint error")
+		result = result * result
 		if math.IsInf(result, 0) {
 			utils.Logger.Error().
 				Uint("constraint id", c.GetID()).
@@ -189,12 +190,16 @@ func (c *Constraint) Error(e1 el.SketchElement, e2 el.SketchElement) float64 {
 				Msg("Constraint error is infinite")
 		}
 	case Distance:
+		first := e1
 		other := e2
 		// If using the numerical solver, e2 could be a segment so convert
 		if e2.GetType() == el.Line {
 			other = e2.AsLine()
 		}
-		current := e1.DistanceTo(other)
+		if e1.GetType() == el.Line {
+			first = e1.AsLine()
+		}
+		current := first.DistanceTo(other)
 		Lv, _ := current.Float64()
 		Sv, _ := c.Value.Float64()
 		if Sv > Lv {
@@ -210,6 +215,7 @@ func (c *Constraint) Error(e1 el.SketchElement, e2 el.SketchElement) float64 {
 				Str("value", c.Value.Text('f', 4)).
 				Msg("Constraint error is infinite")
 		}
+		result = result * result
 	}
 	return result
 }

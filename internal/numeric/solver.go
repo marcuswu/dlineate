@@ -26,7 +26,13 @@ func NewSolver() *Solver {
 func (s *Solver) AddElement(e el.SketchElement) {
 	if segment, ok := e.(*Segment); ok {
 		s.Elements.AddElement(segment.start)
+		if segment.start.IsFixed() {
+			s.fixedElements.Add(segment.start.GetID())
+		}
 		s.Elements.AddElement(segment.end)
+		if segment.end.IsFixed() {
+			s.fixedElements.Add(segment.end.GetID())
+		}
 	}
 	s.Elements.AddElement(e)
 	if e.IsFixed() {
@@ -40,10 +46,10 @@ func (s *Solver) GetElement(id uint) (el.SketchElement, bool) {
 
 func (s *Solver) addValueOrder(eId uint) {
 	e, ok := s.Elements.GetElement(-1, eId)
-	values := utils.NewSetFromList(s.valueOrder)
 	if !ok {
 		return
 	}
+	values := utils.NewSetFromList(s.valueOrder)
 	segment, ok := e.(*Segment)
 	if !ok {
 		if !s.fixedElements.Contains(eId) {
@@ -59,13 +65,13 @@ func (s *Solver) addValueOrder(eId uint) {
 		return
 	}
 	// For a segment, add its points -- only ever add points to the numerical solver data
-	if !segment.IsFixed() && !segment.start.IsFixed() {
+	if !s.fixedElements.Contains(segment.start.GetID()) {
 		values.Add(segment.start.GetID())
 		// utils.Logger.Debug().
 		// 	Uint("id", segment.start.GetID()).
 		// 	Msg("Adding value order id")
 	}
-	if !segment.IsFixed() && !segment.end.IsFixed() {
+	if !s.fixedElements.Contains(segment.end.GetID()) {
 		values.Add(segment.end.GetID())
 		// utils.Logger.Debug().
 		// 	Uint("id", segment.end.GetID()).
@@ -100,7 +106,8 @@ func (s *Solver) AddConstraint(c *constraint.Constraint) {
 }*/
 
 func (s *Solver) FreeValues() []float64 {
-	freeValues := make([]float64, 0, s.Elements.Count()*2)
+	// freeValues := make([]float64, 0, s.Elements.Count()*2)
+	freeValues := make([]float64, 0, len(s.valueOrder)*2)
 	for _, eId := range s.valueOrder {
 		if s.fixedElements.Contains(eId) {
 			continue
@@ -130,7 +137,10 @@ func (s *Solver) Update(values []float64) {
 		if s.fixedElements.Contains(eId) {
 			continue
 		}
-		e, _ := s.Elements.GetElement(-1, eId)
+		e, ok := s.Elements.GetElement(-1, eId)
+		if !ok {
+			continue
+		}
 		if e.GetType() != el.Point {
 			continue
 		}
