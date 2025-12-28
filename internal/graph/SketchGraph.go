@@ -109,13 +109,24 @@ func (g *SketchGraph) AddAxis(a *big.Float, b *big.Float, c *big.Float) el.Sketc
 		Msg("Adding axis")
 	ax := el.NewSketchLine(elementID, a, b, c)
 	elementID = g.elementAccessor.NextId()
-	x := big.NewFloat(0).Mul(a, big.NewFloat(1))
-	y := big.NewFloat(0).Mul(b, big.NewFloat(1))
-	end := el.NewSketchPoint(elementID, x, y)
+	var x, y big.Float
+	if a.Cmp(big.NewFloat(0)) == 0 {
+		// vertical line
+		x.SetFloat64(1)
+	} else {
+		x.Quo(c, a)
+	}
+	if b.Cmp(big.NewFloat(0)) == 0 {
+		// horizontal line
+		y.SetFloat64(1)
+	} else {
+		y.Quo(c, b)
+	}
+	end := el.NewSketchPoint(elementID, &x, &y)
+	g.MakeFixed(end)
 	origin, _ := g.elementAccessor.GetElement(-1, 0)
 	ax.Start = origin.AsPoint()
 	ax.End = end
-	// g.freeNodes.Add(elementID)
 	g.elementAccessor.AddElement(ax)
 
 	g.MakeFixed(ax)
@@ -250,6 +261,7 @@ func (g *SketchGraph) Solve() solver.SolveState {
 	utils.Logger.Info().Msg("Starting Cluster Merges")
 	g.mergeClusters()
 	utils.Logger.Info().Int("cluster count", len(g.clusters)).Msg("Finished Cluster Merges")
+	g.elementAccessor.LogElements(zerolog.TraceLevel)
 	return g.state
 }
 

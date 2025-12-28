@@ -111,5 +111,5 @@ func (s *Segment) ToGraphViz(cId int) string {
 }
 
 func (s *Segment) String() string {
-	return fmt.Sprintf("Segment(%d) Start: %s, End: %s", s.id, s.start.String(), s.end.String())
+	return fmt.Sprintf("Segment(%d) Start: %s, End: %s, Fixed: %t", s.id, s.start.String(), s.end.String(), s.fixed)
 }

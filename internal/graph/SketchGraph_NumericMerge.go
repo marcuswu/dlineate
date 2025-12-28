@@ -67,31 +67,29 @@ func (g *SketchGraph) numericMerge() solver.SolveState {
 			cluster = -1
 		}
 		element, _ := g.elementAccessor.GetElement(cluster, eId)
-		solveElement := el.CopySketchElement(element)
+		var solveElement el.SketchElement
 		if element.GetType() == el.Line {
 			l := element.AsLine()
 			solveElement = numeric.NewSegmentFromLine(element.AsLine())
 			solverConstraints := constraints.Contents()
 			for _, cId := range solverConstraints {
 				constraint, _ := g.constraintAccessor.GetConstraint(cId)
+				// Remove constraints on lines that reference their points
+				// This is intrinsic to segments
 				if constraint.HasElementID(eId) &&
 					(constraint.HasElementID(l.Start.GetID()) ||
 						constraint.HasElementID(l.End.GetID())) {
 					constraints.Remove(cId)
 				}
 			}
+		} else {
+			solveElement = el.CopySketchElement(element)
 		}
-		utils.Logger.Debug().
-			Str("element", solveElement.String()).
-			Msg("Adding Element")
 		numericSolver.AddElement(solveElement)
 	}
 
 	for _, cId := range constraints.Contents() {
 		constraint, _ := g.constraintAccessor.GetConstraint(cId)
-		utils.Logger.Debug().
-			Str("constraint", constraint.String()).
-			Msg("Adding Constraint")
 		numericSolver.AddConstraint(constraint)
 	}
 
@@ -106,7 +104,8 @@ func (g *SketchGraph) numericMerge() solver.SolveState {
 	}
 
 	// for each cluster, find two elements from our solve and translate the cluster accordingly
-	for _, c := range g.clusters {
+	for len(g.clusters) > 0 {
+		c := g.clusters[len(g.clusters)-1]
 		sharedElements := c.elements.Intersect(elements)
 		if sharedElements.Count() < 2 {
 			utils.Logger.Debug().
@@ -123,7 +122,6 @@ func (g *SketchGraph) numericMerge() solver.SolveState {
 			e2Local = e1Local.AsLine().End
 			e1Local = e1Local.AsLine().Start
 		}
-		e1Other, _ := numericSolver.GetElement(e1Local.GetID())
 		if e2Local == nil {
 			e2Local, _ = g.elementAccessor.GetElement(c.GetID(), sharedElementsList[1])
 			// If first element was a point and second element is a line, use its two points instead
@@ -132,10 +130,14 @@ func (g *SketchGraph) numericMerge() solver.SolveState {
 				e2Local = e2Local.AsLine().End
 			}
 		}
-		e2Other, _ := numericSolver.GetElement(e1Local.GetID())
+		e1Other, _ := numericSolver.GetElement(e1Local.GetID())
+		e2Other, _ := numericSolver.GetElement(e2Local.GetID())
 		// Should now have two points to translate and rotate to
 		solveState := c.translateToElements(g.elementAccessor, e1Local, e1Other, e2Local, e2Other)
-		g.elementAccessor.MergeToRoot(c.GetID())
+		for _, eId := range c.elements.Contents() {
+			el, _ := g.elementAccessor.GetElement(c.GetID(), eId)
+			g.elementAccessor.ReplaceElement(-1, eId, el)
+		}
 		g.removeCluster(c.GetID())
 		if solveState != solver.Solved {
 			return solveState

@@ -163,7 +163,7 @@ func (p *SketchPoint) SetConstraintLevel(cl ConstraintLevel) {
 }
 
 func (p *SketchPoint) String() string {
-	return fmt.Sprintf("Point(%d) (%s, %s)", p.GetID(), p.X.String(), p.Y.String())
+	return fmt.Sprintf("Point(%d) (%s, %s) (fixed: %t)", p.GetID(), p.X.String(), p.Y.String(), p.fixed)
 }
 
 func (p *SketchPoint) SetFixed(fixed bool) {

@@ -132,11 +132,11 @@ func TestSolveModifiedRectangle(t *testing.T) {
 	p2 := addPoint(solver, 0, 1, true)
 	p4 := addPoint(solver, 1, 0, true)
 
-	p7 := addPoint(solver, 2.1, 9.2, false)    // top right
-	p10 := addPoint(solver, 2.11, 1.9, false)  // bottom right
-	p13 := addPoint(solver, -2.02, 9.1, false) // top left
-	p14 := addPoint(solver, 0, -4.7, false)    // arc center
-	p16 := addPoint(solver, -2, 2.1, false)    // bottom left
+	p7 := addPoint(solver, 2, 11, false)    // top right    3
+	p10 := addPoint(solver, 2, 0, false)    // bottom right 4
+	p13 := addPoint(solver, -2, 11, false)  // top left     5
+	p14 := addPoint(solver, 0, -4.7, false) // arc center   6
+	p16 := addPoint(solver, -2, 0, false)   // bottom left  7
 
 	s1 := addLine(solver, p0, p4)    // x axis
 	s3 := addLine(solver, p0, p2)    // y axis
@@ -157,17 +157,10 @@ func TestSolveModifiedRectangle(t *testing.T) {
 		"Constraint(17) type: Distance, e1: 14, e2: 10, v: 6.5"
 		"Constraint(18) type: Distance, e1: 14, e2: 16, v: 6.5"
 	*/
-	// constrain axes
-	// c := constraint.NewConstraint(solver.Constraints.NextId(), constraint.Distance, p0.GetID(), p4.GetID(), big.NewFloat(1), false)
-	// solver.AddConstraint(c)
-	// c = constraint.NewConstraint(solver.Constraints.NextId(), constraint.Distance, p0.GetID(), p2.GetID(), big.NewFloat(1), false)
-	// solver.AddConstraint(c)
-	// c = constraint.NewConstraint(solver.Constraints.NextId(), constraint.Angle, s1.GetID(), s3.GetID(), big.NewFloat(math.Pi/2.), false)
-	// solver.AddConstraint(c)
 
 	// Add elements and constraints to the solver here
 	// Arc center 4.7 from X axis
-	c0 := constraint.NewConstraint(solver.Constraints.NextId(), constraint.Distance, p0.GetID(), p14.GetID(), big.NewFloat(4.7), false)
+	c0 := constraint.NewConstraint(solver.Constraints.NextId(), constraint.Distance, p14.GetID(), s1.GetID(), big.NewFloat(4.7), false)
 	solver.AddConstraint(c0)
 	// top horizontal length is 4
 	c9 := constraint.NewConstraint(solver.Constraints.NextId(), constraint.Distance, p13.GetID(), p7.GetID(), big.NewFloat(4), false)
@@ -185,7 +178,7 @@ func TestSolveModifiedRectangle(t *testing.T) {
 	c13 := constraint.NewConstraint(solver.Constraints.NextId(), constraint.Distance, p16.GetID(), p13.GetID(), big.NewFloat(11), false)
 	solver.AddConstraint(c13)
 	// left vertical is parallel with y axis
-	c14 := constraint.NewConstraint(solver.Constraints.NextId(), constraint.Angle, s3.GetID(), s11.GetID(), big.NewFloat(0), false)
+	c14 := constraint.NewConstraint(solver.Constraints.NextId(), constraint.Angle, s11.GetID(), s3.GetID(), big.NewFloat(0), false)
 	solver.AddConstraint(c14)
 	// arc center is on y axis
 	c15 := constraint.NewConstraint(solver.Constraints.NextId(), constraint.Distance, s3.GetID(), p14.GetID(), big.NewFloat(0), false)
@@ -198,18 +191,6 @@ func TestSolveModifiedRectangle(t *testing.T) {
 	solver.AddConstraint(c18)
 
 	solved := solver.Solve(utils.StandardCompare, utils.MaxNumericIterations)
-
-	// Output final positions of points
-	for _, eId := range solver.Elements.IdSet().Contents() {
-		e, _ := solver.Elements.GetElement(-1, eId)
-		if e.IsFixed() || e.GetType() != el.Point {
-			continue
-		}
-		utils.Logger.Info().
-			Uint("element id", e.GetID()).
-			Str("element", e.String()).
-			Msg("Final element position")
-	}
 
 	offBy := c0.Error(p0, p14)
 	utils.Logger.Info().

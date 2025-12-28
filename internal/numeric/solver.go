@@ -1,10 +1,13 @@
 package numeric
 
 import (
+	"sort"
+
 	"github.com/marcuswu/dlineate/internal/accessors"
 	"github.com/marcuswu/dlineate/internal/constraint"
 	el "github.com/marcuswu/dlineate/internal/element"
 	"github.com/marcuswu/dlineate/utils"
+	"github.com/rs/zerolog"
 	"gonum.org/v1/gonum/optimize"
 )
 
@@ -24,17 +27,32 @@ func NewSolver() *Solver {
 }
 
 func (s *Solver) AddElement(e el.SketchElement) {
+	utils.Logger.Debug().
+		Str("element", e.String()).
+		Msg("Adding Element")
 	if segment, ok := e.(*Segment); ok {
-		s.Elements.AddElement(segment.start)
+		el, ok := s.Elements.GetElement(-1, segment.start.GetID())
+		if !ok {
+			s.Elements.AddElement(segment.start)
+		} else {
+			segment.start = el.AsPoint()
+		}
 		if segment.start.IsFixed() {
 			s.fixedElements.Add(segment.start.GetID())
 		}
-		s.Elements.AddElement(segment.end)
+		el, ok = s.Elements.GetElement(-1, segment.end.GetID())
+		if !ok {
+			s.Elements.AddElement(segment.end)
+		} else {
+			segment.end = el.AsPoint()
+		}
 		if segment.end.IsFixed() {
 			s.fixedElements.Add(segment.end.GetID())
 		}
 	}
-	s.Elements.AddElement(e)
+	if _, ok := s.Elements.GetElement(-1, e.GetID()); !ok {
+		s.Elements.AddElement(e)
+	}
 	if e.IsFixed() {
 		s.fixedElements.Add(e.GetID())
 	}
@@ -55,32 +73,17 @@ func (s *Solver) addValueOrder(eId uint) {
 		if !s.fixedElements.Contains(eId) {
 			values.Add(eId)
 			s.valueOrder = values.Contents()
-			// utils.Logger.Debug().
-			// 	Uint("id", eId).
-			// 	Msg("Adding value order id")
-			// utils.Logger.Debug().
-			// 	Uints("ids", s.valueOrder).
-			// 	Msg("ValueOrder")
 		}
 		return
 	}
 	// For a segment, add its points -- only ever add points to the numerical solver data
 	if !s.fixedElements.Contains(segment.start.GetID()) {
 		values.Add(segment.start.GetID())
-		// utils.Logger.Debug().
-		// 	Uint("id", segment.start.GetID()).
-		// 	Msg("Adding value order id")
 	}
 	if !s.fixedElements.Contains(segment.end.GetID()) {
 		values.Add(segment.end.GetID())
-		// utils.Logger.Debug().
-		// 	Uint("id", segment.end.GetID()).
-		// 	Msg("Adding value order id")
 	}
 	s.valueOrder = values.Contents()
-	// utils.Logger.Debug().
-	// 	Uints("ids", s.valueOrder).
-	// 	Msg("ValueOrder")
 }
 
 func (s *Solver) AddConstraint(c *constraint.Constraint) {
@@ -89,24 +92,7 @@ func (s *Solver) AddConstraint(c *constraint.Constraint) {
 	s.addValueOrder(c.Element2)
 }
 
-/*func (s *Solver) FreeParams() utils.Set {
-	freeParams := utils.NewSet()
-	for _, eId := range s.Elements.IdSet().Contents() {
-		if s.fixedElements.Contains(eId) {
-			continue
-		}
-		if e, ok := s.Elements.GetElement(-1, eId); ok && e.GetType() == el.Line {
-			segment := e.(*Segment)
-			freeParams.Add(segment.start.GetID())
-			freeParams.Add(segment.end.GetID())
-		}
-		freeParams.Add(eId)
-	}
-	return *freeParams
-}*/
-
 func (s *Solver) FreeValues() []float64 {
-	// freeValues := make([]float64, 0, s.Elements.Count()*2)
 	freeValues := make([]float64, 0, len(s.valueOrder)*2)
 	for _, eId := range s.valueOrder {
 		if s.fixedElements.Contains(eId) {
@@ -124,10 +110,6 @@ func (s *Solver) FreeValues() []float64 {
 		}
 		freeValues = append(freeValues, el.ElementValues(e)...)
 	}
-	// utils.Logger.Debug().
-	// 	Uints("ids", s.valueOrder).
-	// 	Floats64("values", freeValues).
-	// 	Msg("Numeric solver: retrieved free values for elements")
 	return freeValues
 }
 
@@ -148,10 +130,6 @@ func (s *Solver) Update(values []float64) {
 		valuesLeft = valuesLeft[2:]
 		el.SetElementValues(e, paramValues)
 	}
-	// utils.Logger.Debug().
-	// 	Uints("ids", s.valueOrder).
-	// 	Floats64("values", values).
-	// 	Msg("Numeric solver: updated elements with values")
 }
 
 func (s *Solver) Error() float64 {
@@ -162,13 +140,6 @@ func (s *Solver) Error() float64 {
 		e2, _ := s.Elements.GetElement(-1, constraint.Element2)
 		constraintError := constraint.Error(e1, e2)
 		totalError += constraintError
-		// utils.Logger.Debug().
-		// 	Uint("constraint id", constraint.GetID()).
-		// 	Str("element 1", e1.String()).
-		// 	Str("element 2", e2.String()).
-		// 	Str("desired", constraint.Value.Text('f', 4)).
-		// 	Float64("error", constraintError).
-		// 	Msg("Constraint error")
 	}
 	return totalError
 }
@@ -185,20 +156,7 @@ func (s *Solver) Solve(tolerance float64, maxIterations int) bool {
 		MajorIterations: maxIterations,
 	}
 
-	// initialError := s.Error()
-	// utils.Logger.Debug().
-	// 	Float64("initial error", initialError).
-	// 	Msg("Numeric solver: initial error before optimization")
-	// iterations := 20
-
-	// for i := 0; i < iterations && s.Error() > tolerance; i++ {
 	initialValues := s.FreeValues()
-	// utils.Logger.Debug().
-	// 	Floats64("initial values", initialValues).
-	// 	Msg("Numeric solver: starting optimization")
-	utils.Logger.Debug().
-		Uints("value", s.valueOrder).
-		Msg("value order")
 	solution, err := optimize.Minimize(problem, initialValues, &settings, nil)
 	if err != nil {
 		utils.Logger.Debug().Err(err).
@@ -212,9 +170,42 @@ func (s *Solver) Solve(tolerance float64, maxIterations int) bool {
 		Str("status", solution.Status.String()).
 		Float64("tolerance", tolerance).
 		Msg("Numeric solver: optimization completed")
-	s.Update(solution.X)
-	// }
-	// Might need to check each constraint individually
+
+	if utils.LogLevel() <= zerolog.DebugLevel {
+		elements := s.Elements.IdSet().Contents()
+		sort.Slice(elements, func(i, j int) bool {
+			return elements[i] < elements[j]
+		})
+		for _, eId := range elements {
+			e, _ := s.Elements.GetElement(-1, eId)
+			if e.GetType() != el.Point {
+				continue
+			}
+			utils.Logger.Info().
+				Uint("element id", e.GetID()).
+				Str("element", e.String()).
+				Msg("Final element position")
+		}
+
+		constraints := s.Constraints.IdSet().Contents()
+		sort.Slice(constraints, func(i, j int) bool {
+			return constraints[i] < constraints[j]
+		})
+		for _, cId := range constraints {
+			constraint, _ := s.Constraints.GetConstraint(cId)
+			e1, _ := s.Elements.GetElement(-1, constraint.Element1)
+			e2, _ := s.Elements.GetElement(-1, constraint.Element2)
+			constraintError := constraint.Error(e1, e2)
+			utils.Logger.Info().
+				Uint("constraint id", constraint.GetID()).
+				Str("element 1", e1.String()).
+				Str("element 2", e2.String()).
+				Str("desired", constraint.Value.Text('f', 4)).
+				Float64("error", constraintError).
+				Msg("Final constraint error")
+		}
+	}
+
 	solved := solution.F <= tolerance
 	return solved
 }

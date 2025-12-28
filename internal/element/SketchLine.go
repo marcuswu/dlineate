@@ -420,7 +420,7 @@ func (l *SketchLine) SetConstraintLevel(cl ConstraintLevel) {
 }
 
 func (l *SketchLine) String() string {
-	return fmt.Sprintf("Line(%d) %sx + %sy + %s = 0", l.id, l.a.String(), l.b.String(), l.c.String())
+	return fmt.Sprintf("Line(%d) %sx + %sy + %s = 0 (fixed: %t)", l.id, l.a.String(), l.b.String(), l.c.String(), l.IsFixed())
 }
 
 func (l *SketchLine) SetFixed(fixed bool) {

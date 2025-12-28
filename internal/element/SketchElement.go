@@ -84,11 +84,13 @@ func CopySketchElement(e SketchElement) SketchElement {
 	if e.GetType() == Point {
 		p := e.(*SketchPoint)
 		n = NewSketchPoint(e.GetID(), p.GetX(), p.GetY())
+		n.SetFixed(e.IsFixed())
 		n.SetConstraintLevel(e.ConstraintLevel())
 		return n
 	}
 	l := e.(*SketchLine)
 	nl := NewSketchLine(l.GetID(), l.GetA(), l.GetB(), l.GetC())
+	nl.SetFixed(e.IsFixed())
 	nl.Start = l.Start
 	nl.End = l.End
 	n = nl
