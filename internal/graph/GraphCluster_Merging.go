@@ -74,7 +74,7 @@ func (g *GraphCluster) mergeConstraint(ea accessors.ElementAccessor, anchor uint
 func (g *GraphCluster) solveMerge(ea accessors.ElementAccessor, ca accessors.ConstraintAccessor, mergeData MergeData) solver.SolveState {
 	if mergeData.cluster3 == nil {
 		utils.Logger.Info().Msg("Beginning one cluster merge")
-		return g.mergeOne(ea, ca, mergeData, true)
+		return g.mergeOne(ea, ca, mergeData)
 	}
 	// Move constraints / elements from c1, c2 to g when we're done
 	defer ea.MergeElements(g.GetID(), mergeData.clusterId2)
@@ -122,15 +122,14 @@ func (g *GraphCluster) solveMerge(ea accessors.ElementAccessor, ca accessors.Con
 		Str("elements", fmt.Sprintf("%d, %d, %d", gc1Shared, gc2Shared, c1c2Shared)).
 		Msg("Solving for shared elements")
 
-	// TODO: Update to allow for solving by a free constraint
 	// Solve c1 to g and c2 to g
-	state1, _ := g.solveOne(ea, g, gc1Shared)
+	state1, _ := g.solveOne(ea, c1, gc1Shared)
 	utils.Logger.Info().Msg("moved c1 to g")
 	utils.Logger.Info().Msg("g:")
 	g.logElements(ea, zerolog.InfoLevel)
 	utils.Logger.Info().Msg("c1:")
 	c1.logElements(ea, zerolog.InfoLevel)
-	state2, _ := g.solveOne(ea, g, gc2Shared)
+	state2, _ := g.solveOne(ea, c2, gc2Shared)
 	utils.Logger.Info().Msg("moved c2 to g")
 	utils.Logger.Info().Msg("g:")
 	g.logElements(ea, zerolog.InfoLevel)
@@ -208,6 +207,8 @@ func (g *GraphCluster) solveOne(ea accessors.ElementAccessor, other *GraphCluste
 		Uint("element", shared).
 		Str("element 1", e1.String()).
 		Str("element 2", e2.String()).
+		Int("cluster 1", g.GetID()).
+		Int("cluster 2", other.GetID()).
 		Str("type", eType.String()).
 		Msg("Solving for element")
 
@@ -247,25 +248,14 @@ func (g *GraphCluster) solveOne(ea accessors.ElementAccessor, other *GraphCluste
 // In the future I may need to support:
 //   - Two distance constraints to one element
 //   - Three distance constraints to diff elements
-func (g *GraphCluster) mergeOne(ea accessors.ElementAccessor, ca accessors.ConstraintAccessor, mergeData MergeData, mergeConstraints bool) solver.SolveState {
-	if mergeConstraints {
-		defer ea.MergeElements(g.GetID(), mergeData.clusterId2)
-	}
+func (g *GraphCluster) mergeOne(ea accessors.ElementAccessor, ca accessors.ConstraintAccessor, mergeData MergeData) solver.SolveState {
+	defer ea.MergeElements(g.GetID(), mergeData.clusterId2)
 	sharedElements := mergeData.elements
 
-	if len(sharedElements) < 2 {
-		return solver.NonConvergent
-	}
-
-	return g.mergeTwoShared(ea, mergeData)
-}
-
-func (g *GraphCluster) mergeTwoShared(ea accessors.ElementAccessor, mergeData MergeData) solver.SolveState {
 	if len(mergeData.elements) != 2 {
 		return solver.NonConvergent
 	}
 
-	sharedElements := mergeData.elements
 	other := mergeData.cluster2
 
 	// Solve two shared elements
@@ -312,14 +302,16 @@ func (g *GraphCluster) translateToElements(ea accessors.ElementAccessor, e1Local
 	if e2Local.GetType() == el.Line {
 		l := e2Local
 		ol := e2Other
-		angle := l.AsLine().AngleToLine(ol.AsLine())
+		// This was different from original implementation
+		angle := ol.AsLine().AngleToLine(l.AsLine())
 		g.RotateCluster(ea, p1.AsPoint(), angle)
 		utils.Logger.Trace().Msg("Rotated to make line the same angle")
 	}
 
 	// Match up the first point
 	utils.Logger.Trace().Msg("matching up the first point")
-	direction := p2.VectorTo(p1)
+	// This was different from original implementation
+	direction := p1.VectorTo(p2)
 	g.TranslateCluster(ea, &direction.X, &direction.Y)
 
 	// If both are points, rotate other to match the element in g
@@ -328,153 +320,10 @@ func (g *GraphCluster) translateToElements(ea accessors.ElementAccessor, e1Local
 		utils.Logger.Trace().Msg("both elements were points, rotating to match the points together")
 		v1 := e2Local.VectorTo(e1Local)
 		v2 := e2Other.VectorTo(e1Other)
-		angle := v2.AngleTo(v1)
+		// This was different from original implementation
+		angle := v1.AngleTo(v2)
 		g.RotateCluster(ea, p1.AsPoint(), angle)
 	}
-
-	return solver.Solved
-}
-
-// Merge two clusters by one shared element and one constraint
-func (g *GraphCluster) mergeOneShared(ea accessors.ElementAccessor, ca accessors.ConstraintAccessor, mergeData MergeData) solver.SolveState {
-	if len(mergeData.constraints) < 1 && len(mergeData.elements) < 1 {
-		return solver.NonConvergent
-	}
-
-	var e1, e2 el.SketchElement
-	c, ok := ca.GetConstraint(mergeData.constraints[0])
-	if !ok {
-		return solver.NonConvergent
-	}
-	if g.elements.Contains(c.Element1) {
-		e1, ok = ea.GetElement(g.id, c.Element1)
-		if !ok {
-			return solver.NonConvergent
-		}
-		e2, ok = ea.GetElement(mergeData.clusterId2, c.Element2)
-		if !ok {
-			return solver.NonConvergent
-		}
-	} else {
-		e2, ok = ea.GetElement(g.id, c.Element1)
-		if !ok {
-			return solver.NonConvergent
-		}
-		e1, ok = ea.GetElement(mergeData.clusterId2, c.Element2)
-		if !ok {
-			return solver.NonConvergent
-		}
-	}
-	shared := mergeData.elements[0]
-	sharedE, ok := ea.GetElement(g.id, shared)
-	if !ok || sharedE.AsPoint() == nil {
-		return solver.NonConvergent
-	}
-	state, _ := g.solveOne(ea, mergeData.cluster2, shared)
-	if !ok {
-		state = solver.NonConvergent
-	}
-
-	var rotation *big.Float
-	if c.Type == constraint.Angle {
-		// rotate to match angle
-		desiredAngle := c.Value
-		currentAngle := e1.AsLine().AngleToLine(e2.AsLine())
-		rotation.Sub(&desiredAngle, currentAngle)
-	} else {
-		r1 := sharedE.DistanceTo(e2)
-		r2 := &c.Value
-		p3, newState := solver.GetPointFromPoints(e1, sharedE, e2, r1, r2)
-		state = newState
-		if state == solver.NonConvergent {
-			return state
-		}
-		desired := sharedE.VectorTo(p3)
-		current := sharedE.VectorTo(e2)
-		rotation = desired.AngleTo(current)
-	}
-	mergeData.cluster2.RotateCluster(ea, sharedE.AsPoint(), rotation)
-
-	return state
-}
-
-// Merge two clusters by one distance constraint and one angle constraint
-func (g *GraphCluster) mergeByConstraints(ea accessors.ElementAccessor, ca accessors.ConstraintAccessor, mergeData MergeData) solver.SolveState {
-	if len(mergeData.constraints) < 2 {
-		return solver.NonConvergent
-	}
-
-	cId1 := mergeData.constraints[0]
-	cId2 := mergeData.constraints[1]
-	constraint1, ok := ca.GetConstraint(cId1)
-	if !ok {
-		return solver.NonConvergent
-	}
-	constraint2, ok := ca.GetConstraint(cId2)
-	if !ok {
-		return solver.NonConvergent
-	}
-	angleC := constraint1
-	distC := constraint2
-	if angleC.Type != constraint.Angle {
-		angleC, distC = distC, angleC
-	}
-	if angleC.Type != constraint.Angle || distC.Type != constraint.Distance {
-		return solver.NonConvergent
-	}
-
-	// Rotate cluster 2 to match the angle constraint
-	desiredAngle := angleC.Value
-	e1Cluster := mergeData.cluster1
-	if mergeData.cluster2.HasElement(angleC.Element1) {
-		e1Cluster = mergeData.cluster2
-	}
-	e1, ok := ea.GetElement(e1Cluster.id, angleC.Element1)
-	if !ok {
-		return solver.NonConvergent
-	}
-	e2Cluster := mergeData.cluster1
-	if mergeData.cluster2.HasElement(angleC.Element1) {
-		e2Cluster = mergeData.cluster2
-	}
-	e2, ok := ea.GetElement(e2Cluster.id, angleC.Element2)
-	if !ok {
-		return solver.NonConvergent
-	}
-	if e1Cluster.id == mergeData.clusterId2 {
-		e1, e2 = e2, e1
-	}
-	currentAngle := e1.AsLine().AngleToLine(e2.AsLine())
-	var rotation big.Float
-	rotation.Sub(currentAngle, &desiredAngle)
-	e2Cluster.RotateCluster(ea, e2Cluster.firstPoint(ea), &rotation)
-
-	// Translate to fit the distance constraint
-	// desiredDist := distC.Value
-	if mergeData.cluster2.HasElement(distC.Element1) {
-		e1Cluster = mergeData.cluster2
-	}
-	e1, ok = ea.GetElement(e1Cluster.id, distC.Element1)
-	if !ok {
-		return solver.NonConvergent
-	}
-	e2Cluster = mergeData.cluster1
-	if mergeData.cluster2.HasElement(distC.Element1) {
-		e2Cluster = mergeData.cluster2
-	}
-	e2, ok = ea.GetElement(e2Cluster.id, angleC.Element2)
-	if !ok {
-		return solver.NonConvergent
-	}
-	if e1Cluster.id == mergeData.clusterId2 {
-		e1, e2 = e2, e1
-	}
-	var xTranslate, yTranslate big.Float
-	xTranslate.Copy(&e2.AsPoint().X)
-	xTranslate.Sub(&e2.AsPoint().X, &e1.AsPoint().X)
-	yTranslate.Copy(&e2.AsPoint().Y)
-	yTranslate.Sub(&e2.AsPoint().Y, &e1.AsPoint().Y)
-	e2Cluster.TranslateCluster(ea, &xTranslate, &yTranslate)
 
 	return solver.Solved
 }

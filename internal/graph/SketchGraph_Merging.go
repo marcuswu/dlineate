@@ -36,6 +36,15 @@ func (g *SketchGraph) removeCluster(cId int) {
 	g.clusters = g.clusters[:last]
 }
 
+func (g *SketchGraph) getCluster(cId int) *GraphCluster {
+	for _, c := range g.clusters {
+		if c.GetID() == cId {
+			return c
+		}
+	}
+	return nil
+}
+
 func (g *SketchGraph) mergeClusters() {
 	for mergeData := g.findMerge(); len(g.clusters) > 1 && mergeData.clusterId1 >= 0 && g.state == solver.Solved; mergeData = g.findMerge() {
 		first, second, third := mergeData.clusterId1, mergeData.clusterId2, mergeData.clusterId3
@@ -44,10 +53,10 @@ func (g *SketchGraph) mergeClusters() {
 			Int("second cluster", second).
 			Int("third cluster", third).
 			Msg("Found merge")
-		mergeData.cluster1 = g.clusters[first]
-		mergeData.cluster2 = g.clusters[second]
+		mergeData.cluster1 = g.getCluster(first)
+		mergeData.cluster2 = g.getCluster(second)
 		if third > 0 {
-			mergeData.cluster3 = g.clusters[third]
+			mergeData.cluster3 = g.getCluster(third)
 		}
 		c1, c2, c3 := mergeData.cluster1, mergeData.cluster2, mergeData.cluster3
 		mergeState := c1.solveMerge(g.elementAccessor, g.constraintAccessor, mergeData)

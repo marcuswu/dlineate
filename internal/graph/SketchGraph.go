@@ -23,7 +23,6 @@ type SketchGraph struct {
 	state            solver.SolveState
 	degreesOfFreedom uint
 	conflicting      *utils.Set
-	freeEdgeMap      map[uint]*utils.Set
 }
 
 func NewSketch() *SketchGraph {
@@ -36,7 +35,6 @@ func NewSketch() *SketchGraph {
 	g.state = solver.None
 	g.degreesOfFreedom = 6
 	g.conflicting = utils.NewSet()
-	g.freeEdgeMap = make(map[uint]*utils.Set)
 	return g
 }
 
@@ -211,9 +209,6 @@ func (g *SketchGraph) ResetClusters() {
 	g.usedNodes.Clear()
 	g.state = solver.None
 	g.elementAccessor.ClearClusters()
-	for k := range g.freeEdgeMap {
-		delete(g.freeEdgeMap, k)
-	}
 
 	for _, cId := range g.constraintAccessor.IdSet().Contents() {
 		c, _ := g.constraintAccessor.GetConstraint(cId)

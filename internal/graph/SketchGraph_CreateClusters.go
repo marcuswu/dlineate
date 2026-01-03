@@ -15,29 +15,6 @@ func (g *SketchGraph) BuildClusters() {
 	if len(g.clusters) == 0 {
 		g.createClusters()
 	}
-	g.buildFreeEdgeMap()
-}
-
-func (g *SketchGraph) buildFreeEdgeMap() {
-	for _, c := range g.freeEdges.Contents() {
-		constraint, _ := g.constraintAccessor.GetConstraint(c)
-		e1Cluster, e1HasCluster := g.elementAccessor.Cluster(constraint.Element1)
-		e2Cluster, e2HasCluster := g.elementAccessor.Cluster(constraint.Element2)
-		if e1HasCluster && e2HasCluster {
-			s, ok := g.freeEdgeMap[e1Cluster]
-			if !ok {
-				s = utils.NewSet()
-				g.freeEdgeMap[e1Cluster] = s
-			}
-			s.Add(c)
-			s, ok = g.freeEdgeMap[e2Cluster]
-			if !ok {
-				s = utils.NewSet()
-				g.freeEdgeMap[e2Cluster] = s
-			}
-			s.Add(c)
-		}
-	}
 }
 
 func (g *SketchGraph) createClusters() {

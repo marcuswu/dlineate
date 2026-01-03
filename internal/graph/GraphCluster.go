@@ -80,21 +80,6 @@ func (g *GraphCluster) SharedElements(gc *GraphCluster) *utils.Set {
 	return shared
 }
 
-// firstPoint returns the first element that is a point
-func (g *GraphCluster) firstPoint(acc accessors.ElementAccessor) *el.SketchPoint {
-	for _, e := range g.elements.Contents() {
-		element, ok := acc.GetElement(g.id, e)
-		if !ok {
-			continue
-		}
-		if element.GetType() != el.Point {
-			continue
-		}
-		return element.AsPoint()
-	}
-	return nil
-}
-
 // Translate translates all elements in the cluster by an x and y value
 func (g *GraphCluster) TranslateCluster(acc accessors.ElementAccessor, xDist *big.Float, yDist *big.Float) {
 	for _, e := range g.elements.Contents() {
@@ -123,37 +108,6 @@ func (g *GraphCluster) RotateCluster(acc accessors.ElementAccessor, origin *el.S
 		element.Translate(&x, &y)
 	}
 }
-
-// func (g *GraphCluster) solvedConstraintsFor(ca ConstraintAccessor, eID uint) []*constraint.Constraint {
-// 	var solvedC = make([]*constraint.Constraint, 0)
-// 	for _, cId := range g.solved.Contents() {
-// 		c, ok := ca.GetConstraint(cId)
-// 		if !ok {
-// 			continue
-// 		}
-// 		if c.Element1.GetID() == eID || c.Element2.GetID() == eID {
-// 			solvedC = append(solvedC, c)
-// 		}
-// 	}
-// 	return solvedC
-// }
-
-// func (g *GraphCluster) unsolvedConstraintsFor(ca ConstraintAccessor, eID uint) constraint.ConstraintList {
-// 	var unsolved = make([]*constraint.Constraint, 0)
-// 	uc := utils.NewSet()
-// 	uc.AddList(g.constraints)
-// 	uc = uc.Difference(g.solved)
-// 	for _, cId := range uc.Contents() {
-// 		c, ok := ca.GetConstraint(cId)
-// 		if !ok {
-// 			continue
-// 		}
-// 		if c.Element1.GetID() == eID || c.Element2.GetID() == eID {
-// 			unsolved = append(unsolved, c)
-// 		}
-// 	}
-// 	return unsolved
-// }
 
 func (g *GraphCluster) logElements(ea accessors.ElementAccessor, level zerolog.Level) {
 	for _, e := range g.elements.Contents() {
