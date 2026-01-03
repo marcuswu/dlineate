@@ -8,6 +8,7 @@ require (
 	github.com/ajstarks/svgo v0.0.0-20211024235047-1546f124cd8b
 	github.com/rs/zerolog v1.28.0
 	github.com/stretchr/testify v1.10.0
+	gonum.org/v1/gonum v0.16.0
 )
 
 require (
@@ -17,6 +18,5 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	golang.org/x/sys v0.38.0 // indirect
 	golang.org/x/tools v0.39.0 // indirect
-	gonum.org/v1/gonum v0.16.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

@@ -207,9 +207,9 @@ func TestCreateCluster(t *testing.T) {
 func TestCreateBuildResetClusters(t *testing.T) {
 	sketch := NewSketch()
 
+	e2 := sketch.AddOrigin(big.NewFloat(0), big.NewFloat(0))
 	e0 := sketch.AddAxis(big.NewFloat(0), big.NewFloat(1), big.NewFloat(0))
 	e1 := sketch.AddPoint(big.NewFloat(1), big.NewFloat(0))
-	e2 := sketch.AddOrigin(big.NewFloat(0), big.NewFloat(0))
 	e3 := sketch.AddPoint(big.NewFloat(1), big.NewFloat(0))
 	e4 := sketch.AddLine(big.NewFloat(1), big.NewFloat(1), big.NewFloat(1))
 	e5 := sketch.AddLine(big.NewFloat(1), big.NewFloat(1), big.NewFloat(2))

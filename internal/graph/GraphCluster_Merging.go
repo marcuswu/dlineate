@@ -253,14 +253,11 @@ func (g *GraphCluster) mergeOne(ea accessors.ElementAccessor, ca accessors.Const
 	}
 	sharedElements := mergeData.elements
 
-	switch len(sharedElements) {
-	case 0:
-		return g.mergeByConstraints(ea, ca, mergeData)
-	case 1:
-		return g.mergeOneShared(ea, ca, mergeData)
-	default:
-		return g.mergeTwoShared(ea, mergeData)
+	if len(sharedElements) < 2 {
+		return solver.NonConvergent
 	}
+
+	return g.mergeTwoShared(ea, mergeData)
 }
 
 func (g *GraphCluster) mergeTwoShared(ea accessors.ElementAccessor, mergeData MergeData) solver.SolveState {
