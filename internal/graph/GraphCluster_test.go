@@ -966,6 +966,7 @@ func TestMergeOne(t *testing.T) {
 		clusterId2: o.id,
 		cluster1:   g,
 		cluster2:   o,
+		elements:   []uint{1},
 	}
 	state := g.solveMerge(ea, ca, md)
 	assert.Equal(t, solver.NonConvergent, state, "Merge containing only one shared element should fail to solve")
@@ -980,6 +981,7 @@ func TestMergeOne(t *testing.T) {
 		clusterId2: o.id,
 		cluster1:   g,
 		cluster2:   o,
+		elements:   []uint{1, 2},
 	}
 	state = g.solveMerge(ea, ca, md)
 	assert.Equal(t, solver.NonConvergent, state, "Merge where shared elements are both lines should fail to solve")
@@ -1038,10 +1040,12 @@ func TestMergeOne(t *testing.T) {
 		clusterId2: o.id,
 		cluster1:   g,
 		cluster2:   o,
+		elements:   []uint{0, 1},
 	}
 	state = g.solveMerge(ea, ca, md)
 	assert.Equal(t, solver.Solved, state, "Merge should solve successfully")
 
+	ea.Clear()
 	g = NewGraphCluster(0)
 	e = el.NewSketchPoint(0, big.NewFloat(0), big.NewFloat(0))
 	ea.AddElement(e)
@@ -1055,12 +1059,62 @@ func TestMergeOne(t *testing.T) {
 	ea.AddElement(e)
 	ea.AddElementToCluster(e.GetID(), g.GetID())
 	g.AddElement(e.GetID())
+	o = NewGraphCluster(1)
+	e = el.NewSketchPoint(0, big.NewFloat(0), big.NewFloat(0))
+	ea.AddElement(e)
+	ea.AddElementToCluster(e.GetID(), o.GetID())
+	o.AddElement(e.GetID())
+	e = el.NewSketchPoint(5, big.NewFloat(3.998208), big.NewFloat(-0.119717))
+	ea.AddElement(e)
+	ea.AddElementToCluster(e.GetID(), o.GetID())
+	o.AddElement(e.GetID())
+	e = el.NewSketchLine(12, big.NewFloat(-0.563309), big.NewFloat(0.826247), big.NewFloat(-3.804226))
+	ea.AddElement(e)
+	ea.AddElementToCluster(e.GetID(), o.GetID())
+	o.AddElement(e.GetID())
+	e = el.NewSketchPoint(11, big.NewFloat(2.183330), big.NewFloat(6.092751))
+	ea.AddElement(e)
+	ea.AddElementToCluster(e.GetID(), o.GetID())
+	o.AddElement(e.GetID())
+	e = el.NewSketchLine(9, big.NewFloat(0.611735), big.NewFloat(0.791063), big.NewFloat(-6.155367))
+	ea.AddElement(e)
+	ea.AddElementToCluster(e.GetID(), o.GetID())
+	o.AddElement(e.GetID())
+	e = el.NewSketchPoint(8, big.NewFloat(5.347580), big.NewFloat(3.645810))
+	ea.AddElement(e)
+	ea.AddElementToCluster(e.GetID(), o.GetID())
+	o.AddElement(e.GetID())
+	e = el.NewSketchLine(1, big.NewFloat(-0.029929), big.NewFloat(-0.999552), big.NewFloat(0))
+	ea.AddElement(e)
+	ea.AddElementToCluster(e.GetID(), o.GetID())
+	o.AddElement(e.GetID())
+	e = el.NewSketchLine(2, big.NewFloat(0.999552), big.NewFloat(-0.029929), big.NewFloat(0))
+	ea.AddElement(e)
+	ea.AddElementToCluster(e.GetID(), o.GetID())
+	o.AddElement(e.GetID())
+	e = el.NewSketchLine(15, big.NewFloat(-0.959879), big.NewFloat(-0.280414), big.NewFloat(0))
+	ea.AddElement(e)
+	ea.AddElementToCluster(e.GetID(), o.GetID())
+	o.AddElement(e.GetID())
+	e = el.NewSketchPoint(14, big.NewFloat(-1.121656), big.NewFloat(3.839516))
+	ea.AddElement(e)
+	ea.AddElementToCluster(e.GetID(), o.GetID())
+	o.AddElement(e.GetID())
+	e = el.NewSketchLine(6, big.NewFloat(0.941382), big.NewFloat(-0.337343), big.NewFloat(-3.804226))
+	ea.AddElement(e)
+	ea.AddElementToCluster(e.GetID(), o.GetID())
+	o.AddElement(e.GetID())
+	e = el.NewSketchLine(3, big.NewFloat(-0.029929), big.NewFloat(-0.999552), big.NewFloat(0))
+	ea.AddElement(e)
+	ea.AddElementToCluster(e.GetID(), o.GetID())
+	o.AddElement(e.GetID())
 
 	md = MergeData{
 		clusterId1: g.id,
 		clusterId2: o.id,
 		cluster1:   g,
 		cluster2:   o,
+		elements:   []uint{0, 5},
 	}
 	state = g.solveMerge(ea, ca, md)
 	assert.Equal(t, solver.Solved, state, "Merge with two shared points should solve successfully")

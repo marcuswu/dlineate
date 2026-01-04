@@ -92,13 +92,13 @@ func TestFindStartConstraint(t *testing.T) {
 	sketch.AddConstraint(constraint.Distance, e1, e2, big.NewFloat(1))
 	sketch.AddConstraint(constraint.Distance, e3, e4, big.NewFloat(1))
 
-	start := sketch.findStartConstraint(utils.NewSet())
+	start := sketch.findStartConstraint()
 	assert.Contains(t, []uint{0, 1, 2}, start)
 
 	sketch.freeEdges.Remove(e1.GetID())
 	sketch.freeEdges.Remove(e2.GetID())
 
-	start = sketch.findStartConstraint(utils.NewSet())
+	start = sketch.findStartConstraint()
 	assert.Contains(t, []uint{1, 2}, start)
 }
 
@@ -217,7 +217,7 @@ func TestCreateBuildResetClusters(t *testing.T) {
 	_ = sketch.AddConstraint(constraint.Distance, e0, e2, big.NewFloat(0))
 	_ = sketch.AddConstraint(constraint.Distance, e4, e1, big.NewFloat(1))
 	_ = sketch.AddConstraint(constraint.Distance, e4, e2, big.NewFloat(1))
-	_ = sketch.AddConstraint(constraint.Distance, e4, e5, big.NewFloat(1))
+	_ = sketch.AddConstraint(constraint.Distance, e6, e5, big.NewFloat(1))
 	_ = sketch.AddConstraint(constraint.Distance, e2, e1, big.NewFloat(1))
 	_ = sketch.AddConstraint(constraint.Distance, e1, e2, big.NewFloat(1))
 	_ = sketch.AddConstraint(constraint.Distance, e3, e2, big.NewFloat(1))
@@ -229,23 +229,23 @@ func TestCreateBuildResetClusters(t *testing.T) {
 	sketch.createClusters()
 
 	assert.Equal(t, 2, len(sketch.clusters), "Should have 2 clusters")
-	assert.Equal(t, 6, sketch.clusters[0].elements.Count(), "cluster 0 should have 6 element, 9 constraints")
-	assert.Equal(t, 9, len(sketch.clusters[0].constraints), "cluster 0 should have 6 element, 9 constraints")
+	assert.Equal(t, 5, sketch.clusters[0].elements.Count(), "cluster 0 should have 6 element, 9 constraints")
+	assert.Equal(t, 7, len(sketch.clusters[0].constraints), "cluster 0 should have 6 element, 9 constraints")
 
-	assert.Equal(t, 2, sketch.clusters[1].elements.Count(), "cluster 1 should have 2 element, 1 constraints")
-	assert.Equal(t, 1, len(sketch.clusters[1].constraints), "cluster 1 should have 2 element, 1 constraints")
+	assert.Equal(t, 3, sketch.clusters[1].elements.Count(), "cluster 1 should have 2 element, 1 constraints")
+	assert.Equal(t, 3, len(sketch.clusters[1].constraints), "cluster 1 should have 2 element, 1 constraints")
 
 	sketch.ResetClusters()
 	assert.Equal(t, 0, len(sketch.clusters), "Should have 0 clusters")
 
 	sketch.BuildClusters()
 
-	assert.Equal(t, 2, len(sketch.clusters), "Should have 4 clusters")
-	assert.Equal(t, 6, sketch.clusters[0].elements.Count(), "cluster 0 should have 6 element, 9 constraints")
-	assert.Equal(t, 9, len(sketch.clusters[0].constraints), "cluster 0 should have 6 element, 9 constraints")
+	assert.Equal(t, 2, len(sketch.clusters), "Should have 2 clusters")
+	assert.Equal(t, 5, sketch.clusters[0].elements.Count(), "cluster 0 should have 6 element, 9 constraints")
+	assert.Equal(t, 7, len(sketch.clusters[0].constraints), "cluster 0 should have 6 element, 9 constraints")
 
-	assert.Equal(t, 2, sketch.clusters[1].elements.Count(), "cluster 1 should have 2 element, 1 constraints")
-	assert.Equal(t, 1, len(sketch.clusters[1].constraints), "cluster 1 should have 2 element, 1 constraints")
+	assert.Equal(t, 3, sketch.clusters[1].elements.Count(), "cluster 1 should have 2 element, 1 constraints")
+	assert.Equal(t, 3, len(sketch.clusters[1].constraints), "cluster 1 should have 2 element, 1 constraints")
 
 	// assert.Equal(t, 2, sketch.clusters[2].elements.Count(), "cluster 2 should have 2 element, 1 constraints")
 	// assert.Equal(t, 1, len(sketch.clusters[2].constraints), "cluster 2 should have 2 element, 1 constraints")
@@ -258,7 +258,16 @@ func TestSolve(t *testing.T) {
 	s := NewSketch()
 	origin := s.AddOrigin(big.NewFloat(0), big.NewFloat(0))
 	xAxis := s.AddAxis(big.NewFloat(0), big.NewFloat(-1), big.NewFloat(0))
+	xAxis.AsLine().Start = origin.AsPoint()
+	xAxis.AsLine().End = s.AddPoint(big.NewFloat(1), big.NewFloat(0)).AsPoint()
 	yAxis := s.AddAxis(big.NewFloat(1), big.NewFloat(0), big.NewFloat(0))
+	yAxis.AsLine().Start = origin.AsPoint()
+	yAxis.AsLine().End = s.AddPoint(big.NewFloat(0), big.NewFloat(1)).AsPoint()
+	origin.SetFixed(true)
+	xAxis.SetFixed(true)
+	xAxis.AsLine().End.SetFixed(true)
+	yAxis.SetFixed(true)
+	yAxis.AsLine().End.SetFixed(true)
 	s.AddConstraint(constraint.Angle, xAxis, yAxis, big.NewFloat(math.Pi/2))
 	s.AddConstraint(constraint.Distance, origin, xAxis, big.NewFloat(0))
 	s.AddConstraint(constraint.Distance, origin, yAxis, big.NewFloat(0))
@@ -269,11 +278,21 @@ func TestSolve(t *testing.T) {
 	p4 := s.AddPoint(big.NewFloat(2.28), big.NewFloat(4.72))  // 5
 	p5 := s.AddPoint(big.NewFloat(-1.04), big.NewFloat(3.56)) // 6
 
-	l1 := s.AddLine(big.NewFloat(0), big.NewFloat(-1), big.NewFloat(0))                       // 7
+	l1 := s.AddLine(big.NewFloat(0), big.NewFloat(-1), big.NewFloat(0)) // 7
+	l1.AsLine().Start = p1.AsPoint()
+	l1.AsLine().End = p2.AsPoint()
 	l2 := s.AddLine(big.NewFloat(0.748681), big.NewFloat(-0.662629), big.NewFloat(-2.343374)) // 8
-	l3 := s.AddLine(big.NewFloat(0.650573), big.NewFloat(0.759444), big.NewFloat(-5.067881))  // 9
+	l2.AsLine().Start = p2.AsPoint()
+	l2.AsLine().End = p3.AsPoint()
+	l3 := s.AddLine(big.NewFloat(0.650573), big.NewFloat(0.759444), big.NewFloat(-5.067881)) // 9
+	l3.AsLine().Start = p3.AsPoint()
+	l3.AsLine().End = p4.AsPoint()
 	l4 := s.AddLine(big.NewFloat(-0.329844), big.NewFloat(0.944036), big.NewFloat(-3.703804)) // 10
-	l5 := s.AddLine(big.NewFloat(-0.959879), big.NewFloat(-0.280414), big.NewFloat(0))        // 11
+	l4.AsLine().Start = p4.AsPoint()
+	l4.AsLine().End = p5.AsPoint()
+	l5 := s.AddLine(big.NewFloat(-0.959879), big.NewFloat(-0.280414), big.NewFloat(0)) // 11
+	l5.AsLine().Start = p5.AsPoint()
+	l5.AsLine().End = p1.AsPoint()
 
 	s.AddConstraint(constraint.Distance, l1, p1, big.NewFloat(0))
 	s.AddConstraint(constraint.Distance, l1, p2, big.NewFloat(0))
@@ -286,19 +305,20 @@ func TestSolve(t *testing.T) {
 	s.AddConstraint(constraint.Distance, l5, p5, big.NewFloat(0))
 	c1 := s.AddConstraint(constraint.Distance, l5, p1, big.NewFloat(0))
 
-	s.AddConstraint(constraint.Angle, l2, l3, big.NewFloat((108.0/180.0)*math.Pi))
-	s.AddConstraint(constraint.Angle, l3, l4, big.NewFloat((108.0/180.0)*math.Pi))
-	s.AddConstraint(constraint.Angle, l4, l5, big.NewFloat((108.0/180.0)*math.Pi))
+	s.AddConstraint(constraint.Angle, l2, l3, big.NewFloat(math.Pi-((108.0/180.0)*math.Pi)))
+	s.AddConstraint(constraint.Angle, l3, l4, big.NewFloat(math.Pi-((108.0/180.0)*math.Pi)))
+	s.AddConstraint(constraint.Angle, l4, l5, big.NewFloat(math.Pi-((108.0/180.0)*math.Pi)))
 
 	c2 := s.AddConstraint(constraint.Distance, p1, p2, big.NewFloat(4))
 	s.AddConstraint(constraint.Distance, p2, p3, big.NewFloat(4))
-	s.AddConstraint(constraint.Distance, p3, p4, big.NewFloat(4))
-	c3 := s.AddConstraint(constraint.Distance, p4, p5, big.NewFloat(4))
+	s.AddConstraint(constraint.Distance, p4, p5, big.NewFloat(4))
+	c3 := s.AddConstraint(constraint.Distance, p5, p1, big.NewFloat(4))
 
 	c4 := s.AddConstraint(constraint.Angle, l1, xAxis, big.NewFloat(0))
 
 	s.ResetClusters()
 	s.BuildClusters()
+
 	state := s.Solve()
 
 	assert.Equal(t, solver.Solved, state, "Graph should be solved")
@@ -335,7 +355,16 @@ func TestFindMergeForCluster(t *testing.T) {
 	s := NewSketch()
 	origin := s.AddOrigin(big.NewFloat(0), big.NewFloat(0))
 	xAxis := s.AddAxis(big.NewFloat(0), big.NewFloat(-1), big.NewFloat(0))
+	xAxis.AsLine().Start = origin.AsPoint()
+	xAxis.AsLine().End = s.AddPoint(big.NewFloat(1), big.NewFloat(0)).AsPoint()
 	yAxis := s.AddAxis(big.NewFloat(1), big.NewFloat(0), big.NewFloat(0))
+	yAxis.AsLine().Start = origin.AsPoint()
+	yAxis.AsLine().End = s.AddPoint(big.NewFloat(0), big.NewFloat(1)).AsPoint()
+	origin.SetFixed(true)
+	xAxis.SetFixed(true)
+	xAxis.AsLine().End.SetFixed(true)
+	yAxis.SetFixed(true)
+	yAxis.AsLine().End.SetFixed(true)
 	s.AddConstraint(constraint.Angle, xAxis, yAxis, big.NewFloat(math.Pi/2))
 	s.AddConstraint(constraint.Distance, origin, xAxis, big.NewFloat(0))
 	s.AddConstraint(constraint.Distance, origin, yAxis, big.NewFloat(0))
@@ -347,10 +376,20 @@ func TestFindMergeForCluster(t *testing.T) {
 	p5 := s.AddPoint(big.NewFloat(-1.04), big.NewFloat(3.56))
 
 	l1 := s.AddLine(big.NewFloat(0), big.NewFloat(-1), big.NewFloat(0))
+	l1.AsLine().Start = p1.AsPoint()
+	l1.AsLine().End = p2.AsPoint()
 	l2 := s.AddLine(big.NewFloat(2.27), big.NewFloat(-2.01), big.NewFloat(7.1051))
+	l2.AsLine().Start = p2.AsPoint()
+	l2.AsLine().End = p3.AsPoint()
 	l3 := s.AddLine(big.NewFloat(2.45), big.NewFloat(2.86), big.NewFloat(19.0852))
+	l3.AsLine().Start = p3.AsPoint()
+	l3.AsLine().End = p4.AsPoint()
 	l4 := s.AddLine(big.NewFloat(-1.16), big.NewFloat(3.32), big.NewFloat(13.0256))
+	l4.AsLine().Start = p4.AsPoint()
+	l4.AsLine().End = p5.AsPoint()
 	l5 := s.AddLine(big.NewFloat(-3.56), big.NewFloat(-1.04), big.NewFloat(0)) // 12
+	l5.AsLine().Start = p5.AsPoint()
+	l5.AsLine().End = p1.AsPoint()
 
 	s.AddConstraint(constraint.Distance, l1, p1, big.NewFloat(0))
 	s.AddConstraint(constraint.Distance, l1, p2, big.NewFloat(0))
@@ -363,14 +402,14 @@ func TestFindMergeForCluster(t *testing.T) {
 	s.AddConstraint(constraint.Distance, l5, p5, big.NewFloat(0))
 	s.AddConstraint(constraint.Distance, l5, p1, big.NewFloat(0))
 
-	s.AddConstraint(constraint.Angle, l2, l3, big.NewFloat((72.0/180.0)*math.Pi))
-	s.AddConstraint(constraint.Angle, l3, l4, big.NewFloat((72.0/180.0)*math.Pi))
-	s.AddConstraint(constraint.Angle, l4, l5, big.NewFloat((72.0/180.0)*math.Pi))
+	s.AddConstraint(constraint.Angle, l2, l3, big.NewFloat(math.Pi-((72.0/180.0)*math.Pi)))
+	s.AddConstraint(constraint.Angle, l3, l4, big.NewFloat(math.Pi-((72.0/180.0)*math.Pi)))
+	s.AddConstraint(constraint.Angle, l4, l5, big.NewFloat(math.Pi-((72.0/180.0)*math.Pi)))
 
 	s.AddConstraint(constraint.Distance, p1, p2, big.NewFloat(4))
 	s.AddConstraint(constraint.Distance, p2, p3, big.NewFloat(4))
-	s.AddConstraint(constraint.Distance, p3, p4, big.NewFloat(4))
 	s.AddConstraint(constraint.Distance, p4, p5, big.NewFloat(4))
+	s.AddConstraint(constraint.Distance, p5, p1, big.NewFloat(4))
 
 	s.AddConstraint(constraint.Angle, l1, xAxis, big.NewFloat(0))
 
@@ -382,8 +421,8 @@ func TestFindMergeForCluster(t *testing.T) {
 	}
 	md := s.findMerge() //s.clusters[0])
 
-	assert.Contains(t, []int{1, 2}, md.cluster1, "First merge cluster is 5 or 6")
-	assert.Contains(t, []int{1, 2}, md.cluster2, "Second merge cluster is 5 or 6")
+	assert.Contains(t, []int{1, 2}, md.clusterId2, "First merge cluster is 5 or 6")
+	assert.Contains(t, []int{1, 2}, md.clusterId3, "Second merge cluster is 5 or 6")
 }
 
 func TestGraphToGraphViz(t *testing.T) {

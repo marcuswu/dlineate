@@ -99,7 +99,6 @@ func (g *GraphCluster) solveMerge(ea accessors.ElementAccessor, ca accessors.Con
 	utils.Logger.Debug().Msg("c2:")
 	c2.logElements(ea, zerolog.DebugLevel)
 
-	// TODO: Update these checks to allow for free constraints
 	sharedSet := ea.SharedElements(g.GetID(), c1.GetID())
 	if sharedSet.Count() != 1 {
 		return solver.NonConvergent
@@ -141,7 +140,6 @@ func (g *GraphCluster) solveMerge(ea accessors.ElementAccessor, ca accessors.Con
 	ea.CopyToCluster(g.GetID(), c1.GetID(), gc1Shared)
 	ea.CopyToCluster(g.GetID(), c2.GetID(), gc2Shared)
 
-	// Update to use free constraints if they exist
 	c1Constraint := c1.mergeConstraint(ea, gc1Shared, c1c2Shared)
 	c2Constraint := c2.mergeConstraint(ea, gc2Shared, c1c2Shared)
 	c1Shared, _ := ea.GetElement(c1.GetID(), c1c2Shared)

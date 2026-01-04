@@ -149,6 +149,7 @@ func TestResolveCurveRadius(t *testing.T) {
 }
 
 func TestSolve(t *testing.T) {
+	// Solve 1
 	s := NewSketch()
 	c1 := s.AddCircle(0, 0, 3)
 	s.AddCoincidentConstraint(c1.Center(), s.Origin)
@@ -156,6 +157,7 @@ func TestSolve(t *testing.T) {
 	err := s.Solve()
 	assert.Nil(t, err, "Expected successful solve")
 
+	// Solve 2 - inconsistent constraints
 	s = NewSketch()
 	c1 = s.AddCircle(0, 0, 3)
 	l1 := s.AddLine(0, 0, 1, 1)
@@ -169,6 +171,7 @@ func TestSolve(t *testing.T) {
 	assert.NotNil(t, err, "Expected inconsistent constraints")
 	assert.Equal(t, errors.New("failed to solve completely"), err, "Should not solve")
 
+	// Solve 3 - pentagon example
 	s = NewSketch()
 
 	// Add elements

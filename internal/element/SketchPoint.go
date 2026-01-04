@@ -177,3 +177,7 @@ func (p *SketchPoint) IsFixed() bool {
 func (p *SketchPoint) ToGraphViz(cId int) string {
 	return toGraphViz(p, cId)
 }
+
+func (p *SketchPoint) RotateAround(pivot SketchPoint, angle *big.Float) {
+	RotateElementAround(p, pivot, angle)
+}

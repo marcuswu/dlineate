@@ -157,6 +157,11 @@ func (s *Solver) Solve(tolerance float64, maxIterations int) bool {
 	}
 
 	initialValues := s.FreeValues()
+	if len(initialValues) == 0 {
+		utils.Logger.Debug().
+			Msg("Numeric solver: no free values to solve")
+		return false
+	}
 	solution, err := optimize.Minimize(problem, initialValues, &settings, nil)
 	if err != nil {
 		utils.Logger.Debug().Err(err).

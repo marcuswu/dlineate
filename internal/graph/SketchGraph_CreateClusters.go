@@ -5,6 +5,7 @@ import (
 
 	"github.com/marcuswu/dlineate/internal/constraint"
 	el "github.com/marcuswu/dlineate/internal/element"
+	"github.com/marcuswu/dlineate/internal/solver"
 	iutils "github.com/marcuswu/dlineate/internal/utils"
 	"github.com/marcuswu/dlineate/utils"
 	"github.com/rs/zerolog"
@@ -22,24 +23,12 @@ func (g *SketchGraph) createClusters() {
 	utils.Logger.Info().
 		Int("unassigned constraints", g.freeEdges.Count()).
 		Msg("Creating clusters")
-	// iterations := 0
-	skipConstraints := utils.NewSet()
-	for g.usedNodes.Count() < g.elementAccessor.Count() {
-		// iterations++
-		// if iterations > 10 {
-		// 	break
-		// }
-		utils.Logger.Info().
-			Str("assigned nodes", g.usedNodes.String()).
-			Msg("Creating a cluster")
-		// for g.freeEdges.Count() > 0 {
-		startFrom := g.findStartConstraint(skipConstraints)
-		cluster := g.createCluster(startFrom, id)
+
+	for g.freeEdges.Count() > 0 {
+		cluster := g.createCluster(g.findStartConstraint(), id)
 		if cluster == nil {
-			/*g.state = solver.NonConvergent
-			break*/
-			skipConstraints.Add(startFrom)
-			continue
+			g.state = solver.NonConvergent
+			break
 		}
 		id++
 		utils.Logger.Info().Str("free constraints", g.freeEdges.String()).Msgf("%d unassigned constraints left\n", g.freeEdges.Count())
@@ -58,12 +47,9 @@ func (g *SketchGraph) createClusters() {
 //  2. find a constraint where one element is in another cluster in the hopes that
 //     a future third cluster will connect the existing one and the one about to
 //     be created.
-func (g *SketchGraph) findStartConstraint(skip *utils.Set) uint {
+func (g *SketchGraph) findStartConstraint() uint {
 	constraints := make([]uint, 0)
 	for _, constraintId := range g.freeEdges.Contents() {
-		if skip.Contains(constraintId) {
-			continue
-		}
 		constraint, ok := g.constraintAccessor.GetConstraint(constraintId)
 		if !ok {
 			continue

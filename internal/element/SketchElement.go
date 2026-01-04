@@ -57,6 +57,7 @@ type SketchElement interface {
 	TranslateByElement(SketchElement)
 	ReverseTranslateByElement(SketchElement)
 	Rotate(tx *big.Float)
+	RotateAround(pivot SketchPoint, angle *big.Float)
 	Is(SketchElement) bool
 	IsEqual(SketchElement) bool
 	SquareDistanceTo(SketchElement) *big.Float
@@ -77,6 +78,18 @@ type List []SketchElement
 func (e List) Len() int           { return len(e) }
 func (e List) Swap(i, j int)      { e[i], e[j] = e[j], e[i] }
 func (e List) Less(i, j int) bool { return e[i].GetID() < e[j].GetID() }
+
+func RotateElementAround(e SketchElement, pivot SketchPoint, angle *big.Float) {
+	var x, y, negX, negY big.Float
+	x.Copy(pivot.GetX())
+	y.Copy(pivot.GetY())
+	negX.Neg(&x)
+	negY.Neg(&y)
+
+	e.Translate(&negX, &negY)
+	e.Rotate(angle)
+	e.Translate(&x, &y)
+}
 
 // CopySketchElement creates a deep copy of a SketchElement
 func CopySketchElement(e SketchElement) SketchElement {

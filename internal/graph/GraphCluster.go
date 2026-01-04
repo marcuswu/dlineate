@@ -605,9 +605,7 @@ func (g *GraphCluster) SharedElementsEquivalent(ea accessors.ElementAccessor, o 
 		if e1.AsLine() != nil {
 			l1 := e1.AsLine()
 			l2 := e2.AsLine()
-			return utils.StandardBigFloatCompare(l1.GetA(), l2.GetA()) == 0 &&
-				utils.StandardBigFloatCompare(l1.GetB(), l2.GetB()) == 0 &&
-				utils.StandardBigFloatCompare(l1.GetC(), l2.GetC()) == 0
+			return l1.IsEqual(l2)
 		}
 
 		p1 := e1.AsPoint()

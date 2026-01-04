@@ -113,3 +113,7 @@ func (s *Segment) ToGraphViz(cId int) string {
 func (s *Segment) String() string {
 	return fmt.Sprintf("Segment(%d) Start: %s, End: %s, Fixed: %t", s.id, s.start.String(), s.end.String(), s.fixed)
 }
+
+func (s *Segment) RotateAround(pivot el.SketchPoint, angle *big.Float) {
+	el.RotateElementAround(s.AsLine(), pivot, angle)
+}

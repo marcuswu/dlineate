@@ -88,9 +88,19 @@ func (l *SketchLine) IsEqual(o SketchElement) bool {
 		return false
 	}
 	ol := o.AsLine()
-	return utils.StandardBigFloatCompare(&l.a, &ol.a) == 0 &&
+	var negA, negB, negC big.Float
+	negA.Neg(&l.a)
+	negB.Neg(&l.b)
+	negC.Neg(&l.c)
+	directEqual := utils.StandardBigFloatCompare(&l.a, &ol.a) == 0 &&
 		utils.StandardBigFloatCompare(&l.b, &ol.b) == 0 &&
 		utils.StandardBigFloatCompare(&l.c, &ol.c) == 0
+
+	// If the line is represented in the opposite direction, it is still equal
+	negatedEqual := utils.StandardBigFloatCompare(&negA, &ol.a) == 0 &&
+		utils.StandardBigFloatCompare(&negB, &ol.b) == 0 &&
+		utils.StandardBigFloatCompare(&negC, &ol.c) == 0
+	return directEqual || negatedEqual
 }
 
 func (l *SketchLine) magnitude() *big.Float {
@@ -340,6 +350,10 @@ func (l *SketchLine) Rotate(angle *big.Float) {
 	l.a.Set(rotated.GetA())
 	l.b.Set(rotated.GetB())
 	l.c.Set(rotated.GetC())
+}
+
+func (l *SketchLine) RotateAround(pivot SketchPoint, angle *big.Float) {
+	RotateElementAround(l, pivot, angle)
 }
 
 // Intersection returns the intersection of two lines
