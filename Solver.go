@@ -7,6 +7,7 @@ import (
 	"math"
 	"math/big"
 	"os"
+	"sort"
 
 	svg "github.com/ajstarks/svgo/float"
 	"github.com/rs/zerolog"
@@ -19,15 +20,17 @@ import (
 )
 
 type Sketch struct {
-	plane       *Workplane
-	sketch      *core.SketchGraph
-	Elements    []*Element
-	constraints []*Constraint
-	eToC        map[uint][]*Constraint
-	passes      int
-	Origin      *Element
-	XAxis       *Element
-	YAxis       *Element
+	plane            *Workplane
+	sketch           *core.SketchGraph
+	Elements         []*Element
+	constraints      []*Constraint
+	eToC             map[uint][]*Constraint
+	passes           int
+	nextConstraintID uint64
+	lastSolveReport  SolveReport
+	Origin           *Element
+	XAxis            *Element
+	YAxis            *Element
 }
 
 func UseLogger(logger zerolog.Logger) {
@@ -512,13 +515,168 @@ func (s *Sketch) Solve() error {
 		log.Error().Str("Conflicting Constraints", s.sketch.Conflicting().String()).Msg("Found conflicting constraints")
 		solveState = solver.OverConstrained
 	}
+	s.lastSolveReport = s.makeSolveReport(solveState, nil)
 
 	switch solveState {
 	case solver.Solved:
 		return nil
 	default:
-		return errors.New("failed to solve completely")
+		err := errors.New("failed to solve completely")
+		s.lastSolveReport.Error = err.Error()
+		return err
 	}
+}
+
+// SolveWithReport solves the sketch and returns a structured snapshot of the
+// solve outcome, element values/statuses, and constraint diagnostics. Solve()
+// remains available as a compatibility wrapper returning the legacy error.
+func (s *Sketch) SolveWithReport() SolveReport {
+	_ = s.Solve()
+	return cloneSolveReport(s.lastSolveReport)
+}
+
+// LastSolveReport returns the report from the most recent Solve or
+// SolveWithReport call. It returns an empty report before the first solve.
+func (s *Sketch) LastSolveReport() SolveReport {
+	return cloneSolveReport(s.lastSolveReport)
+}
+
+func (s *Sketch) makeSolveReport(state solver.SolveState, solveErr error) SolveReport {
+	report := SolveReport{
+		Status:      SolveStatusUnknown,
+		Passes:      s.passes,
+		Elements:    make([]ElementSolveResult, 0, len(s.Elements)),
+		Constraints: make([]ConstraintSolveResult, 0, len(s.constraints)),
+		Conflicts:   make([]ConstraintSolveResult, 0),
+		Diagnostics: make([]SolveDiagnostic, 0, 1),
+	}
+	if solveErr != nil {
+		report.Error = solveErr.Error()
+	}
+
+	underConstrained := false
+	for _, e := range s.Elements {
+		status := publicElementStatus(e.ConstraintLevel())
+		if status == ElementSolveStatusUnderConstrained {
+			underConstrained = true
+		}
+		report.Elements = append(report.Elements, ElementSolveResult{
+			ID:     e.ID(),
+			Type:   e.elementType,
+			Status: status,
+			Values: append([]float64(nil), e.Values()...),
+		})
+	}
+
+	conflicting := make(map[*Constraint]bool)
+	for _, c := range s.ConflictingConstraints() {
+		conflicting[c] = true
+	}
+	conflictIDs := make([]uint64, 0, len(conflicting))
+	conflictElements := make(map[uint]bool)
+	for _, c := range s.constraints {
+		result := constraintSolveResult(c, conflicting[c])
+		report.Constraints = append(report.Constraints, result)
+		if result.Conflicting {
+			report.Conflicts = append(report.Conflicts, result)
+			conflictIDs = append(conflictIDs, result.ID)
+			for _, elementID := range result.ElementIDs {
+				conflictElements[elementID] = true
+			}
+		}
+	}
+
+	switch {
+	case len(report.Conflicts) > 0 || state == solver.OverConstrained:
+		report.Status = SolveStatusOverConstrained
+		report.Diagnostics = append(report.Diagnostics, SolveDiagnostic{
+			Code:          "solve.over_constrained",
+			Message:       "the sketch contains constraints marked as conflicting by the solver",
+			ConstraintIDs: conflictIDs,
+			ElementIDs:    sortedElementIDs(conflictElements),
+		})
+	case state == solver.Solved && !underConstrained:
+		report.Status = SolveStatusSolved
+		report.Diagnostics = append(report.Diagnostics, SolveDiagnostic{
+			Code:    "solve.solved",
+			Message: "all solver constraints were satisfied",
+		})
+	case underConstrained:
+		report.Status = SolveStatusUnderConstrained
+		report.Diagnostics = append(report.Diagnostics, SolveDiagnostic{
+			Code:    "solve.under_constrained",
+			Message: "one or more elements are marked under-constrained",
+		})
+	default:
+		report.Status = SolveStatusNonConvergent
+		report.Diagnostics = append(report.Diagnostics, SolveDiagnostic{
+			Code:    "solve.non_convergent",
+			Message: "the solver did not complete successfully; under-constrained cases may not yet be distinguished",
+		})
+	}
+	return report
+}
+
+func sortedElementIDs(ids map[uint]bool) []uint {
+	result := make([]uint, 0, len(ids))
+	for id := range ids {
+		result = append(result, id)
+	}
+	sort.Slice(result, func(i, j int) bool { return result[i] < result[j] })
+	return result
+}
+
+func constraintSolveResult(c *Constraint, conflicting bool) ConstraintSolveResult {
+	result := ConstraintSolveResult{
+		ID:          c.ID(),
+		Type:        c.constraintType,
+		State:       c.state,
+		ElementIDs:  make([]uint, 0, len(c.elements)),
+		CoreIDs:     make([]uint, 0, len(c.constraints)),
+		Conflicting: conflicting,
+		Value:       c.dataValue,
+	}
+	for _, e := range c.elements {
+		if e != nil {
+			result.ElementIDs = append(result.ElementIDs, e.ID())
+		}
+	}
+	for i, coreConstraint := range c.constraints {
+		result.CoreIDs = append(result.CoreIDs, coreConstraint.GetID())
+		if i == 0 {
+			result.Value, _ = coreConstraint.Value.Float64()
+			result.ValueKnown = true
+		}
+	}
+	if len(c.constraints) == 0 && (c.constraintType == Distance || c.constraintType == Ratio) {
+		result.ValueKnown = true
+	}
+	return result
+}
+
+func cloneSolveReport(report SolveReport) SolveReport {
+	clone := report
+	clone.Elements = append([]ElementSolveResult(nil), report.Elements...)
+	for i := range clone.Elements {
+		clone.Elements[i].Values = append([]float64(nil), report.Elements[i].Values...)
+	}
+	clone.Constraints = cloneConstraintResults(report.Constraints)
+	clone.Conflicts = cloneConstraintResults(report.Conflicts)
+	clone.Diagnostics = append([]SolveDiagnostic(nil), report.Diagnostics...)
+	for i := range clone.Diagnostics {
+		clone.Diagnostics[i].ConstraintIDs = append([]uint64(nil), report.Diagnostics[i].ConstraintIDs...)
+		clone.Diagnostics[i].ElementIDs = append([]uint(nil), report.Diagnostics[i].ElementIDs...)
+	}
+	return clone
+}
+
+func cloneConstraintResults(results []ConstraintSolveResult) []ConstraintSolveResult {
+	clone := append([]ConstraintSolveResult(nil), results...)
+	for i := range clone {
+		clone[i].ElementIDs = append([]uint(nil), results[i].ElementIDs...)
+		clone[i].CoreIDs = append([]uint(nil), results[i].CoreIDs...)
+	}
+	return clone
 }
 
 func (s *Sketch) ConflictingConstraints() []*Constraint {

@@ -85,7 +85,7 @@ func (s *Sketch) AddDistanceConstraint(p1 *Element, p2 *Element, v float64) *Con
 		}
 		c.dataValue = v
 	}
-	s.constraints = append(s.constraints, c)
+	s.addConstraint(c)
 
 	// This is might be wrong unless p1.element is always in constraint c -- for a line this is not true
 	// check to see how eToC is used!
@@ -145,7 +145,7 @@ func (s *Sketch) resolveCurveDistance(e1 *Element, e2 *Element, c *Constraint) b
 		e1.constraints = append(e1.constraints, constraint)
 		c.constraints = append(c.constraints, constraint)
 	}
-	s.constraints = append(s.constraints, c)
+	s.addConstraint(c)
 	if c.state != Solved {
 		c.state = Resolved
 	}

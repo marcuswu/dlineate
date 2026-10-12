@@ -69,11 +69,29 @@ func (t ConstraintState) String() string {
 }
 
 type Constraint struct {
+	id             uint64
 	constraints    []*c.Constraint
 	elements       []*Element
 	constraintType ConstraintType
 	state          ConstraintState
 	dataValue      float64
+}
+
+// ID returns the stable sketch-level identifier for this constraint.
+func (c *Constraint) ID() uint64 {
+	return c.id
+}
+
+// addConstraint registers a public constraint once and assigns its stable ID.
+// Resolution may revisit a constraint, so this also prevents duplicate
+// entries in the sketch's public constraint collection.
+func (s *Sketch) addConstraint(c *Constraint) {
+	if c.id != 0 {
+		return
+	}
+	s.nextConstraintID++
+	c.id = s.nextConstraintID
+	s.constraints = append(s.constraints, c)
 }
 
 func emptyConstraint() *Constraint {

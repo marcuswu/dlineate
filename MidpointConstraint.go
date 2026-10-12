@@ -36,7 +36,7 @@ func (s *Sketch) AddMidpointConstraint(p1 *Element, p2 *Element) *Constraint {
 	}
 	s.eToC[p1.id] = append(s.eToC[p1.id], c)
 	s.eToC[p2.id] = append(s.eToC[p2.id], c)
-	s.constraints = append(s.constraints, c)
+	s.addConstraint(c)
 
 	s.resolveMidpointConstraint(c)
 
@@ -87,7 +87,7 @@ func (s *Sketch) resolveLineMidpoint(c *Constraint, point *Element, other *Eleme
 		point.constraints = append(point.constraints, constraint)
 		c.constraints = append(c.constraints, constraint)
 	}
-	s.constraints = append(s.constraints, c)
+	s.addConstraint(c)
 	c.state = Resolved
 
 	return c.state == Resolved
@@ -162,7 +162,7 @@ func (s *Sketch) resolveArcMidpoint(c *Constraint, point *Element, other *Elemen
 		point.constraints = append(point.constraints, constraint)
 		c.constraints = append(c.constraints, constraint)
 	}
-	s.constraints = append(s.constraints, c)
+	s.addConstraint(c)
 	c.state = Resolved
 
 	return c.state == Resolved
